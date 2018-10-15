@@ -179,9 +179,9 @@ struct CallExprInfo {
 struct ExprInfo {
         int kind;
         union {
-                UnopExpr unopExpr;
-                BinopExpr binopExpr;
-                CallExpr callExpr;
+                struct UnopExprInfo unop;
+                struct BinopExprInfo binop;
+                struct CallExprInfo call;
         };
 };
 
@@ -251,14 +251,15 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
         int cnt;
         void *p;
         if (alloc->cap < nelems) {
-                cnt = nelems;
-                cnt = 2*cnt - 1; while (cnt & (cnt-1)) cnt = cnt & (cnt-1);
+                cnt = 2 * nelems - 1;
+                while (cnt & (cnt - 1))
+                        cnt = cnt & (cnt - 1);
                 p = mem_realloc(*ptr, cnt * elsize);
                 if (!p)
                         fatal("OOM!");
                 if (clear)
-                        memset((char*)p + alloc->cap * elsize, 0,
-                               (cnt - alloc->cap) * elsize);
+                        mem_fill((char*)p + alloc->cap * elsize, 0,
+                                 (cnt - alloc->cap) * elsize);
                 *ptr = p;
                 alloc->cap = cnt;
         }
@@ -267,30 +268,30 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
 #define BUF_INIT(buf, alloc) \
         _buf_init((void**)&(buf), &(alloc), sizeof *(buf), __FILE__, __LINE__);
 
-#define BUF_EXIT(buf, cap) \
+#define BUF_EXIT(buf, alloc) \
         _buf_exit((void**)&(buf), &(alloc), sizeof *(buf), __FILE__, __LINE__);
 
-#define BUF_RESERVE(buf, cap, cnt) \
+#define BUF_RESERVE(buf, alloc, cnt) \
         _buf_reserve((void**)&(buf), &(alloc), (cnt), sizeof *(buf), 0, \
                      __FILE__, __LINE__);
 
-#define BUF_RESERVE_Z(buf, cap, cnt) \
+#define BUF_RESERVE_Z(buf, alloc, cnt) \
         _buf_reserve((void**)&(buf), &(alloc), (cnt), sizeof *(buf), 1, \
                      __FILE__, __LINE__);
 
 #define BUF_APPEND(buf, alloc, cnt, el) \
         do { \
-        void *ptr = (buf); \
-        int _appendpos = (cnt)++; \
-        _buf_reserve(&ptr, &(alloc), _appendpos+1, sizeof *(buf), 0, \
-                     __FILE__, __LINE__); \
-        (buf)[_appendpos] = el; \
-} while (0)
+                void *ptr = (buf); \
+                int _appendpos = (cnt)++; \
+                _buf_reserve(&ptr, &(alloc), _appendpos+1, sizeof *(buf), 0, \
+                             __FILE__, __LINE__); \
+                (buf)[_appendpos] = el; \
+        } while (0)
 
 Token add_word_token(const char *string, int length)
 {
         Token x = tokenCnt++;
-        RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
+        BUF_RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
         tokenInfo[x].kind = TOKTYPE_WORD;
         tokenInfo[x].word.string = intern_string(string, length);
         return x;
@@ -299,7 +300,7 @@ Token add_word_token(const char *string, int length)
 Token add_bare_token(int kind)
 {
         Token x = tokenCnt++;
-        RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
+        BUF_RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
         tokenInfo[x].kind = kind;
         return x;
 }
@@ -307,7 +308,7 @@ Token add_bare_token(int kind)
 void add_entity(Type tp, Symbol sym)
 {
         Entity x = entityCnt++;
-        RESERVE(entityInfo, entityInfoAlloc, entityCnt);
+        BUF_RESERVE(entityInfo, entityInfoAlloc, entityCnt);
         entityInfo[x].tp = tp;
         entityInfo[x].sym = sym;
 }
@@ -315,7 +316,7 @@ void add_entity(Type tp, Symbol sym)
 Table add_table(Type tp, Symbol sym)
 {
         Table x = tableCnt++;
-        RESERVE(tableInfo, tableInfoAlloc, tableCnt);
+        BUF_RESERVE(tableInfo, tableInfoAlloc, tableCnt);
         tableInfo[x].tp = tp;
         tableInfo[x].sym = sym;
         return x;
@@ -324,7 +325,7 @@ Table add_table(Type tp, Symbol sym)
 void add_column(Table table, Type tp, Symbol sym)
 {
         Column x = columnCnt++;
-        RESERVE(columnInfo, columnInfoAlloc, columnCnt);
+        BUF_RESERVE(columnInfo, columnInfoAlloc, columnCnt);
         columnInfo[x].tp = tp;
         columnInfo[x].sym = sym;
 }
@@ -332,7 +333,7 @@ void add_column(Table table, Type tp, Symbol sym)
 void add_data(Scope scope, Type tp, Symbol sym)
 {
         Data x = dataCnt++;
-        RESERVE(dataInfo, dataInfoAlloc, dataCnt);
+        BUF_RESERVE(dataInfo, dataInfoAlloc, dataCnt);
         dataInfo[x].scope = scope;
         dataInfo[x].tp = tp;
         dataInfo[x].sym = sym;
@@ -341,9 +342,30 @@ void add_data(Scope scope, Type tp, Symbol sym)
 Proc add_proc(Type tp, Symbol sym)
 {
         Proc x = procCnt++;
-        RESERVE(procInfo, procInfoAlloc, procCnt);
+        BUF_RESERVE(procInfo, procInfoAlloc, procCnt);
         procInfo[x].tp = tp;
         procInfo[x].sym = sym;
+        return x;
+}
+
+Expr add_unop_expression(int opkind, Expr expr)
+{
+        Expr x = exprCnt++;
+        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        exprInfo[x].kind = EXPR_UNOP;
+        exprInfo[x].unop.kind = opkind;
+        exprInfo[x].unop.expr = expr;
+        return x;
+}
+
+Expr add_binop_expression(int opkind, Expr expr1, Expr expr2)
+{
+        Expr x = exprCnt++;
+        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        exprInfo[x].kind = EXPR_BINOP;
+        exprInfo[x].binop.kind = opkind;
+        exprInfo[x].binop.expr1 = expr1;
+        exprInfo[x].binop.expr2 = expr1;
         return x;
 }
 
@@ -401,7 +423,7 @@ int token_is_unary_prefix_operator(Token tok, int *out_optype) {
         };
 
         int ans = 0;
-        int tp = token_type(tok);
+        int tp = tokenInfo[tok].kind;
         for (int i = 0; i < LENGTH(tbl); i++) {
                 if (tp == tbl[i].ttype) {
                         ans = 1;
@@ -431,7 +453,7 @@ int token_is_binary_infix_operator(Token tok, int *out_optp, int *out_prec)
         };
 
         int ans = 0;
-        int tp = token_type(tok);
+        int tp = tokenInfo[tok].kind;
         for (int i = 0; i < LENGTH(tbl); i++) {
                 if (tp == tbl[i].ttp) {
                         ans = 1;
@@ -452,7 +474,7 @@ int token_is_unary_postfix_operator(Token tok, int *out_optype) {
         };
 
         int ans = 0;
-        int tp = token_type(tok);
+        int tp = tokenInfo[tok].kind;
         for (int i = 0; i < LENGTH(tbl); i++) {
                 if (tp == tbl[i].ttype) {
                         ans = 1;
@@ -507,7 +529,7 @@ Token parse_next_token(void)
                 lexbufCnt = 0;
                 for (;;) {
                         int idx = lexbufCnt++;
-                        RESERVE(lexbuf, lexbufAlloc, lexbufCnt);
+                        BUF_RESERVE(lexbuf, lexbufAlloc, lexbufCnt);
                         lexbuf[idx] = c;
                         c = look_char();
                         if (c == -1)
@@ -679,22 +701,22 @@ Expr parse_expression(int minprec)
                         break;
                 parse_next_token();
                 subexpr = parse_expression(42  /* TODO: unop precedence */);
-                expr = add_unop_expression(subexpr);
+                expr = add_unop_expression(opkind, subexpr);
         }
 
         /* main expression */
-        if (token_type(tok) == TOKTYPE_WORD) {
+        if (tokenInfo[tok].kind == TOKTYPE_WORD) {
                 Symbol sym = get_token_identifier_string(tok);
                 expr = add_symref_expr(sym);
                 /* function call? */
                 tok = parse_next_token();
-                if (token_type(tok) == TOKTYPE_LEFTPAREN) {
+                if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
                         for (;;) {
                                 parse_next_token();
                                 /* TODO: parse arguments */
                         }
                 }
-                if (token_type(tok) != TOKTYPE_RIGHTPAREN) {
+                if (tokenInfo[tok].kind != TOKTYPE_RIGHTPAREN) {
                         die("Expected ')'");
                 }
         }
@@ -764,7 +786,6 @@ void parse_statement(Scope scope)
 
 void parse_proc_body(Proc proc)
 {
-
 }
 
 void parse_proc(void)
@@ -791,22 +812,21 @@ void parse_proc(void)
 void parse_global_scope(void)
 {
         Token token;
+        String s;
 
         token = parse_next_token();
-
         if (token_is_identifier(token)) {
-                String s = get_token_identifier_string(token);
-
-                if (s == CONSTSTR_ENTITY) {
+                s = get_token_identifier_string(token);
+                if (s == constStr[CONSTSTR_ENTITY]) {
                         parse_entity();
                 }
-                else if (s == CONSTSTR_TABLE) {
+                else if (s == constStr[CONSTSTR_TABLE]) {
                         parse_table();
                 }
-                else if (s == CONSTSTR_DATA) {
+                else if (s == constStr[CONSTSTR_DATA]) {
                         parse_data(42 /*global_scope*/);
                 }
-                else if (s == CONSTSTR_PROC) {
+                else if (s == constStr[CONSTSTR_PROC]) {
                         parse_proc();
                 }
         }
