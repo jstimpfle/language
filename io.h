@@ -1,3 +1,5 @@
+#include "defs.h"
+
 typedef void *FileImpl;
 
 int read_char_from_file(FileImpl file);
@@ -10,3 +12,6 @@ void sort_array(void *ptr, int nelems, int elemsize,
                 int (*compare)(const void*, const void*));
 
 void *mem_realloc(void *ptr, int size);
+
+
+void NORETURN fatal(const char *msg, ...);

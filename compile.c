@@ -1,36 +1,20 @@
+#include "defs.h"
 #include "io.h"
-
-#ifdef _MSC_VER
-#define UNUSED
-#define NORETURN __declspec(noreturn)
-#define UNREACHABLE() assert(0);
-#else
-#define UNUSED __attribute__((unused))
-#define NORETURN __attribute__((noreturn))
-#define UNREACHABLE() __builtin_unreachable()
-#endif
-#define NOTIMPLEMENTED() fatal("In %s:%d: %s(): not implemented!", \
-                               __FILE__, __LINE__, __func__)
-#define CLEAR(x) mem_fill(&(x), 0, sizeof (x))
-#define LENGTH(a) ((int) (sizeof (a) / sizeof (a)[0]))
-#define SORT(a, n, cmp) sort_array(a, n, sizeof *(a), cmp)
-
-#ifndef NULL
-#define NULL ((void*)0)
-#endif
 
 typedef int String;
 typedef int Token;
 typedef int Symbol;
+typedef int Symref;
 typedef int Scope;
 typedef int Entity;
 typedef int Table;
 typedef int Column;
 typedef int Data;
 typedef int Proc;
+typedef int SymrefExpr;
+typedef int CallExpr;
 typedef int UnopExpr;
 typedef int BinopExpr;
-typedef int CallExpr;
 typedef int Expr;
 typedef int Type;
 
@@ -116,6 +100,15 @@ struct FileInfo {
         FileImpl impl;
 };
 
+struct StringInfo {
+        int pos;  // offset in character buffer
+        String next;  // next string in chain
+};
+
+struct StringBucketInfo {
+        int firstString;
+};
+
 struct WordTokenInfo {
         String string;
 };
@@ -159,6 +152,17 @@ struct ProcInfo {
         Symbol sym;
 };
 
+struct SymrefExprInfo {
+        Symbol sym;
+        Token tok;
+};
+
+struct CallExprInfo {
+        Proc proc;
+        Expr firstArgIndex;  // speed-up
+        Expr lastArgIndex;  // speed-up
+};
+
 struct UnopExprInfo {
         int kind;
         Expr expr;
@@ -170,18 +174,13 @@ struct BinopExprInfo {
         Expr expr2;
 };
 
-struct CallExprInfo {
-        Proc proc;
-        Expr firstArgIndex;  // speed-up
-        Expr lastArgIndex;  // speed-up
-};
-
 struct ExprInfo {
         int kind;
         union {
+                struct SymrefExprInfo symref;
+                struct CallExprInfo call;
                 struct UnopExprInfo unop;
                 struct BinopExprInfo binop;
-                struct CallExprInfo call;
         };
 };
 
@@ -195,6 +194,9 @@ int have_saved_token;
 Token saved_token;
 
 int lexbufCnt;
+int strbufCnt;
+int stringCnt;
+int strBucketCnt;
 int tokenCnt;
 int entityCnt;
 int tableCnt;
@@ -207,6 +209,9 @@ int callExprCnt;
 int exprCnt;
 
 char *lexbuf;
+char *strbuf;
+struct StringInfo *stringInfo;
+struct StringBucketInfo *strBucketInfo;
 struct TokenInfo *tokenInfo;
 struct EntityInfo *entityInfo;
 struct TableInfo *tableInfo;
@@ -219,6 +224,9 @@ struct CallExprInfo *callExprInfo;
 struct ExprInfo *exprInfo;
 
 struct Alloc lexbufAlloc;
+struct Alloc strbufAlloc;
+struct Alloc stringInfoAlloc;
+struct Alloc strBucketInfoAlloc;
 struct Alloc tokenInfoAlloc;
 struct Alloc entityInfoAlloc;
 struct Alloc tableInfoAlloc;
@@ -288,6 +296,110 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                 (buf)[_appendpos] = el; \
         } while (0)
 
+const char *string_buffer(String s)
+{
+        return &strbuf[stringInfo[s].pos];
+}
+
+int string_length(String s)
+{
+        return stringInfo[s+1].pos - stringInfo[s].pos - 1;
+}
+
+String add_string(const char *buf, int len)
+{
+        String s = stringCnt;
+        int pos = strbufCnt;
+
+        stringCnt += 1;
+        strbufCnt += len + 1;
+
+        // Allocate one more to support string_length()
+        BUF_RESERVE(stringInfo, stringInfoAlloc, stringCnt + 1);
+        stringInfo[s].pos = pos;
+        stringInfo[s+1].pos = pos + len + 1;
+
+        BUF_RESERVE(strbuf, strbufAlloc, strbufCnt);
+        memcpy(&strbuf[pos], buf, len);
+        strbuf[pos + len] = '\0';
+}
+
+unsigned hash_string(const void *str, int len)
+{
+        int i;
+        unsigned hsh = 5381;
+        for (i = 0; i < len; i++)
+                hsh = 33*hsh + ((const unsigned char *)str)[i];
+        return hsh;
+}
+
+String lookup_string_with_hash(const void *buf, int len, unsigned hsh)
+{
+        unsigned bck;
+        String s;
+
+        bck = hsh & (strBucketCnt - 1);
+        for (s = strBucketInfo[bck].firstString; s != -1;
+             s = stringInfo[s].next) {
+                if (string_length(s) == len &&
+                    memcmp(string_buffer(s), buf, len) == 0)
+                        return s;
+        }
+        return -1;
+}
+
+void insert_string_with_hash(String s, unsigned hsh)
+{
+        unsigned bck;
+        int ch;
+
+        bck = hsh & (strBucketCnt - 1);
+
+        stringInfo[ch].next = strBucketInfo[bck].firstString;
+        strBucketInfo[bck].firstString = s;
+}
+
+String intern_string(const void *buf, int len)
+{
+        int i;
+        unsigned hsh;
+        String s;
+
+        /* resize hash map if load factor exceeds 66% */
+        if (2 * strBucketCnt <= 3 * stringCnt) {
+                if (strBucketCnt == 0)
+                        strBucketCnt = 256;
+                while (2 * strBucketCnt < 3 * stringCnt)
+                        strBucketCnt *= 2;
+
+                BUF_RESERVE(strBucketInfo, strBucketInfoAlloc, strBucketCnt);
+                for (i = 0; i < strBucketCnt; i++)
+                        strBucketInfo[i].firstString = -1;
+
+                for (s = 0; s < stringCnt; s++) {
+                        const void *buf = string_buffer(s);
+                        int len = string_length(s);
+                        unsigned hsh = hash_string(buf, len);
+                        insert_string_with_hash(s, hsh);
+                }
+        }
+        // MUST BE POWER OF 2 !!!!
+        assert((strBucketCnt & (strBucketCnt-1)) == 0);
+
+        hsh = hash_string(buf, len);
+        s = lookup_string_with_hash(buf, len, hsh);
+        if (s == -1) {
+                s = add_string(buf, len);
+                insert_string_with_hash(s, hsh);
+        }
+        return s;
+}
+
+String intern_cstring(const char *str)
+{
+        return intern_string((const void *)str, strlen(str));
+}
+
 Token add_word_token(const char *string, int length)
 {
         Token x = tokenCnt++;
@@ -305,12 +417,23 @@ Token add_bare_token(int kind)
         return x;
 }
 
-void add_entity(Type tp, Symbol sym)
+Type add_proc_type(void)
+{
+        return -1;
+}
+
+Symbol add_symbol(String s)
+{
+        return -1;
+}
+
+Entity add_entity(Type tp, Symbol sym)
 {
         Entity x = entityCnt++;
         BUF_RESERVE(entityInfo, entityInfoAlloc, entityCnt);
         entityInfo[x].tp = tp;
         entityInfo[x].sym = sym;
+        return x;
 }
 
 Table add_table(Type tp, Symbol sym)
@@ -348,7 +471,17 @@ Proc add_proc(Type tp, Symbol sym)
         return x;
 }
 
-Expr add_unop_expression(int opkind, Expr expr)
+Expr add_symref_expr(Token tok)
+{
+        return -1;
+}
+
+Expr add_call_expr(Expr callee)
+{
+        return -1;
+}
+
+Expr add_unop_expr(int opkind, Expr expr)
 {
         Expr x = exprCnt++;
         BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
@@ -358,7 +491,7 @@ Expr add_unop_expression(int opkind, Expr expr)
         return x;
 }
 
-Expr add_binop_expression(int opkind, Expr expr1, Expr expr2)
+Expr add_binop_expr(int opkind, Expr expr1, Expr expr2)
 {
         Expr x = exprCnt++;
         BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
@@ -624,16 +757,34 @@ Token look_next_token(void)
                 return parse_next_token();
 }
 
-void parse_entity(void)
+void parse_bare_token(int tkind)
+{
+        Token tok = parse_next_token();
+        if (tokenInfo[tok].kind != tkind) {
+                fatal("Unexpected token\n");
+        }
+}
+
+Symbol parse_symbol(void)
+{
+        return -1;
+}
+
+Type parse_type(void)
+{
+        return -1;
+}
+
+Entity parse_entity(void)
 {
         Type tp;
         Symbol sym;
 
         tp = parse_type();
         sym = parse_symbol();
-        parse_semicolon();
+        parse_bare_token(TOKTYPE_SEMICOLON);
 
-        add_entity(tp, sym);
+        return add_entity(tp, sym);
 }
 
 void parse_column(Table table)
@@ -643,7 +794,7 @@ void parse_column(Table table)
 
         tp = parse_type();
         sym = parse_symbol();
-        parse_semicolon();
+        parse_bare_token(TOKTYPE_SEMICOLON);
 
         add_column(table, tp, sym);
 }
@@ -681,12 +832,12 @@ void parse_data(Scope scope)
 
         tp = parse_type();
         sym = parse_symbol();
-        parse_semicolon();
+        parse_bare_token(TOKTYPE_SEMICOLON);
 
         add_data(scope, tp, sym);
 }
 
-Expr parse_expression(int minprec)
+Expr parse_expr(int minprec)
 {
         Token tok;
         Expr expr;
@@ -700,14 +851,13 @@ Expr parse_expression(int minprec)
                 if (! token_is_unary_prefix_operator(tok, &opkind))
                         break;
                 parse_next_token();
-                subexpr = parse_expression(42  /* TODO: unop precedence */);
-                expr = add_unop_expression(opkind, subexpr);
+                subexpr = parse_expr(42  /* TODO: unop precedence */);
+                expr = add_unop_expr(opkind, subexpr);
         }
 
         /* main expression */
         if (tokenInfo[tok].kind == TOKTYPE_WORD) {
-                Symbol sym = get_token_identifier_string(tok);
-                expr = add_symref_expr(sym);
+                expr = add_symref_expr(tok);
                 /* function call? */
                 tok = parse_next_token();
                 if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
@@ -717,7 +867,7 @@ Expr parse_expression(int minprec)
                         }
                 }
                 if (tokenInfo[tok].kind != TOKTYPE_RIGHTPAREN) {
-                        die("Expected ')'");
+                        fatal("Expected ')'");
                 }
         }
         else {
@@ -731,56 +881,77 @@ Expr parse_expression(int minprec)
 
                 tok = parse_next_token();
 
-                if (! is_binary_infix_operator(tok, &opkind, &opprec))
+                if (! token_is_binary_infix_operator(tok, &opkind, &opprec))
                         break;
 
                 if (opprec < minprec)
                         break;
 
                 parse_next_token();
-                subexpr = parse_expression(opprec + 1);
-                expr = make_binop_expr(opkind, expr, subexpr);
+                subexpr = parse_expr(opprec + 1);
+                expr = add_binop_expr(opkind, expr, subexpr);
         }
 
         /* postfix operators */
         for (;;) {
                 int opkind;
 
-                if (! is_unary_postfix_operator(tok, &opkind))
+                if (! token_is_unary_postfix_operator(tok, &opkind))
                         break;
 
-                expr = make_unary_postfix_expression(opkind, expr);
+                expr = add_unop_expr(opkind, expr);
                 tok = parse_next_token();
         }
 
         return expr;
 }
 
-void parse_statement(Scope scope)
+void parse_ifstmt(void)
+{
+}
+
+void parse_whilestmt(void)
+{
+}
+
+void parse_forstmt(void)
+{
+}
+
+void parse_exprstmt(void)
+{
+}
+
+void parse_stmt(Scope scope)
 {
         Token tok;
        
-        tok = lookahead_next_token();
+        tok = look_next_token();
 
-        if (token_is_identifier_equal(tok, CONSTSTR_DATA)) {
-                parse_next_token();
-                parse_data(scope);
-        }
-        else if (token_is_identifier_equal(tok, CONSTSTR_IF)) {
-                parse_next_token();
-                parse_ifstatement();
-        }
-        else if (token_is_identifier_equal(tok, CONSTSTR_WHILE)) {
-                parse_next_token();
-                parse_whilestatement();
-        }
-        else if (token_is_identifier_equal(tok, CONSTSTR_FOR)) {
-                parse_next_token();
-                parse_forstatement();
+        if (tokenInfo[tok].kind == TOKTYPE_WORD) {
+                String s = tokenInfo[tok].word.string;
+                if (s == constStr[CONSTSTR_DATA]) {
+                        parse_next_token();
+                        parse_data(scope);
+                }
+                else if (s == constStr[CONSTSTR_IF]) {
+                        parse_next_token();
+                        parse_ifstmt();
+                }
+                else if (s == constStr[CONSTSTR_WHILE]) {
+                        parse_next_token();
+                        parse_whilestmt();
+                }
+                else if (s == constStr[CONSTSTR_FOR]) {
+                        parse_next_token();
+                        parse_forstmt();
+                }
+                else {
+                        parse_exprstmt();
+                }
         }
         else {
-                parse_expression(0);
-                parse_semicolon();
+                parse_exprstmt();
         }
 }
 
@@ -793,30 +964,29 @@ void parse_proc(void)
         Type argtp;  /* in-arg type */
         Type rettp;  /* out-arg type */
         Type ptp;  /* proc type */
-        String pname;  /* proc name */
+        Symbol psym;  /* proc name */
         Proc proc;
 
         argtp = parse_type();
-        parse_arrow();
         rettp = parse_type();
 
-        ptp = make_proc_type(argtp, rettp);
-        pname = parse_identifier();
-        proc = add_proc(ptp, pname);
+        ptp = add_proc_type(argtp, rettp);
+        psym = parse_symbol();
+        proc = add_proc(ptp, psym);
 
-        parse_leftbrace();
+        parse_bare_token(TOKTYPE_LEFTBRACE);
         parse_proc_body(proc);
-        parse_rightbrace();
+        parse_bare_token(TOKTYPE_RIGHTBRACE);
 }
 
 void parse_global_scope(void)
 {
-        Token token;
+        Token tok;
         String s;
 
-        token = parse_next_token();
-        if (token_is_identifier(token)) {
-                s = get_token_identifier_string(token);
+        tok = parse_next_token();
+        if (tokenInfo[tok].kind == TOKTYPE_WORD) {
+                s = tokenInfo[tok].word.string;
                 if (s == constStr[CONSTSTR_ENTITY]) {
                         parse_entity();
                 }
