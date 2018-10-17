@@ -34,6 +34,7 @@ enum {
         TOKTYPE_DOUBLEPLUS,
         TOKTYPE_COMMA,
         TOKTYPE_SEMICOLON,
+        TOKTYPE_COLON,
         TOKTYPE_AMPERSAND,
         TOKTYPE_PIPE,
         TOKTYPE_CARET,
@@ -125,6 +126,8 @@ struct StringTokenInfo {
 };
 
 struct TokenInfo {
+        File file;
+        int offset;
         int kind;
         union {
                 struct WordTokenInfo word;
@@ -178,6 +181,10 @@ struct ProcArgInfo {
 
 struct SymrefExprInfo {
         Symbol sym;
+        Token tok;
+};
+
+struct LiteralExprInfo {
         Token tok;
 };
 

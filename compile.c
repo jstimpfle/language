@@ -109,28 +109,34 @@ File add_file(String filepath)
         return x;
 }
 
-Token add_word_token(const char *string, int length)
+Token add_word_token(File file, int offset, const char *string, int length)
 {
         Token x = tokenCnt++;
         BUF_RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
+        tokenInfo[x].file = file;
+        tokenInfo[x].offset = offset;
         tokenInfo[x].kind = TOKTYPE_WORD;
         tokenInfo[x].word.string = intern_string(string, length);
         return x;
 }
 
-Token add_integer_token(long long value)
+Token add_integer_token(File file, int offset, long long value)
 {
         Token x = tokenCnt++;
         BUF_RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
+        tokenInfo[x].file = file;
+        tokenInfo[x].offset = offset;
         tokenInfo[x].kind = TOKTYPE_INTEGER;
         tokenInfo[x].integer.value = value;
         return x;
 }
 
-Token add_bare_token(int kind)
+Token add_bare_token(File file, int offset, int kind)
 {
         Token x = tokenCnt++;
         BUF_RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
+        tokenInfo[x].file = file;
+        tokenInfo[x].offset = offset;
         tokenInfo[x].kind = kind;
         return x;
 }
@@ -202,6 +208,11 @@ void add_procarg(Proc proc, Type argtp, Symbol argsym)
 }
 
 Expr add_symref_expr(Token tok)
+{
+        return -1;
+}
+
+Expr add_literal_expr(Token tok)
 {
         return -1;
 }
@@ -389,7 +400,7 @@ int look_char(void)
 }
 
 /* offset may be 1 past the end of file (i.e., equal to file size) */
-int compute_line(File file, int offset)
+int compute_lineno(File file, int offset)
 {
         int i;
         int line = 1;
@@ -402,7 +413,7 @@ int compute_line(File file, int offset)
 }
 
 /* offset may be 1 past the end of file (i.e., equal to file size) */
-int compute_column(File file, int offset)
+int compute_colno(File file, int offset)
 {
         int i;
         int column = 1;
@@ -416,22 +427,38 @@ int compute_column(File file, int offset)
 }
 
 #ifndef NODEBUG
-#define PARSE_ERROR(file, offset, mesg, ...) \
+#define PARSE_ERROR_AT(file, offset, mesg, ...) \
         fatal(__FILE__ ", " __FUNCTION__ "(): " "At %s %d:%d: " mesg, \
               string_buffer(fileInfo[file].filepath), \
-              compute_line(file, offset), \
-              compute_column(file, offset), \
+              compute_lineno(file, offset), \
+              compute_colno(file, offset), \
+              __VA_ARGS__)
+#define PARSE_ERROR(tok, mesg, ...) \
+        fatal(__FILE__ ", " __FUNCTION__ "(): " "At %s %d:%d: " \
+              "ERROR parsing %s token. " mesg, \
+              string_buffer(fileInfo[tokenInfo[tok].file].filepath), \
+              compute_lineno(tokenInfo[tok].file, tokenInfo[tok].offset), \
+              compute_colno(tokenInfo[tok].file, tokenInfo[tok].offset), \
+              tokenKindString[tokenInfo[tok].kind], \
               __VA_ARGS__)
 #define PARSE_LOG() \
         msg("AT " __FUNCTION__ "() at %d:%d\n", \
-              compute_line(current_file, current_offset), \
-              compute_column(current_file, current_offset))
+              compute_lineno(current_file, current_offset), \
+              compute_colno(current_file, current_offset))
 #else
-#define PARSE_ERROR(file, offset, mesg, ...) \
+#define PARSE_ERROR_AT(file, offset, mesg, ...) \
         fatal("At %s %d:%d: " mesg, \
               string_buffer(fileInfo[file].filepath), \
-              compute_line(file, offset), \
-              compute_column(file, offset), \
+              compute_lineno(file, offset), \
+              compute_colno(file, offset), \
+              __VA_ARGS__)
+#define PARSE_ERROR(tok, mesg, ...) \
+        fatal("At %s %d:%d: " \
+              "ERROR parsing %s token. " mesg, \
+              string_buffer(fileInfo[tokenInfo[tok].file].filepath), \
+              compute_lineno(tokenInfo[tok].file, tokenInfo[tok].offset), \
+              compute_colno(tokenInfo[tok].file, tokenInfo[tok].offset), \
+              tokenKindString[tokenInfo[tok].kind], \
               __VA_ARGS__)
 #define PARSE_LOG()
 #endif
@@ -439,6 +466,7 @@ int compute_column(File file, int offset)
 Token parse_next_token(void)
 {
         int c;
+        int off;
         Token ans;
 
         if (have_saved_token) {
@@ -451,12 +479,14 @@ Token parse_next_token(void)
                 if (c == -1)
                         return -1;
                 if (char_is_invalid(c))
-                        PARSE_ERROR(current_file, current_offset,
-                                    "Invalid byte %d\n", c);
+                        PARSE_ERROR_AT(current_file, current_offset,
+                                       "Invalid byte %d\n", c);
                 if (! char_is_whitespace(c))
                         break;
                 read_char();
         }
+
+        off = current_offset;
 
         c = read_char();
         if (char_is_alpha(c)) {
@@ -472,7 +502,7 @@ Token parse_next_token(void)
                                 break;
                         read_char();
                 }
-                ans = add_word_token(lexbuf, lexbufCnt);
+                ans = add_word_token(current_file, off, lexbuf, lexbufCnt);
         }
         else if (char_is_digit(c)) {
                 long long x = c - '0';
@@ -482,83 +512,91 @@ Token parse_next_token(void)
                         c = read_char();
                         x = 10 * x + c - '0';
                 }
-                ans = add_integer_token(x);
+                ans = add_integer_token(current_file, off, x);
         }
         else if (c == '(') {
-                ans = add_bare_token(TOKTYPE_LEFTPAREN);
+                ans = add_bare_token(current_file, off, TOKTYPE_LEFTPAREN);
         }
         else if (c == ')') {
-                ans = add_bare_token(TOKTYPE_RIGHTPAREN);
+                ans = add_bare_token(current_file, off, TOKTYPE_RIGHTPAREN);
         }
         else if (c == '{') {
-                ans = add_bare_token(TOKTYPE_LEFTBRACE);
+                ans = add_bare_token(current_file, off, TOKTYPE_LEFTBRACE);
         }
         else if (c == '}') {
-                ans = add_bare_token(TOKTYPE_RIGHTBRACE);
+                ans = add_bare_token(current_file, off, TOKTYPE_RIGHTBRACE);
         }
         else if (c == '[') {
-                ans = add_bare_token(TOKTYPE_LEFTBRACKET);
+                ans = add_bare_token(current_file, off, TOKTYPE_LEFTBRACKET);
         }
         else if (c == ']') {
-                ans = add_bare_token(TOKTYPE_RIGHTBRACKET);
+                ans = add_bare_token(current_file, off, TOKTYPE_RIGHTBRACKET);
         }
         else if (c == '-') {
                 c = look_char();
                 if (c == '-') {
                         read_char();
-                        ans = add_bare_token(TOKTYPE_DOUBLEMINUS);
+                        ans = add_bare_token(current_file, off,
+                                             TOKTYPE_DOUBLEMINUS);
                 }
                 else {
-                        ans = add_bare_token(TOKTYPE_MINUS);
+                        ans = add_bare_token(current_file, off,
+                                             TOKTYPE_MINUS);
                 }
         }
         else if (c == '+') {
                 c = look_char();
                 if (c == '-') {
                         read_char();
-                        ans = add_bare_token(TOKTYPE_DOUBLEPLUS);
+                        ans = add_bare_token(current_file, off,
+                                             TOKTYPE_DOUBLEPLUS);
                 }
                 else {
-                        ans = add_bare_token(TOKTYPE_PLUS);
+                        ans = add_bare_token(current_file, off, TOKTYPE_PLUS);
                 }
         }
         else if (c == '*') {
-                ans = add_bare_token(TOKTYPE_ASTERISK);
+                ans = add_bare_token(current_file, off, TOKTYPE_ASTERISK);
         }
         else if (c == '/') {
-                ans = add_bare_token(TOKTYPE_SLASH);
+                ans = add_bare_token(current_file, off, TOKTYPE_SLASH);
         }
         else if (c == ',') {
-                ans = add_bare_token(TOKTYPE_COMMA);
+                ans = add_bare_token(current_file, off, TOKTYPE_COMMA);
         }
         else if (c == ';') {
-                ans = add_bare_token(TOKTYPE_SEMICOLON);
+                ans = add_bare_token(current_file, off, TOKTYPE_SEMICOLON);
+        }
+        else if (c == ':') {
+                ans = add_bare_token(current_file, off, TOKTYPE_COLON);
         }
         else if (c == '&') {
-                ans = add_bare_token(TOKTYPE_AMPERSAND);
+                ans = add_bare_token(current_file, off, TOKTYPE_AMPERSAND);
         }
         else if (c == '|') {
-                ans = add_bare_token(TOKTYPE_PIPE);
+                ans = add_bare_token(current_file, off, TOKTYPE_PIPE);
         }
         else if (c == '^') {
-                ans = add_bare_token(TOKTYPE_CARET);
+                ans = add_bare_token(current_file, off, TOKTYPE_CARET);
         }
         else if (c == '!') {
-                ans = add_bare_token(TOKTYPE_BANG);
+                ans = add_bare_token(current_file, off, TOKTYPE_BANG);
         }
         else if (c == '=') {
                 c = look_char();
                 if (c == '=') {
                         read_char();
-                        ans = add_bare_token(TOKTYPE_DOUBLEEQUALS);
+                        ans = add_bare_token(current_file, off,
+                                             TOKTYPE_DOUBLEEQUALS);
                 }
                 else {
-                        ans = add_bare_token(TOKTYPE_ASSIGNEQUALS);
+                        ans = add_bare_token(current_file, off,
+                                             TOKTYPE_ASSIGNEQUALS);
                 }
         }
         else {
-                PARSE_ERROR(current_file, current_offset,
-                            "Failed to lex token\n");
+                PARSE_ERROR_AT(current_file, current_offset,
+                               "Failed to lex token\n");
         }
 
         return ans;
@@ -579,15 +617,13 @@ Token parse_token_kind(int tkind)
 {
         Token tok = parse_next_token();
         if (tok == -1) {
-                PARSE_ERROR(current_file, current_offset,
-                            "Unexpected end of file. Expected %s token\n",
-                            tokenKindString[tkind]);
+                PARSE_ERROR_AT(current_file, current_offset,
+                               "Unexpected end of file. Expected %s token\n",
+                               tokenKindString[tkind]);
         }
         int k = tokenInfo[tok].kind;
         if (k != tkind) {
-                PARSE_ERROR(current_file, current_offset,
-                            "Unexpected %s token. Expected %s token\n",
-                            tokenKindString[k], tokenKindString[tkind]);
+                PARSE_ERROR(tok, "Expected %s token\n", tokenKindString[tkind]);
         }
         return tok;
 }
@@ -695,35 +731,37 @@ Expr parse_expr(int minprec)
         Token tok;
         Expr expr;
         Expr subexpr;
+        int opkind;
 
-        /* unary prefix operators */
-        for (;;) {
-                int opkind;
+        tok = look_next_token();
 
-                tok = parse_next_token();
-                if (! token_is_unary_prefix_operator(tok, &opkind))
-                        break;
+        if (token_is_unary_prefix_operator(tok, &opkind)) {
                 parse_next_token();
                 subexpr = parse_expr(42  /* TODO: unop precedence */);
                 expr = add_unop_expr(opkind, subexpr);
         }
 
-        /* main expression */
+        tok = look_next_token();
         if (tokenInfo[tok].kind == TOKTYPE_WORD) {
                 expr = add_symref_expr(tok);
-                /* function call? */
-                tok = look_next_token();
-                if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
-                        parse_next_token();
-                        for (;;) {
-                                parse_next_token();
-                                /* TODO: parse arguments */
-                        }
-                        parse_token_kind(TOKTYPE_RIGHTPAREN);
-                }
+        }
+        else if (tokenInfo[tok].kind == TOKTYPE_INTEGER) {
+                expr = add_literal_expr(tok);
         }
         else {
-                /* TODO: bail out */
+                PARSE_ERROR(tok, "Expected variable or literal\n");
+        }
+        parse_next_token();
+
+        /* function call? */
+        tok = look_next_token();
+        if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
+                parse_next_token();
+                for (;;) {
+                        parse_next_token();
+                        /* TODO: parse arguments */
+                }
+                parse_token_kind(TOKTYPE_RIGHTPAREN);
         }
 
         /* binary infix operators */
@@ -913,8 +951,7 @@ void parse_global_scope(void)
                         parse_proc();
                 }
                 else {
-                        PARSE_ERROR(current_file, current_offset,
-                                    "Unexpected word %s\n", TS(tok));
+                        PARSE_ERROR(tok, "Unexpected word %s\n", TS(tok));
                 }
         }
 }

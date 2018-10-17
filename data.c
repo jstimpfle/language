@@ -18,6 +18,7 @@ extern const char *tokenKindString[] = {
         MAKE( TOKTYPE_DOUBLEPLUS ),
         MAKE( TOKTYPE_COMMA ),
         MAKE( TOKTYPE_SEMICOLON ),
+        MAKE( TOKTYPE_COLON ),
         MAKE( TOKTYPE_AMPERSAND ),
         MAKE( TOKTYPE_PIPE ),
         MAKE( TOKTYPE_CARET ),
