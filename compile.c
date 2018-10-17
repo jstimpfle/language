@@ -4,6 +4,7 @@
 
 #define SS(sym) (string_buffer(symbolInfo[sym].name))
 #define TS(tok) (string_buffer(tokenInfo[tok].word.string))
+#define TKS(tok) (tokenKindString[tokenInfo[tok].kind])
 
 String add_string(const char *buf, int len)
 {
@@ -255,6 +256,11 @@ int char_is_whitespace(int c)
         return c == ' ' || c == '\n';
 }
 
+int char_is_invalid(int c)
+{
+        return c < 32 && ! char_is_whitespace(c);
+}
+
 int token_is_word(Token tok, String string)
 {
         return tokenInfo[tok].kind == TOKTYPE_WORD &&
@@ -368,10 +374,48 @@ int look_char(void)
         return saved_char;
 }
 
+/* offset may be 1 past the end of file (i.e., equal to file size) */
+int compute_line(File file, int offset)
+{
+        int i;
+        int line = 1;
+        int filesize = fileInfo[file].size;
+
+        for (i = 0; i <= offset; i++)
+                if (fileInfo[file].buf[i-1] == '\n')
+                        line++;
+        return line;
+}
+
+/* offset may be 1 past the end of file (i.e., equal to file size) */
+int compute_column(File file, int offset)
+{
+        int i;
+        int column = 1;
+
+        for (i = 1; i <= offset; i++)
+                if (fileInfo[file].buf[i-1] == '\n')
+                        column = 1;
+                else
+                        column ++;
+        return column;
+}
+
+#ifndef NODEBUG
+#define PARSE_ERROR(file, offset, mesg, ...) \
+        fatal(__FILE__ ", " __FUNCTION__ "(): " "At %s %d:%d: " mesg, \
+              string_buffer(fileInfo[file].filepath), \
+              compute_line(file, offset), \
+              compute_column(file, offset), \
+              __VA_ARGS__)
+#else
 #define PARSE_ERROR(file, offset, mesg, ...) \
         fatal("At %s %d:%d: " mesg, \
               string_buffer(fileInfo[file].filepath), \
-              0, 0, __VA_ARGS__)
+              compute_line(file, offset), \
+              compute_column(file, offset), \
+              __VA_ARGS__)
+#endif
 
 Token parse_next_token(void)
 {
@@ -385,16 +429,13 @@ Token parse_next_token(void)
 
         for (;;) {
                 c = look_char();
-                if (c == -1) {
+                if (c == -1)
                         return -1;
-                }
-                if (! char_is_whitespace(c)) {
-                        if (c < 32) {
-                                PARSE_ERROR(current_file, current_offset,
-                                            "Invalid byte %d\n", c);
-                        }
+                if (char_is_invalid(c))
+                        PARSE_ERROR(current_file, current_offset,
+                                    "Invalid byte %d\n", c);
+                if (! char_is_whitespace(c))
                         break;
-                }
                 read_char();
         }
 
@@ -486,6 +527,10 @@ Token parse_next_token(void)
                         ans = add_bare_token(TOKTYPE_ASSIGNEQUALS);
                 }
         }
+        else {
+                PARSE_ERROR(current_file, current_offset,
+                            "Failed to lex token\n");
+        }
 
         return ans;
 }
@@ -494,8 +539,11 @@ Token look_next_token(void)
 {
         if (have_saved_token)
                 return saved_token;
-        else
-                return parse_next_token();
+        else {
+                saved_token = parse_next_token();
+                have_saved_token = 1;
+                return saved_token;
+        }
 }
 
 Token parse_token_kind(int tkind)
@@ -711,7 +759,17 @@ void parse_stmt(Scope scope)
 
 void parse_proc_body(Proc proc)
 {
+        Token tok;
+
         parse_token_kind(TOKTYPE_LEFTBRACE);
+        for (;;) {
+                tok = look_next_token();
+                if (tok == -1)
+                        break;
+                if (tokenInfo[tok].kind == TOKTYPE_RIGHTBRACE)
+                        break;
+                parse_stmt(42);
+        }
         parse_token_kind(TOKTYPE_RIGHTBRACE);
 }
 
@@ -750,9 +808,11 @@ void parse_global_scope(void)
         Token tok;
         String s;
 
-        tok = parse_next_token();
-        if (tokenInfo[tok].kind == TOKTYPE_WORD) {
-                printf("got word token %s\n", TS(tok));
+        for (;;) {
+                tok = look_next_token();
+                if (tok == -1)
+                        break;
+                parse_token_kind(TOKTYPE_WORD);
                 s = tokenInfo[tok].word.string;
                 if (s == constStr[CONSTSTR_ENTITY]) {
                         parse_entity();
@@ -765,6 +825,10 @@ void parse_global_scope(void)
                 }
                 else if (s == constStr[CONSTSTR_PROC]) {
                         parse_proc();
+                }
+                else {
+                        PARSE_ERROR(current_file, current_offset,
+                                    "Unexpected word %s\n", TS(tok));
                 }
         }
 }

@@ -1,1 +1,6 @@
 data int test;
+
+proc int test(int x)
+{
+    data foo y;
+}
