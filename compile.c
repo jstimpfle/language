@@ -118,6 +118,15 @@ Token add_word_token(const char *string, int length)
         return x;
 }
 
+Token add_integer_token(long long value)
+{
+        Token x = tokenCnt++;
+        BUF_RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
+        tokenInfo[x].kind = TOKTYPE_INTEGER;
+        tokenInfo[x].integer.value = value;
+        return x;
+}
+
 Token add_bare_token(int kind)
 {
         Token x = tokenCnt++;
@@ -249,6 +258,11 @@ void init_strings(void)
 int char_is_alpha(int c)
 {
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
+}
+
+int char_is_digit(int c)
+{
+        return '0' <= c && c <= '9';
 }
 
 int char_is_whitespace(int c)
@@ -408,6 +422,10 @@ int compute_column(File file, int offset)
               compute_line(file, offset), \
               compute_column(file, offset), \
               __VA_ARGS__)
+#define PARSE_LOG() \
+        msg("AT " __FUNCTION__ "() at %d:%d\n", \
+              compute_line(current_file, current_offset), \
+              compute_column(current_file, current_offset))
 #else
 #define PARSE_ERROR(file, offset, mesg, ...) \
         fatal("At %s %d:%d: " mesg, \
@@ -415,6 +433,7 @@ int compute_column(File file, int offset)
               compute_line(file, offset), \
               compute_column(file, offset), \
               __VA_ARGS__)
+#define PARSE_LOG()
 #endif
 
 Token parse_next_token(void)
@@ -454,6 +473,16 @@ Token parse_next_token(void)
                         read_char();
                 }
                 ans = add_word_token(lexbuf, lexbufCnt);
+        }
+        else if (char_is_digit(c)) {
+                long long x = c - '0';
+                for (;;) {
+                        if (! char_is_digit(look_char()))
+                                break;
+                        c = read_char();
+                        x = 10 * x + c - '0';
+                }
+                ans = add_integer_token(x);
         }
         else if (c == '(') {
                 ans = add_bare_token(TOKTYPE_LEFTPAREN);
@@ -563,14 +592,26 @@ Token parse_token_kind(int tkind)
         return tok;
 }
 
+Token look_token_kind(int tkind)
+{
+        Token tok = look_next_token();
+        if (tok == -1 || tokenInfo[tok].kind != tkind)
+                return -1;
+        return tok;
+}
+
 Symbol parse_symbol(void)
 {
+        PARSE_LOG();
+
         Token tok = parse_token_kind(TOKTYPE_WORD);
         return add_symbol(tokenInfo[tok].word.string);
 }
 
 Type parse_type(void)
 {
+        PARSE_LOG();
+
         Symbol sym;
 
         sym = parse_symbol();
@@ -579,6 +620,8 @@ Type parse_type(void)
 
 Entity parse_entity(void)
 {
+        PARSE_LOG();
+
         Type tp;
         Symbol sym;
 
@@ -591,6 +634,8 @@ Entity parse_entity(void)
 
 void parse_column(Table table)
 {
+        PARSE_LOG();
+
         Type tp;
         Symbol sym;
 
@@ -603,6 +648,8 @@ void parse_column(Table table)
 
 void parse_table(void)
 {
+        PARSE_LOG();
+
         Token tok;
         Type tp;
         Symbol sym;
@@ -629,6 +676,8 @@ void parse_table(void)
 
 Data parse_data(Scope scope)
 {
+        PARSE_LOG();
+
         Type tp;
         Symbol sym;
 
@@ -641,6 +690,8 @@ Data parse_data(Scope scope)
 
 Expr parse_expr(int minprec)
 {
+        PARSE_LOG();
+
         Token tok;
         Expr expr;
         Expr subexpr;
@@ -661,15 +712,14 @@ Expr parse_expr(int minprec)
         if (tokenInfo[tok].kind == TOKTYPE_WORD) {
                 expr = add_symref_expr(tok);
                 /* function call? */
-                tok = parse_next_token();
+                tok = look_next_token();
                 if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
+                        parse_next_token();
                         for (;;) {
                                 parse_next_token();
                                 /* TODO: parse arguments */
                         }
-                }
-                if (tokenInfo[tok].kind != TOKTYPE_RIGHTPAREN) {
-                        fatal("Expected ')'");
+                        parse_token_kind(TOKTYPE_RIGHTPAREN);
                 }
         }
         else {
@@ -681,7 +731,7 @@ Expr parse_expr(int minprec)
                 int opkind;
                 int opprec;
 
-                tok = parse_next_token();
+                tok = look_next_token();
 
                 if (! token_is_binary_infix_operator(tok, &opkind, &opprec))
                         break;
@@ -700,32 +750,74 @@ Expr parse_expr(int minprec)
 
                 if (! token_is_unary_postfix_operator(tok, &opkind))
                         break;
-
+                parse_next_token();
                 expr = add_unop_expr(opkind, expr);
-                tok = parse_next_token();
+                tok = look_next_token();
         }
 
         return expr;
 }
 
-void parse_ifstmt(void)
+void parse_simple_exprstmt(void)
 {
+        PARSE_LOG();
+
+        parse_expr(0);
+        parse_token_kind(TOKTYPE_SEMICOLON);
 }
 
-void parse_whilestmt(void)
-{
-}
+void parse_exprstmt(void);
+void parse_stmt(void);
 
-void parse_forstmt(void)
+void parse_compound_exprstmt(void)
 {
+        PARSE_LOG();
+
+        parse_token_kind(TOKTYPE_LEFTBRACE);
+        while (look_token_kind(TOKTYPE_RIGHTBRACE) == -1) {
+                parse_stmt();
+        }
+        parse_token_kind(TOKTYPE_RIGHTBRACE);
 }
 
 void parse_exprstmt(void)
 {
+        PARSE_LOG();
+
+        Token tok = look_next_token();
+
+        if (tokenInfo[tok].kind == TOKTYPE_LEFTBRACE) {
+                parse_compound_exprstmt();
+        }
+        else {
+                parse_simple_exprstmt();
+        }
+}
+
+void parse_ifstmt(void)
+{
+        PARSE_LOG();
+
+        parse_token_kind(TOKTYPE_LEFTPAREN);
+        Expr x = parse_expr(0);
+        parse_token_kind(TOKTYPE_RIGHTPAREN);
+        parse_exprstmt();
+}
+
+void parse_whilestmt(void)
+{
+        PARSE_LOG();
+}
+
+void parse_forstmt(void)
+{
+        PARSE_LOG();
 }
 
 void parse_stmt(Scope scope)
 {
+        PARSE_LOG();
+
         Token tok;
        
         tok = look_next_token();
@@ -759,22 +851,14 @@ void parse_stmt(Scope scope)
 
 void parse_proc_body(Proc proc)
 {
-        Token tok;
-
-        parse_token_kind(TOKTYPE_LEFTBRACE);
-        for (;;) {
-                tok = look_next_token();
-                if (tok == -1)
-                        break;
-                if (tokenInfo[tok].kind == TOKTYPE_RIGHTBRACE)
-                        break;
-                parse_stmt(42);
-        }
-        parse_token_kind(TOKTYPE_RIGHTBRACE);
+        PARSE_LOG();
+        parse_compound_exprstmt();
 }
 
 void parse_proc(void)
 {
+        PARSE_LOG();
+
         Type rettp;  /* out-arg type */
         Type argtp;  /* in-arg type */
         Symbol argsym;  /* in-arg name */
@@ -805,6 +889,8 @@ void parse_proc(void)
 
 void parse_global_scope(void)
 {
+        PARSE_LOG();
+
         Token tok;
         String s;
 

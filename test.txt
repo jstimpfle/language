@@ -3,4 +3,10 @@ data int test;
 proc int test(int x)
 {
     data foo y;
+    y = 3 + 4;
+    if (z + 2)
+        a = b;
+    if (z + 2) {
+        a = b;
+    }
 }

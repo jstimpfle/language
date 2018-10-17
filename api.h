@@ -19,6 +19,7 @@ typedef int Expr;
 
 enum {
         TOKTYPE_WORD,
+        TOKTYPE_INTEGER,
         TOKTYPE_LEFTPAREN,
         TOKTYPE_RIGHTPAREN,
         TOKTYPE_LEFTBRACE,
@@ -115,6 +116,10 @@ struct WordTokenInfo {
         String string;
 };
 
+struct IntegerTokenInfo {
+        long long value;
+};
+
 struct StringTokenInfo {
         String value;
 };
@@ -123,6 +128,7 @@ struct TokenInfo {
         int kind;
         union {
                 struct WordTokenInfo word;
+                struct IntegerTokenInfo integer;
                 struct StringTokenInfo string;
         };
 };
