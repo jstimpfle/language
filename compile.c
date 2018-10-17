@@ -1,310 +1,9 @@
 #include "defs.h"
+#include "api.h"
 #include "io.h"
 
-typedef int String;
-typedef int Token;
-typedef int Symbol;
-typedef int Symref;
-typedef int Scope;
-typedef int Entity;
-typedef int Table;
-typedef int Column;
-typedef int Data;
-typedef int Proc;
-typedef int SymrefExpr;
-typedef int CallExpr;
-typedef int UnopExpr;
-typedef int BinopExpr;
-typedef int Expr;
-typedef int Type;
-
-enum {
-        TOKTYPE_WORD,
-        TOKTYPE_LEFTPAREN,
-        TOKTYPE_RIGHTPAREN,
-        TOKTYPE_LEFTBRACE,
-        TOKTYPE_RIGHTBRACE,
-        TOKTYPE_LEFTBRACKET,
-        TOKTYPE_RIGHTBRACKET,
-        TOKTYPE_MINUS,
-        TOKTYPE_PLUS,
-        TOKTYPE_ASTERISK,
-        TOKTYPE_SLASH,
-        TOKTYPE_DOUBLEMINUS,
-        TOKTYPE_DOUBLEPLUS,
-        TOKTYPE_COMMA,
-        TOKTYPE_SEMICOLON,
-        TOKTYPE_AMPERSAND,
-        TOKTYPE_PIPE,
-        TOKTYPE_CARET,
-        TOKTYPE_BANG,
-        TOKTYPE_ASSIGNEQUALS,
-        TOKTYPE_DOUBLEEQUALS,
-};
-
-enum {
-        CONSTSTR_IF,
-        CONSTSTR_WHILE,
-        CONSTSTR_FOR,
-        CONSTSTR_PROC,
-        CONSTSTR_DATA,
-        CONSTSTR_ENTITY,
-        CONSTSTR_TABLE,
-        CONSTSTR_COLUMN,
-        NUM_CONSTSTRS,
-};
-
-enum {
-        STATEMENT_IF,
-        STATEMENT_FOR,
-        STATEMENT_WHILE,
-        STATEMENT_DATA,
-        STATEMENT_EXPR,
-};
-
-enum {
-        UNOP_NOT,
-        UNOP_ADDRESSOF,
-        UNOP_DEREF,
-        UNOP_NEGATIVE,
-        UNOP_POSITIVE,
-        UNOP_PREDECREMENT,
-        UNOP_PREINCREMENT,
-        UNOP_POSTDECREMENT,
-        UNOP_POSTINCREMENT,
-};
-
-enum {
-        OP_ASSIGN,
-        OP_EQUALS,
-        OP_MINUS,
-        OP_PLUS,
-        OP_MUL,
-        OP_DIV,
-        OP_BITAND,
-        OP_BITOR,
-        OP_BITXOR,
-};
-
-enum {
-        EXPR_UNOP,
-        EXPR_BINOP,
-        EXPR_CALL,
-};
-
-struct Alloc {
-        int cap;
-};
-
-struct FileInfo {
-        FileImpl impl;
-};
-
-struct StringInfo {
-        int pos;  // offset in character buffer
-        String next;  // next string in chain
-};
-
-struct StringBucketInfo {
-        int firstString;
-};
-
-struct WordTokenInfo {
-        String string;
-};
-
-struct StringTokenInfo {
-        String value;
-};
-
-struct TokenInfo {
-        int kind;
-        union {
-                struct WordTokenInfo word;
-                struct StringTokenInfo string;
-        };
-};
-
-struct EntityInfo {
-        Type tp;
-        Symbol sym;
-};
-
-struct TableInfo {
-        Type tp;
-        Symbol sym;
-};
-
-struct ColumnInfo {
-        Table table;
-        Type tp;
-        Symbol sym;
-};
-
-struct DataInfo {
-        Scope scope;
-        Type tp;
-        Symbol sym;
-};
-
-struct ProcInfo {
-        Type tp;
-        Symbol sym;
-};
-
-struct SymrefExprInfo {
-        Symbol sym;
-        Token tok;
-};
-
-struct CallExprInfo {
-        Proc proc;
-        Expr firstArgIndex;  // speed-up
-        Expr lastArgIndex;  // speed-up
-};
-
-struct UnopExprInfo {
-        int kind;
-        Expr expr;
-};
-
-struct BinopExprInfo {
-        int kind;
-        Expr expr1;
-        Expr expr2;
-};
-
-struct ExprInfo {
-        int kind;
-        union {
-                struct SymrefExprInfo symref;
-                struct CallExprInfo call;
-                struct UnopExprInfo unop;
-                struct BinopExprInfo binop;
-        };
-};
-
-String constStr[NUM_CONSTSTRS];  // has initializer
-
-FileImpl current_file;
-int have_saved_char;
-int saved_char;
-
-int have_saved_token;
-Token saved_token;
-
-int lexbufCnt;
-int strbufCnt;
-int stringCnt;
-int strBucketCnt;
-int tokenCnt;
-int entityCnt;
-int tableCnt;
-int columnCnt;
-int dataCnt;
-int procCnt;
-int unopExprCnt;
-int binopExprCnt;
-int callExprCnt;
-int exprCnt;
-
-char *lexbuf;
-char *strbuf;
-struct StringInfo *stringInfo;
-struct StringBucketInfo *strBucketInfo;
-struct TokenInfo *tokenInfo;
-struct EntityInfo *entityInfo;
-struct TableInfo *tableInfo;
-struct ColumnInfo *columnInfo;
-struct DataInfo *dataInfo;
-struct ProcInfo *procInfo;
-struct UnopExprInfo *unopExprInfo;
-struct BinopExprInfo *binopExprInfo;
-struct CallExprInfo *callExprInfo;
-struct ExprInfo *exprInfo;
-
-struct Alloc lexbufAlloc;
-struct Alloc strbufAlloc;
-struct Alloc stringInfoAlloc;
-struct Alloc strBucketInfoAlloc;
-struct Alloc tokenInfoAlloc;
-struct Alloc entityInfoAlloc;
-struct Alloc tableInfoAlloc;
-struct Alloc columnInfoAlloc;
-struct Alloc dataInfoAlloc;
-struct Alloc procInfoAlloc;
-struct Alloc unopExprInfoAlloc;
-struct Alloc binopExprInfoAlloc;
-struct Alloc callExprInfoAlloc;
-struct Alloc exprInfoAlloc;
-
-void _buf_init(void **ptr, struct Alloc *alloc, int elsize,
-               const char *UNUSED file, int UNUSED line)
-{
-        *ptr = NULL;
-        CLEAR(*alloc);
-}
-
-void _buf_exit(void **ptr, struct Alloc *alloc, int elsize,
-               const char *UNUSED file, int UNUSED line)
-{
-        free(*ptr);
-        *ptr = NULL;
-        CLEAR(*alloc);
-}
-
-void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
-                  int clear, const char *UNUSED file, int UNUSED line)
-{
-        int cnt;
-        void *p;
-        if (alloc->cap < nelems) {
-                cnt = 2 * nelems - 1;
-                while (cnt & (cnt - 1))
-                        cnt = cnt & (cnt - 1);
-                p = mem_realloc(*ptr, cnt * elsize);
-                if (!p)
-                        fatal("OOM!");
-                if (clear)
-                        mem_fill((char*)p + alloc->cap * elsize, 0,
-                                 (cnt - alloc->cap) * elsize);
-                *ptr = p;
-                alloc->cap = cnt;
-        }
-}
-
-#define BUF_INIT(buf, alloc) \
-        _buf_init((void**)&(buf), &(alloc), sizeof *(buf), __FILE__, __LINE__);
-
-#define BUF_EXIT(buf, alloc) \
-        _buf_exit((void**)&(buf), &(alloc), sizeof *(buf), __FILE__, __LINE__);
-
-#define BUF_RESERVE(buf, alloc, cnt) \
-        _buf_reserve((void**)&(buf), &(alloc), (cnt), sizeof *(buf), 0, \
-                     __FILE__, __LINE__);
-
-#define BUF_RESERVE_Z(buf, alloc, cnt) \
-        _buf_reserve((void**)&(buf), &(alloc), (cnt), sizeof *(buf), 1, \
-                     __FILE__, __LINE__);
-
-#define BUF_APPEND(buf, alloc, cnt, el) \
-        do { \
-                void *ptr = (buf); \
-                int _appendpos = (cnt)++; \
-                _buf_reserve(&ptr, &(alloc), _appendpos+1, sizeof *(buf), 0, \
-                             __FILE__, __LINE__); \
-                (buf)[_appendpos] = el; \
-        } while (0)
-
-const char *string_buffer(String s)
-{
-        return &strbuf[stringInfo[s].pos];
-}
-
-int string_length(String s)
-{
-        return stringInfo[s+1].pos - stringInfo[s].pos - 1;
-}
+#define SS(sym) (string_buffer(symbolInfo[sym].name))
+#define TS(tok) (string_buffer(tokenInfo[tok].word.string))
 
 String add_string(const char *buf, int len)
 {
@@ -322,6 +21,8 @@ String add_string(const char *buf, int len)
         BUF_RESERVE(strbuf, strbufAlloc, strbufCnt);
         memcpy(&strbuf[pos], buf, len);
         strbuf[pos + len] = '\0';
+
+        return s;
 }
 
 unsigned hash_string(const void *str, int len)
@@ -351,11 +52,9 @@ String lookup_string_with_hash(const void *buf, int len, unsigned hsh)
 void insert_string_with_hash(String s, unsigned hsh)
 {
         unsigned bck;
-        int ch;
-
+       
         bck = hsh & (strBucketCnt - 1);
-
-        stringInfo[ch].next = strBucketInfo[bck].firstString;
+        stringInfo[s].next = strBucketInfo[bck].firstString;
         strBucketInfo[bck].firstString = s;
 }
 
@@ -400,6 +99,15 @@ String intern_cstring(const char *str)
         return intern_string((const void *)str, strlen(str));
 }
 
+File add_file(String filepath)
+{
+        File x = fileCnt++;
+        BUF_RESERVE(fileInfo, fileInfoAlloc, fileCnt);
+        fileInfo[x].filepath = filepath;
+        read_whole_file(x);
+        return x;
+}
+
 Token add_word_token(const char *string, int length)
 {
         Token x = tokenCnt++;
@@ -417,14 +125,20 @@ Token add_bare_token(int kind)
         return x;
 }
 
-Type add_proc_type(void)
+Type add_type(Symbol sym)
 {
-        return -1;
+        Type x = typeCnt++;
+        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        typeInfo[x].sym = sym;
+        return x;
 }
 
 Symbol add_symbol(String s)
 {
-        return -1;
+        Symbol x = symbolCnt++;
+        BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
+        symbolInfo[x].name = s;
+        return x;
 }
 
 Entity add_entity(Type tp, Symbol sym)
@@ -445,21 +159,23 @@ Table add_table(Type tp, Symbol sym)
         return x;
 }
 
-void add_column(Table table, Type tp, Symbol sym)
+Column add_column(Table table, Type tp, Symbol sym)
 {
         Column x = columnCnt++;
         BUF_RESERVE(columnInfo, columnInfoAlloc, columnCnt);
         columnInfo[x].tp = tp;
         columnInfo[x].sym = sym;
+        return x;
 }
 
-void add_data(Scope scope, Type tp, Symbol sym)
+Data add_data(Scope scope, Type tp, Symbol sym)
 {
         Data x = dataCnt++;
         BUF_RESERVE(dataInfo, dataInfoAlloc, dataCnt);
         dataInfo[x].scope = scope;
         dataInfo[x].tp = tp;
         dataInfo[x].sym = sym;
+        return x;
 }
 
 Proc add_proc(Type tp, Symbol sym)
@@ -469,6 +185,10 @@ Proc add_proc(Type tp, Symbol sym)
         procInfo[x].tp = tp;
         procInfo[x].sym = sym;
         return x;
+}
+
+void add_procarg(Proc proc, Type argtp, Symbol argsym)
+{
 }
 
 Expr add_symref_expr(Token tok)
@@ -620,23 +340,38 @@ int token_is_unary_postfix_operator(Token tok, int *out_optype) {
 
 int read_char(void)
 {
+        int ans;
         if (have_saved_char) {
                 have_saved_char = 0;
-                return saved_char;
+                ans = saved_char;
+                current_offset++;
+        }
+        else if (current_offset < fileInfo[current_file].size) {
+                int pos = current_offset++;
+                ans = fileInfo[current_file].buf[pos];
         }
         else {
-                return read_char_from_file(current_file);
+                ans = -1;
         }
+        return ans;
 }
 
 int look_char(void)
 {
         if (! have_saved_char) {
                 have_saved_char = 1;
-                saved_char = read_char_from_file(current_file);
+                if (current_offset < fileInfo[current_file].size)
+                        saved_char = fileInfo[current_file].buf[current_offset];
+                else
+                        saved_char = -1;
         }
         return saved_char;
 }
+
+#define PARSE_ERROR(file, offset, mesg, ...) \
+        fatal("At %s %d:%d: " mesg, \
+              string_buffer(fileInfo[file].filepath), \
+              0, 0, __VA_ARGS__)
 
 Token parse_next_token(void)
 {
@@ -650,10 +385,16 @@ Token parse_next_token(void)
 
         for (;;) {
                 c = look_char();
-                if (c == -1)
+                if (c == -1) {
                         return -1;
-                if (! char_is_whitespace(c))
+                }
+                if (! char_is_whitespace(c)) {
+                        if (c < 32) {
+                                PARSE_ERROR(current_file, current_offset,
+                                            "Invalid byte %d\n", c);
+                        }
                         break;
+                }
                 read_char();
         }
 
@@ -671,7 +412,7 @@ Token parse_next_token(void)
                                 break;
                         read_char();
                 }
-                ans = add_word_token("foobar", sizeof "foobar");
+                ans = add_word_token(lexbuf, lexbufCnt);
         }
         else if (c == '(') {
                 ans = add_bare_token(TOKTYPE_LEFTPAREN);
@@ -757,22 +498,35 @@ Token look_next_token(void)
                 return parse_next_token();
 }
 
-void parse_bare_token(int tkind)
+Token parse_token_kind(int tkind)
 {
         Token tok = parse_next_token();
-        if (tokenInfo[tok].kind != tkind) {
-                fatal("Unexpected token\n");
+        if (tok == -1) {
+                PARSE_ERROR(current_file, current_offset,
+                            "Unexpected end of file. Expected %s token\n",
+                            tokenKindString[tkind]);
         }
+        int k = tokenInfo[tok].kind;
+        if (k != tkind) {
+                PARSE_ERROR(current_file, current_offset,
+                            "Unexpected %s token. Expected %s token\n",
+                            tokenKindString[k], tokenKindString[tkind]);
+        }
+        return tok;
 }
 
 Symbol parse_symbol(void)
 {
-        return -1;
+        Token tok = parse_token_kind(TOKTYPE_WORD);
+        return add_symbol(tokenInfo[tok].word.string);
 }
 
 Type parse_type(void)
 {
-        return -1;
+        Symbol sym;
+
+        sym = parse_symbol();
+        return add_type(sym);
 }
 
 Entity parse_entity(void)
@@ -782,7 +536,7 @@ Entity parse_entity(void)
 
         tp = parse_type();
         sym = parse_symbol();
-        parse_bare_token(TOKTYPE_SEMICOLON);
+        parse_token_kind(TOKTYPE_SEMICOLON);
 
         return add_entity(tp, sym);
 }
@@ -794,7 +548,7 @@ void parse_column(Table table)
 
         tp = parse_type();
         sym = parse_symbol();
-        parse_bare_token(TOKTYPE_SEMICOLON);
+        parse_token_kind(TOKTYPE_SEMICOLON);
 
         add_column(table, tp, sym);
 }
@@ -811,7 +565,7 @@ void parse_table(void)
 
         table = add_table(tp, sym);
 
-        parse_bare_token(TOKTYPE_LEFTBRACE);
+        parse_token_kind(TOKTYPE_LEFTBRACE);
         for (;;) {
                 tok = look_next_token();
                 if (tok == -1)
@@ -822,19 +576,19 @@ void parse_table(void)
                 else
                         break;
         }
-        parse_bare_token(TOKTYPE_RIGHTBRACE);
+        parse_token_kind(TOKTYPE_RIGHTBRACE);
 }
 
-void parse_data(Scope scope)
+Data parse_data(Scope scope)
 {
         Type tp;
         Symbol sym;
 
         tp = parse_type();
         sym = parse_symbol();
-        parse_bare_token(TOKTYPE_SEMICOLON);
+        parse_token_kind(TOKTYPE_SEMICOLON);
 
-        add_data(scope, tp, sym);
+        return add_data(scope, tp, sym);
 }
 
 Expr parse_expr(int minprec)
@@ -957,26 +711,38 @@ void parse_stmt(Scope scope)
 
 void parse_proc_body(Proc proc)
 {
+        parse_token_kind(TOKTYPE_LEFTBRACE);
+        parse_token_kind(TOKTYPE_RIGHTBRACE);
 }
 
 void parse_proc(void)
 {
-        Type argtp;  /* in-arg type */
         Type rettp;  /* out-arg type */
-        Type ptp;  /* proc type */
+        Type argtp;  /* in-arg type */
+        Symbol argsym;  /* in-arg name */
         Symbol psym;  /* proc name */
         Proc proc;
+        Token tok;
 
-        argtp = parse_type();
         rettp = parse_type();
-
-        ptp = add_proc_type(argtp, rettp);
         psym = parse_symbol();
-        proc = add_proc(ptp, psym);
+        proc = add_proc(rettp, psym);
 
-        parse_bare_token(TOKTYPE_LEFTBRACE);
+        parse_token_kind(TOKTYPE_LEFTPAREN);
+        for (;;) {
+                tok = look_next_token();
+                if (tokenInfo[tok].kind == TOKTYPE_RIGHTPAREN)
+                        break;
+                argtp = parse_type();
+                argsym = parse_symbol();
+                add_procarg(proc, argtp, argsym);
+                tok = look_next_token();
+                if (tokenInfo[tok].kind != TOKTYPE_COMMA)
+                        break;
+        }
+        parse_token_kind(TOKTYPE_RIGHTPAREN);
+
         parse_proc_body(proc);
-        parse_bare_token(TOKTYPE_RIGHTBRACE);
 }
 
 void parse_global_scope(void)
@@ -986,6 +752,7 @@ void parse_global_scope(void)
 
         tok = parse_next_token();
         if (tokenInfo[tok].kind == TOKTYPE_WORD) {
+                printf("got word token %s\n", TS(tok));
                 s = tokenInfo[tok].word.string;
                 if (s == constStr[CONSTSTR_ENTITY]) {
                         parse_entity();
@@ -1004,5 +771,8 @@ void parse_global_scope(void)
 
 int main(void)
 {
+        init_strings();
+        add_file(intern_cstring("test.txt"));
+        parse_global_scope();
         return 0;
 }
