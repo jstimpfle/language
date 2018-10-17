@@ -546,7 +546,7 @@ Token parse_next_token(void)
         }
         else if (c == '+') {
                 c = look_char();
-                if (c == '-') {
+                if (c == '+') {
                         read_char();
                         ans = add_bare_token(current_file, off,
                                              TOKTYPE_DOUBLEPLUS);
@@ -732,6 +732,7 @@ Expr parse_expr(int minprec)
         Expr expr;
         Expr subexpr;
         int opkind;
+        int opprec;
 
         tok = look_next_token();
 
@@ -740,57 +741,55 @@ Expr parse_expr(int minprec)
                 subexpr = parse_expr(42  /* TODO: unop precedence */);
                 expr = add_unop_expr(opkind, subexpr);
         }
-
-        tok = look_next_token();
-        if (tokenInfo[tok].kind == TOKTYPE_WORD) {
+        else if (tokenInfo[tok].kind == TOKTYPE_WORD) {
+                parse_next_token();
                 expr = add_symref_expr(tok);
         }
         else if (tokenInfo[tok].kind == TOKTYPE_INTEGER) {
+                parse_next_token();
                 expr = add_literal_expr(tok);
         }
-        else {
-                PARSE_ERROR(tok, "Expected variable or literal\n");
-        }
-        parse_next_token();
-
-        /* function call? */
-        tok = look_next_token();
-        if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
+        else if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
                 parse_next_token();
-                for (;;) {
-                        parse_next_token();
-                        /* TODO: parse arguments */
-                }
+                expr = parse_expr(0);
                 parse_token_kind(TOKTYPE_RIGHTPAREN);
         }
+        else {
+                PARSE_ERROR(tok, "Expected expression\n");
+        }
 
-        /* binary infix operators */
         for (;;) {
-                int opkind;
-                int opprec;
-
                 tok = look_next_token();
+                if (token_is_unary_postfix_operator(tok, &opkind)) {
+                        parse_next_token();
+                        expr = add_unop_expr(opkind, expr);
+                }
+                else if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
+                        /* function call */
+                        parse_next_token();
+                        while (look_token_kind(TOKTYPE_RIGHTPAREN) == -1) {
+                                subexpr = parse_expr(0);
+                                /* TODO: add call argument */
+                                if (look_token_kind(TOKTYPE_COMMA) == -1)
+                                        break;
+                                parse_next_token();
+                        }
+                        parse_token_kind(TOKTYPE_RIGHTPAREN);
+                }
+                else {
+                        break;
+                }
+        }
 
+        for (;;) {
+                tok = look_next_token();
                 if (! token_is_binary_infix_operator(tok, &opkind, &opprec))
                         break;
-
                 if (opprec < minprec)
                         break;
-
                 parse_next_token();
                 subexpr = parse_expr(opprec + 1);
                 expr = add_binop_expr(opkind, expr, subexpr);
-        }
-
-        /* postfix operators */
-        for (;;) {
-                int opkind;
-
-                if (! token_is_unary_postfix_operator(tok, &opkind))
-                        break;
-                parse_next_token();
-                expr = add_unop_expr(opkind, expr);
-                tok = look_next_token();
         }
 
         return expr;
