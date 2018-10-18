@@ -1,7 +1,7 @@
 #include "defs.h"
 #include "api.h"
 
-extern const char *tokenKindString[] = {
+const char *tokenKindString[] = {
 #define MAKE(x) [x] = #x
         MAKE( TOKTYPE_WORD ),
         MAKE( TOKTYPE_LEFTPAREN ),

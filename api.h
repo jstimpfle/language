@@ -298,13 +298,18 @@ String intern_cstring(const char *str);
 void read_whole_file(File file);
 
 void mem_fill(void *ptr, int val, int size);
+void mem_copy(void *dst, const void *src, int size);
+int mem_compare(const void *m1, const void *m2, int size);
+int cstr_length(const char *s);
 
 void *mem_realloc(void *ptr, int size);
 
 void sort_array(void *ptr, int nelems, int elemsize,
                 int (*compare)(const void*, const void*));
 
-void NORETURN fatal(const char *msg, ...);
+void NORETURN _fatal(const char *filename, int line, const char *msg, ...);
+
+#define FATAL(msg, ...) _fatal(__FILE__, __LINE__, msg, ##__VA_ARGS__)
 
 void msg(const char *fmt, ...);
 

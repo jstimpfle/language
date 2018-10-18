@@ -1,6 +1,5 @@
 #include "defs.h"
 #include "api.h"
-#include "io.h"
 
 #define SS(sym) (string_buffer(symbolInfo[sym].name))
 #define TS(tok) (string_buffer(tokenInfo[tok].word.string))
@@ -20,7 +19,7 @@ String add_string(const char *buf, int len)
         stringInfo[s+1].pos = pos + len + 1;
 
         BUF_RESERVE(strbuf, strbufAlloc, strbufCnt);
-        memcpy(&strbuf[pos], buf, len);
+        mem_copy(&strbuf[pos], buf, len);
         strbuf[pos + len] = '\0';
 
         return s;
@@ -44,7 +43,7 @@ String lookup_string_with_hash(const void *buf, int len, unsigned hsh)
         for (s = strBucketInfo[bck].firstString; s != -1;
              s = stringInfo[s].next) {
                 if (string_length(s) == len &&
-                    memcmp(string_buffer(s), buf, len) == 0)
+                    mem_compare(string_buffer(s), buf, len) == 0)
                         return s;
         }
         return -1;
@@ -97,7 +96,7 @@ String intern_string(const void *buf, int len)
 
 String intern_cstring(const char *str)
 {
-        return intern_string((const void *)str, strlen(str));
+        return intern_string((const void *)str, cstr_length(str));
 }
 
 File add_file(String filepath)
@@ -259,7 +258,7 @@ void init_strings(void)
                 { CONSTSTR_COLUMN, "column" },
         };
 
-        for (size_t i = 0; i < LENGTH(tbl); i++) {
+        for (int i = 0; i < LENGTH(tbl); i++) {
                 int idx = tbl[i].constant;
                 const char *str = tbl[i].string;
                 constStr[idx] = intern_cstring(str);
@@ -390,11 +389,13 @@ int read_char(void)
 int look_char(void)
 {
         if (! have_saved_char) {
-                have_saved_char = 1;
-                if (current_offset < fileInfo[current_file].size)
+                if (current_offset < fileInfo[current_file].size) {
+                        have_saved_char = 1;
                         saved_char = fileInfo[current_file].buf[current_offset];
-                else
+                }
+                else {
                         saved_char = -1;
+                }
         }
         return saved_char;
 }
@@ -404,7 +405,6 @@ int compute_lineno(File file, int offset)
 {
         int i;
         int line = 1;
-        int filesize = fileInfo[file].size;
 
         for (i = 0; i <= offset; i++)
                 if (fileInfo[file].buf[i-1] == '\n')
@@ -426,42 +426,24 @@ int compute_colno(File file, int offset)
         return column;
 }
 
-#ifndef NODEBUG
 #define PARSE_ERROR_AT(file, offset, mesg, ...) \
-        fatal(__FILE__ ", " __FUNCTION__ "(): " "At %s %d:%d: " mesg, \
+        FATAL("At %s %d:%d: " mesg, \
               string_buffer(fileInfo[file].filepath), \
               compute_lineno(file, offset), \
               compute_colno(file, offset), \
-              __VA_ARGS__)
+              ##__VA_ARGS__)
 #define PARSE_ERROR(tok, mesg, ...) \
-        fatal(__FILE__ ", " __FUNCTION__ "(): " "At %s %d:%d: " \
-              "ERROR parsing %s token. " mesg, \
+        FATAL("At %s %d:%d: ERROR parsing %s token. " mesg, \
               string_buffer(fileInfo[tokenInfo[tok].file].filepath), \
               compute_lineno(tokenInfo[tok].file, tokenInfo[tok].offset), \
               compute_colno(tokenInfo[tok].file, tokenInfo[tok].offset), \
               tokenKindString[tokenInfo[tok].kind], \
-              __VA_ARGS__)
+              ##__VA_ARGS__)
 #define PARSE_LOG() \
-        msg("AT " __FUNCTION__ "() at %d:%d\n", \
-              compute_lineno(current_file, current_offset), \
-              compute_colno(current_file, current_offset))
-#else
-#define PARSE_ERROR_AT(file, offset, mesg, ...) \
-        fatal("At %s %d:%d: " mesg, \
-              string_buffer(fileInfo[file].filepath), \
-              compute_lineno(file, offset), \
-              compute_colno(file, offset), \
-              __VA_ARGS__)
-#define PARSE_ERROR(tok, mesg, ...) \
-        fatal("At %s %d:%d: " \
-              "ERROR parsing %s token. " mesg, \
-              string_buffer(fileInfo[tokenInfo[tok].file].filepath), \
-              compute_lineno(tokenInfo[tok].file, tokenInfo[tok].offset), \
-              compute_colno(tokenInfo[tok].file, tokenInfo[tok].offset), \
-              tokenKindString[tokenInfo[tok].kind], \
-              __VA_ARGS__)
-#define PARSE_LOG()
-#endif
+        msg("AT %s() at %d:%d\n", \
+            __func__, \
+            compute_lineno(current_file, current_offset), \
+            compute_colno(current_file, current_offset))
 
 Token parse_next_token(void)
 {
@@ -804,7 +786,7 @@ void parse_simple_exprstmt(void)
 }
 
 void parse_exprstmt(void);
-void parse_stmt(void);
+void parse_stmt(Scope scope);
 
 void parse_compound_exprstmt(void)
 {
@@ -812,7 +794,7 @@ void parse_compound_exprstmt(void)
 
         parse_token_kind(TOKTYPE_LEFTBRACE);
         while (look_token_kind(TOKTYPE_RIGHTBRACE) == -1) {
-                parse_stmt();
+                parse_stmt(42);
         }
         parse_token_kind(TOKTYPE_RIGHTBRACE);
 }
@@ -836,7 +818,7 @@ void parse_ifstmt(void)
         PARSE_LOG();
 
         parse_token_kind(TOKTYPE_LEFTPAREN);
-        Expr x = parse_expr(0);
+        parse_expr(0);
         parse_token_kind(TOKTYPE_RIGHTPAREN);
         parse_exprstmt();
 }

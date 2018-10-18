@@ -1,6 +1,5 @@
 #include "defs.h"
 #include "api.h"
-#include "io.h"
 #include <malloc.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -17,7 +16,7 @@ void read_whole_file(File file)
         fpath = fileInfo[file].filepath;
         f = fopen(string_buffer(fpath), "rb");
         if (f == NULL)
-                fatal("Failed to open file %s", fpath);
+                FATAL("Failed to open file %s", fpath);
 
         BUF_INIT(fileInfo[file].buf, fileInfo[file].bufAlloc);
         fileInfo[file].size = 0;
@@ -31,7 +30,7 @@ void read_whole_file(File file)
                 fileInfo[file].size += (int) nread;
         }
         if (ferror(f))
-                fatal("I/O error while reading from %s\n", fpath);
+                FATAL("I/O error while reading from %s\n", fpath);
         fclose(f);
         BUF_RESERVE(fileInfo[file].buf,
                     fileInfo[file].bufAlloc,
@@ -42,6 +41,21 @@ void read_whole_file(File file)
 void mem_fill(void *ptr, int val, int size)
 {
         memset(ptr, val, size);
+}
+
+void mem_copy(void *dst, const void *src, int size)
+{
+        memcpy(dst, src, size);
+}
+
+int mem_compare(const void *m1, const void *m2, int size)
+{
+        return memcmp(m1, m2, size);
+}
+
+int cstr_length(const char *s)
+{
+        return strlen(s);
 }
 
 void *mem_realloc(void *ptr, int size)
@@ -55,14 +69,18 @@ void sort_array(void *ptr, int nelems, int elemsize,
         qsort(ptr, nelems, elemsize, cmp);
 }
 
-void NORETURN fatal(const char *msg, ...)
+void NORETURN _fatal(const char *UNUSED filename, int UNUSED line, 
+                     const char *msg, ...)
 {
         va_list ap;
-        va_start(ap, msg);
         fprintf(stderr, "FATAL: ");
+#ifndef NODEBUG
+        fprintf(stderr, "In %s:%d: ", filename, line);
+#endif
+        va_start(ap, msg);
         vfprintf(stderr, msg, ap);
-        fprintf(stderr, "\n");
         va_end(ap);
+        fprintf(stderr, "\n");
         abort();
 }
 
@@ -100,7 +118,7 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                         cnt = cnt & (cnt - 1);
                 p = mem_realloc(*ptr, cnt * elsize);
                 if (!p)
-                        fatal("OOM!");
+                        FATAL("OOM!");
                 if (clear)
                         mem_fill((char*)p + alloc->cap * elsize, 0,
                                  (cnt - alloc->cap) * elsize);
