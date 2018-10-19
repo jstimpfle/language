@@ -28,6 +28,8 @@ const char *tokenKindString[] = {
 #undef MAKE
 };
 
+
+const char *tokenKindString[];
 String constStr[NUM_CONSTSTRS];  // has initializer
 
 File current_file;
@@ -37,6 +39,11 @@ int saved_char;
 
 int have_saved_token;
 Token saved_token;
+
+Scope global_scope;
+Scope current_scope;
+Scope scope_stack[16];
+int scope_stack_count;
 
 int lexbufCnt;
 int strbufCnt;
@@ -50,7 +57,9 @@ int entityCnt;
 int tableCnt;
 int columnCnt;
 int dataCnt;
+int scopeCnt;
 int procCnt;
+int procArgCnt;
 int unopExprCnt;
 int binopExprCnt;
 int callExprCnt;
@@ -68,7 +77,9 @@ struct EntityInfo *entityInfo;
 struct TableInfo *tableInfo;
 struct ColumnInfo *columnInfo;
 struct DataInfo *dataInfo;
+struct ScopeInfo *scopeInfo;
 struct ProcInfo *procInfo;
+struct ProcArgInfo *procArgInfo;
 struct UnopExprInfo *unopExprInfo;
 struct BinopExprInfo *binopExprInfo;
 struct CallExprInfo *callExprInfo;
@@ -86,7 +97,9 @@ struct Alloc entityInfoAlloc;
 struct Alloc tableInfoAlloc;
 struct Alloc columnInfoAlloc;
 struct Alloc dataInfoAlloc;
+struct Alloc scopeInfoAlloc;
 struct Alloc procInfoAlloc;
+struct Alloc procArgInfoAlloc;
 struct Alloc unopExprInfoAlloc;
 struct Alloc binopExprInfoAlloc;
 struct Alloc callExprInfoAlloc;

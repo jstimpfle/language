@@ -1,7 +1,7 @@
 data int test;
 data bla bla;
 
-proc int test(int x)
+proc int test(int x, int a)
 {
     data foo y;
     *&z = 1;
@@ -19,3 +19,5 @@ proc int test(int x)
 
     (z++)(3, 4);
 }
+
+data int lastvar;

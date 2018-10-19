@@ -93,14 +93,19 @@ enum {
         EXPR_CALL,
 };
 
+enum {
+        SCOPE_GLOBAL,
+        SCOPE_PROC,
+};
+
 struct Alloc {
         int cap;
 };
 
 struct FileInfo {
-        String filepath;
         unsigned char *buf;
         struct Alloc bufAlloc;
+        String filepath;
         int size;
 };
 
@@ -167,16 +172,29 @@ struct DataInfo {
         Symbol sym;
 };
 
+struct ScopeInfo {
+        int kind;
+        union {
+                struct {
+                        Proc proc;
+                        Scope parentScope;
+                } tProc;
+        };
+};
+
 struct ProcInfo {
         Type tp;
         int nargs;
         Symbol sym;
+        Scope scope;
+        ProcArg firstArg;  // speed-up
 };
 
 struct ProcArgInfo {
         Proc proc;
         int argIdx;
         Type tp;
+        String sym;
 };
 
 struct SymrefExprInfo {
@@ -226,6 +244,11 @@ extern int saved_char;
 extern int have_saved_token;
 extern Token saved_token;
 
+extern Scope global_scope;
+extern Scope current_scope;
+extern Scope scope_stack[16];
+extern int scope_stack_count;
+
 extern int lexbufCnt;
 extern int strbufCnt;
 extern int stringCnt;
@@ -238,7 +261,9 @@ extern int entityCnt;
 extern int tableCnt;
 extern int columnCnt;
 extern int dataCnt;
+extern int scopeCnt;
 extern int procCnt;
+extern int procArgCnt;
 extern int unopExprCnt;
 extern int binopExprCnt;
 extern int callExprCnt;
@@ -256,7 +281,9 @@ extern struct EntityInfo *entityInfo;
 extern struct TableInfo *tableInfo;
 extern struct ColumnInfo *columnInfo;
 extern struct DataInfo *dataInfo;
+extern struct ScopeInfo *scopeInfo;
 extern struct ProcInfo *procInfo;
+extern struct ProcArgInfo *procArgInfo;
 extern struct UnopExprInfo *unopExprInfo;
 extern struct BinopExprInfo *binopExprInfo;
 extern struct CallExprInfo *callExprInfo;
@@ -274,7 +301,9 @@ extern struct Alloc entityInfoAlloc;
 extern struct Alloc tableInfoAlloc;
 extern struct Alloc columnInfoAlloc;
 extern struct Alloc dataInfoAlloc;
+extern struct Alloc scopeInfoAlloc;
 extern struct Alloc procInfoAlloc;
+extern struct Alloc procArgInfoAlloc;
 extern struct Alloc unopExprInfoAlloc;
 extern struct Alloc binopExprInfoAlloc;
 extern struct Alloc callExprInfoAlloc;

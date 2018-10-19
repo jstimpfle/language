@@ -76,9 +76,7 @@ String intern_string(const void *buf, int len)
                         strBucketInfo[i].firstString = -1;
 
                 for (s = 0; s < stringCnt; s++) {
-                        const void *buf = string_buffer(s);
-                        int len = string_length(s);
-                        unsigned hsh = hash_string(buf, len);
+                        hsh = hash_string(string_buffer(s), string_length(s));
                         insert_string_with_hash(s, hsh);
                 }
         }
@@ -178,6 +176,7 @@ Column add_column(Table table, Type tp, Symbol sym)
 {
         Column x = columnCnt++;
         BUF_RESERVE(columnInfo, columnInfoAlloc, columnCnt);
+        columnInfo[x].table = table;
         columnInfo[x].tp = tp;
         columnInfo[x].sym = sym;
         return x;
@@ -193,30 +192,59 @@ Data add_data(Scope scope, Type tp, Symbol sym)
         return x;
 }
 
-Proc add_proc(Type tp, Symbol sym)
+Scope add_global_scope(void)
+{
+        Scope x = scopeCnt++;
+        BUF_RESERVE(scopeInfo, scopeInfoAlloc, scopeCnt);
+        scopeInfo[x].kind = SCOPE_GLOBAL;
+        return x;
+}
+
+Scope add_proc_scope(Scope parent)
+{
+        Scope x = scopeCnt++;
+        BUF_RESERVE(scopeInfo, scopeInfoAlloc, scopeCnt);
+        scopeInfo[x].kind = SCOPE_PROC;
+        scopeInfo[x].tProc.parentScope = parent;
+        return x;
+}
+
+Proc add_proc(Type tp, Symbol sym, Scope scope)
 {
         Proc x = procCnt++;
         BUF_RESERVE(procInfo, procInfoAlloc, procCnt);
         procInfo[x].tp = tp;
         procInfo[x].sym = sym;
+        procInfo[x].scope = scope;
+        procInfo[x].nargs = 0;
         return x;
 }
 
 void add_procarg(Proc proc, Type argtp, Symbol argsym)
 {
+        ProcArg x = procArgCnt++;
+        BUF_RESERVE(procArgInfo, procArgInfoAlloc, procArgCnt);
+        procArgInfo[x].proc = proc;
+        procArgInfo[x].tp = argtp;
+        procArgInfo[x].sym = argsym;
+        procArgInfo[x].argIdx = procInfo[proc].nargs;
+
+        if (procInfo[proc].nargs == 0)
+                procInfo[proc].firstArg = x;
+        procInfo[proc].nargs++;
 }
 
-Expr add_symref_expr(Token tok)
+Expr add_symref_expr(Token UNUSED tok)
 {
         return -1;
 }
 
-Expr add_literal_expr(Token tok)
+Expr add_literal_expr(Token UNUSED tok)
 {
         return -1;
 }
 
-Expr add_call_expr(Expr callee)
+Expr add_call_expr(Expr UNUSED callee)
 {
         return -1;
 }
@@ -238,7 +266,7 @@ Expr add_binop_expr(int opkind, Expr expr1, Expr expr2)
         exprInfo[x].kind = EXPR_BINOP;
         exprInfo[x].binop.kind = opkind;
         exprInfo[x].binop.expr1 = expr1;
-        exprInfo[x].binop.expr2 = expr1;
+        exprInfo[x].binop.expr2 = expr2;
         return x;
 }
 
@@ -340,6 +368,7 @@ int token_is_binary_infix_operator(Token tok, int *out_optp, int *out_prec)
         for (int i = 0; i < LENGTH(tbl); i++) {
                 if (tp == tbl[i].ttp) {
                         ans = 1;
+                        *out_optp = tbl[i].optp;
                         *out_prec = tbl[i].prec;
                         break;
                 }
@@ -444,6 +473,22 @@ int compute_colno(File file, int offset)
             __func__, \
             compute_lineno(current_file, current_offset), \
             compute_colno(current_file, current_offset))
+
+void push_scope(Scope scope)
+{
+        if (scope_stack_count >= LENGTH(scope_stack))
+                PARSE_ERROR_AT(current_file, current_offset,
+                               "Maximum scope nesting depth reached\n");
+        scope_stack[scope_stack_count++] = scope;
+        current_scope = scope;
+}
+
+void pop_scope(void)
+{
+        assert(scope_stack_count > 1);
+        scope_stack_count--;
+        current_scope = scope_stack[scope_stack_count-1];
+}
 
 Token parse_next_token(void)
 {
@@ -692,7 +737,7 @@ void parse_table(void)
         parse_token_kind(TOKTYPE_RIGHTBRACE);
 }
 
-Data parse_data(Scope scope)
+Data parse_data(void)
 {
         PARSE_LOG();
 
@@ -703,7 +748,7 @@ Data parse_data(Scope scope)
         sym = parse_symbol();
         parse_token_kind(TOKTYPE_SEMICOLON);
 
-        return add_data(scope, tp, sym);
+        return add_data(current_scope, tp, sym);
 }
 
 Expr parse_expr(int minprec)
@@ -786,7 +831,7 @@ void parse_simple_exprstmt(void)
 }
 
 void parse_exprstmt(void);
-void parse_stmt(Scope scope);
+void parse_stmt(void);
 
 void parse_compound_exprstmt(void)
 {
@@ -794,7 +839,7 @@ void parse_compound_exprstmt(void)
 
         parse_token_kind(TOKTYPE_LEFTBRACE);
         while (look_token_kind(TOKTYPE_RIGHTBRACE) == -1) {
-                parse_stmt(42);
+                parse_stmt();
         }
         parse_token_kind(TOKTYPE_RIGHTBRACE);
 }
@@ -833,7 +878,7 @@ void parse_forstmt(void)
         PARSE_LOG();
 }
 
-void parse_stmt(Scope scope)
+void parse_stmt(void)
 {
         PARSE_LOG();
 
@@ -845,7 +890,7 @@ void parse_stmt(Scope scope)
                 String s = tokenInfo[tok].word.string;
                 if (s == constStr[CONSTSTR_DATA]) {
                         parse_next_token();
-                        parse_data(scope);
+                        parse_data();
                 }
                 else if (s == constStr[CONSTSTR_IF]) {
                         parse_next_token();
@@ -882,12 +927,17 @@ void parse_proc(void)
         Type argtp;  /* in-arg type */
         Symbol argsym;  /* in-arg name */
         Symbol psym;  /* proc name */
+        Scope pscope; /* proc scope */
         Proc proc;
         Token tok;
 
         rettp = parse_type();
         psym = parse_symbol();
-        proc = add_proc(rettp, psym);
+        pscope = add_proc_scope(current_scope);
+        proc = add_proc(rettp, psym, pscope);
+        scopeInfo[pscope].tProc.proc = proc;
+
+        push_scope(pscope);
 
         parse_token_kind(TOKTYPE_LEFTPAREN);
         for (;;) {
@@ -897,13 +947,14 @@ void parse_proc(void)
                 argtp = parse_type();
                 argsym = parse_symbol();
                 add_procarg(proc, argtp, argsym);
-                tok = look_next_token();
-                if (tokenInfo[tok].kind != TOKTYPE_COMMA)
+                if (look_token_kind(TOKTYPE_COMMA) == -1)
                         break;
+                parse_next_token();
         }
         parse_token_kind(TOKTYPE_RIGHTPAREN);
 
         parse_proc_body(proc);
+        pop_scope();
 }
 
 void parse_global_scope(void)
@@ -912,6 +963,9 @@ void parse_global_scope(void)
 
         Token tok;
         String s;
+
+        global_scope = add_global_scope();
+        push_scope(global_scope);
 
         for (;;) {
                 tok = look_next_token();
@@ -926,7 +980,7 @@ void parse_global_scope(void)
                         parse_table();
                 }
                 else if (s == constStr[CONSTSTR_DATA]) {
-                        parse_data(42 /*global_scope*/);
+                        parse_data();
                 }
                 else if (s == constStr[CONSTSTR_PROC]) {
                         parse_proc();
@@ -937,10 +991,56 @@ void parse_global_scope(void)
         }
 }
 
+void pprint_type(Type tp)
+{
+        msg("%s", SS(typeInfo[tp].sym));
+}
+
+void pprint_data(Data d)
+{
+        msg("data ");
+        pprint_type(dataInfo[d].tp);
+        msg(" ");
+        msg("%s", SS(dataInfo[d].sym));
+        msg(";\n");
+}
+
+void pprint_proc(Proc p)
+{
+        msg("proc ");
+        pprint_type(procInfo[p].tp);
+        msg(" ");
+        msg("%s", SS(procInfo[p].sym));
+        msg("(");
+        int firstArg = procInfo[p].firstArg;
+        for (int i = 0; i < procInfo[p].nargs; i++) {
+                if (i > 0)
+                        msg(", ");
+                pprint_type(procArgInfo[firstArg+i].tp);
+                msg(" %s", SS(procArgInfo[firstArg+i].sym));
+        }
+        msg(")");
+        msg(";\n");
+}
+
+void prettyprint(void)
+{
+        for (Data i = 0; i < dataCnt; i++) {
+                //if (scopeInfo[dataInfo[i].scope].kind == global_scope) {
+                if (i[dataInfo].scope[scopeInfo].kind == global_scope) {
+                        pprint_data(i);
+                }
+        }
+        for (Proc i = 0; i < procCnt; i++) {
+                pprint_proc(i);
+        }
+}
+
 int main(void)
 {
         init_strings();
         add_file(intern_cstring("test.txt"));
         parse_global_scope();
+        prettyprint();
         return 0;
 }

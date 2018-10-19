@@ -55,7 +55,7 @@ int mem_compare(const void *m1, const void *m2, int size)
 
 int cstr_length(const char *s)
 {
-        return strlen(s);
+        return (int) strlen(s);
 }
 
 void *mem_realloc(void *ptr, int size)
@@ -92,14 +92,14 @@ void msg(const char *fmt, ...)
         va_end(ap);
 }
 
-void _buf_init(void **ptr, struct Alloc *alloc, int elsize,
+void _buf_init(void **ptr, struct Alloc *alloc, int UNUSED elsize,
                const char *UNUSED file, int UNUSED line)
 {
         *ptr = NULL;
         CLEAR(*alloc);
 }
 
-void _buf_exit(void **ptr, struct Alloc *alloc, int elsize,
+void _buf_exit(void **ptr, struct Alloc *alloc, int UNUSED elsize,
                const char *UNUSED file, int UNUSED line)
 {
         free(*ptr);
