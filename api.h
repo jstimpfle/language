@@ -16,6 +16,12 @@ typedef int CallExpr;
 typedef int UnopExpr;
 typedef int BinopExpr;
 typedef int Expr;
+typedef int CompoundStmt;
+typedef int ExprStmt;
+typedef int IfStmt;
+typedef int ForStmt;
+typedef int WhileStmt;
+typedef int Stmt;
 
 enum {
         TOKTYPE_WORD,
@@ -56,11 +62,12 @@ enum {
 };
 
 enum {
-        STATEMENT_IF,
-        STATEMENT_FOR,
-        STATEMENT_WHILE,
-        STATEMENT_DATA,
-        STATEMENT_EXPR,
+        STMT_IF,
+        STMT_FOR,
+        STMT_WHILE,
+        STMT_DATA,
+        STMT_EXPR,
+        STMT_COMPOUND,
 };
 
 enum {
@@ -187,6 +194,7 @@ struct ProcInfo {
         int nargs;
         Symbol sym;
         Scope scope;
+        Stmt body;
         ProcArg firstArg;  // speed-up
 };
 
@@ -233,6 +241,43 @@ struct ExprInfo {
         };
 };
 
+struct CompoundStmtInfo {
+        Stmt firstStmt;
+        int numStatements;
+};
+
+struct ExprStmtInfo {
+        Expr expr;
+};
+
+struct IfStmtInfo {
+        Expr condExpr;
+        Stmt childStmt;
+};
+
+struct ForStmtInfo {
+        Stmt initStmt;
+        Expr condExpr;
+        Stmt stepStmt;
+        Stmt childStmt;
+};
+
+struct WhileStmtInfo {
+        Expr condExpr;
+        Stmt childStmt;
+};
+
+struct StmtInfo {
+        int kind;
+        union {
+                struct CompoundStmtInfo tCompound;
+                struct ExprStmtInfo tExpr;
+                struct IfStmtInfo tIf;
+                struct WhileStmtInfo tWhile;
+                struct ForStmtInfo tFor;
+        };
+};
+
 extern const char *tokenKindString[];
 extern String constStr[NUM_CONSTSTRS];  // has initializer
 
@@ -268,6 +313,12 @@ extern int unopExprCnt;
 extern int binopExprCnt;
 extern int callExprCnt;
 extern int exprCnt;
+extern int compoundStmtCnt;
+extern int exprStmtCnt;
+extern int ifStmtCnt;
+extern int forStmtCnt;
+extern int whileStmtCnt;
+extern int stmtCnt;
 
 extern char *lexbuf;
 extern char *strbuf;
@@ -288,6 +339,12 @@ extern struct UnopExprInfo *unopExprInfo;
 extern struct BinopExprInfo *binopExprInfo;
 extern struct CallExprInfo *callExprInfo;
 extern struct ExprInfo *exprInfo;
+extern struct CompoundStmtInfo *compoundStmtInfo;
+extern struct ExprStmtInfo *exprStmtInfo;
+extern struct IfStmtInfo *ifStmtInfo;
+extern struct ForStmtInfo *forStmtInfo;
+extern struct WhileStmtInfo *whileStmtInfo;
+extern struct StmtInfo *stmtInfo;
 
 extern struct Alloc lexbufAlloc;
 extern struct Alloc strbufAlloc;
@@ -308,6 +365,12 @@ extern struct Alloc unopExprInfoAlloc;
 extern struct Alloc binopExprInfoAlloc;
 extern struct Alloc callExprInfoAlloc;
 extern struct Alloc exprInfoAlloc;
+extern struct Alloc compoundStmtInfoAlloc;
+extern struct Alloc exprStmtInfoAlloc;
+extern struct Alloc ifStmtInfoAlloc;
+extern struct Alloc forStmtInfoAlloc;
+extern struct Alloc whileStmtInfoAlloc;
+extern struct Alloc stmtInfoAlloc;
 
 static inline const char *string_buffer(String s)
 {

@@ -217,6 +217,7 @@ Proc add_proc(Type tp, Symbol sym, Scope scope)
         procInfo[x].sym = sym;
         procInfo[x].scope = scope;
         procInfo[x].nargs = 0;
+        procInfo[x].body = -1;
         return x;
 }
 
@@ -268,6 +269,73 @@ Expr add_binop_expr(int opkind, Expr expr1, Expr expr2)
         exprInfo[x].binop.expr1 = expr1;
         exprInfo[x].binop.expr2 = expr2;
         return x;
+}
+
+Stmt add_data_stmt(void)
+{
+        Stmt stmt = stmtCnt++;
+        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        stmtInfo[stmt].kind = STMT_DATA;
+        return stmt;
+}
+
+Stmt add_if_stmt(Expr condExpr, Stmt childStmt)
+{
+        Stmt stmt = stmtCnt++;
+        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        stmtInfo[stmt].kind = STMT_IF;
+        stmtInfo[stmt].tIf.condExpr = condExpr;
+        stmtInfo[stmt].tIf.childStmt = childStmt;
+        return stmt;
+}
+
+Stmt add_while_stmt(Expr condExpr, Stmt childStmt)
+{
+        Stmt stmt = stmtCnt++;
+        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        stmtInfo[stmt].kind = STMT_WHILE;
+        stmtInfo[stmt].tWhile.condExpr = condExpr;
+        stmtInfo[stmt].tWhile.childStmt = childStmt;
+        return stmt;
+}
+
+Stmt add_for_stmt(Stmt initStmt, Expr condExpr, Stmt stepStmt, Stmt childStmt)
+{
+        Stmt stmt = stmtCnt++;
+        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        stmtInfo[stmt].kind = STMT_FOR;
+        stmtInfo[stmt].tFor.initStmt = initStmt;
+        stmtInfo[stmt].tFor.condExpr = condExpr;
+        stmtInfo[stmt].tFor.stepStmt = stepStmt;
+        stmtInfo[stmt].tFor.childStmt = childStmt;
+        return stmt;
+}
+
+Stmt add_expr_stmt(void)
+{
+        Stmt stmt = stmtCnt++;
+        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        stmtInfo[stmt].kind = STMT_EXPR;
+        return stmt;
+}
+
+Stmt add_compound_stmt(void)
+{
+        Stmt stmt = stmtCnt++;
+        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        stmtInfo[stmt].kind = STMT_COMPOUND;
+        stmtInfo[stmt].tCompound.numStatements = 0;
+        stmtInfo[stmt].tCompound.firstStmt = -1;
+        return stmt;
+}
+
+Stmt add_substmt(Stmt stmt, Stmt substmt)
+{
+        assert(stmtInfo[stmt].kind == STMT_COMPOUND);
+        if (stmtInfo[stmt].tCompound.numStatements == 0)
+                stmtInfo[stmt].tCompound.firstStmt = substmt;
+        stmtInfo[stmt].tCompound.numStatements++;
+        return stmt;
 }
 
 void init_strings(void)
@@ -345,6 +413,27 @@ int token_is_unary_prefix_operator(Token tok, int *out_optype) {
         return ans;
 }
 
+int token_is_unary_postfix_operator(Token tok, int *out_optype) {
+        static const struct {
+                int ttype;
+                int optype;
+        } tbl[] = {
+                { TOKTYPE_DOUBLEMINUS, UNOP_POSTDECREMENT },
+                { TOKTYPE_DOUBLEPLUS,  UNOP_POSTINCREMENT },
+        };
+
+        int ans = 0;
+        int tp = tokenInfo[tok].kind;
+        for (int i = 0; i < LENGTH(tbl); i++) {
+                if (tp == tbl[i].ttype) {
+                        ans = 1;
+                        *out_optype = tbl[i].optype;
+                        break;
+                }
+        }
+        return ans;
+}
+
 int token_is_binary_infix_operator(Token tok, int *out_optp, int *out_prec)
 {
         static const struct {
@@ -370,27 +459,6 @@ int token_is_binary_infix_operator(Token tok, int *out_optp, int *out_prec)
                         ans = 1;
                         *out_optp = tbl[i].optp;
                         *out_prec = tbl[i].prec;
-                        break;
-                }
-        }
-        return ans;
-}
-
-int token_is_unary_postfix_operator(Token tok, int *out_optype) {
-        static const struct {
-                int ttype;
-                int optype;
-        } tbl[] = {
-                { TOKTYPE_DOUBLEMINUS, UNOP_POSTDECREMENT },
-                { TOKTYPE_DOUBLEPLUS,  UNOP_POSTINCREMENT },
-        };
-
-        int ans = 0;
-        int tp = tokenInfo[tok].kind;
-        for (int i = 0; i < LENGTH(tbl); i++) {
-                if (tp == tbl[i].ttype) {
-                        ans = 1;
-                        *out_optype = tbl[i].optype;
                         break;
                 }
         }
@@ -521,7 +589,7 @@ Token parse_next_token(void)
                 for (;;) {
                         int idx = lexbufCnt++;
                         BUF_RESERVE(lexbuf, lexbufAlloc, lexbufCnt);
-                        lexbuf[idx] = c;
+                        lexbuf[idx] = (char) c;
                         c = look_char();
                         if (c == -1)
                                 break;
@@ -822,70 +890,104 @@ Expr parse_expr(int minprec)
         return expr;
 }
 
-void parse_simple_exprstmt(void)
+Stmt parse_expr_stmt(void)
 {
         PARSE_LOG();
 
         parse_expr(0);
         parse_token_kind(TOKTYPE_SEMICOLON);
+        return add_expr_stmt();
 }
 
-void parse_exprstmt(void);
-void parse_stmt(void);
+Stmt parse_expr_or_compound_stmt(void);
+Stmt parse_stmt(void);
 
-void parse_compound_exprstmt(void)
+Stmt parse_compound_stmt(void)
 {
         PARSE_LOG();
 
+        Stmt stmt;
+        Stmt substmt;
+        
+        stmt = add_compound_stmt();
         parse_token_kind(TOKTYPE_LEFTBRACE);
         while (look_token_kind(TOKTYPE_RIGHTBRACE) == -1) {
-                parse_stmt();
+                substmt = parse_stmt();
+                add_substmt(stmt, substmt);
         }
         parse_token_kind(TOKTYPE_RIGHTBRACE);
+        return stmt;
 }
 
-void parse_exprstmt(void)
+Stmt parse_expr_or_compound_stmt(void)
 {
         PARSE_LOG();
 
         Token tok = look_next_token();
 
         if (tokenInfo[tok].kind == TOKTYPE_LEFTBRACE) {
-                parse_compound_exprstmt();
+                return parse_compound_stmt();
         }
         else {
-                parse_simple_exprstmt();
+                return parse_expr_stmt();
         }
 }
 
-void parse_ifstmt(void)
+Stmt parse_ifstmt(void)
 {
         PARSE_LOG();
+
+        Stmt condExpr;
+        Stmt childStmt;
 
         parse_token_kind(TOKTYPE_LEFTPAREN);
-        parse_expr(0);
+        condExpr = parse_expr(0);
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-        parse_exprstmt();
+        childStmt = parse_expr_or_compound_stmt();
+        return add_if_stmt(condExpr, childStmt);
 }
 
-void parse_whilestmt(void)
+Stmt parse_while_stmt(void)
 {
         PARSE_LOG();
+
+        Expr condExpr;
+        Stmt childStmt;
+
+        parse_token_kind(TOKTYPE_LEFTPAREN);
+        condExpr = parse_expr(0);
+        parse_token_kind(TOKTYPE_RIGHTPAREN);
+        childStmt = parse_expr_or_compound_stmt();
+        return add_while_stmt(condExpr, childStmt);
 }
 
-void parse_forstmt(void)
+Stmt parse_for_stmt(void)
 {
         PARSE_LOG();
+
+        Stmt initStmt;
+        Expr condExpr;
+        Stmt stepStmt;
+        Stmt childStmt;
+
+        parse_token_kind(TOKTYPE_LEFTPAREN);
+        initStmt = parse_expr_stmt();
+        parse_token_kind(TOKTYPE_SEMICOLON);
+        condExpr = parse_expr(0);
+        parse_token_kind(TOKTYPE_SEMICOLON);
+        stepStmt = parse_expr_stmt();
+        parse_token_kind(TOKTYPE_RIGHTPAREN);
+        childStmt = parse_expr_or_compound_stmt();
+        return add_for_stmt(initStmt, condExpr, stepStmt, childStmt);
 }
 
-void parse_stmt(void)
+Stmt parse_stmt(void)
 {
         PARSE_LOG();
 
         Token tok;
        
         tok = look_next_token();
-
         if (tokenInfo[tok].kind == TOKTYPE_WORD) {
                 String s = tokenInfo[tok].word.string;
                 if (s == constStr[CONSTSTR_DATA]) {
@@ -898,25 +1000,25 @@ void parse_stmt(void)
                 }
                 else if (s == constStr[CONSTSTR_WHILE]) {
                         parse_next_token();
-                        parse_whilestmt();
+                        parse_while_stmt();
                 }
                 else if (s == constStr[CONSTSTR_FOR]) {
                         parse_next_token();
-                        parse_forstmt();
+                        parse_for_stmt();
                 }
                 else {
-                        parse_exprstmt();
+                        parse_expr_stmt();
                 }
         }
         else {
-                parse_exprstmt();
+                parse_expr_stmt();
         }
 }
 
-void parse_proc_body(Proc proc)
+Stmt parse_proc_body(Proc proc)
 {
         PARSE_LOG();
-        parse_compound_exprstmt();
+        return parse_compound_stmt();
 }
 
 void parse_proc(void)
@@ -930,6 +1032,7 @@ void parse_proc(void)
         Scope pscope; /* proc scope */
         Proc proc;
         Token tok;
+        Stmt body;
 
         rettp = parse_type();
         psym = parse_symbol();
@@ -953,7 +1056,9 @@ void parse_proc(void)
         }
         parse_token_kind(TOKTYPE_RIGHTPAREN);
 
-        parse_proc_body(proc);
+        body = parse_proc_body(proc);
+        procInfo[proc].body = body;
+
         pop_scope();
 }
 
@@ -1005,6 +1110,58 @@ void pprint_data(Data d)
         msg(";\n");
 }
 
+void pprint_expr(Expr expr)
+{
+        msg("EXPR");
+}
+
+void pprint_expr_stmt(Expr expr)
+{
+        pprint_expr(expr);
+        msg(";\n");
+}
+
+void pprint_compound_stmt(Stmt stmt)
+{
+        msg("{\n");
+        msg("    COMPOUND\n");
+        msg("}\n");
+}
+
+void pprint_stmt(Stmt stmt)
+{
+        switch (stmtInfo[stmt].kind) {
+        case STMT_IF:
+                msg("if (");
+                pprint_expr(stmtInfo[stmt].tIf.condExpr);
+                msg(")\n");
+                pprint_stmt(stmtInfo[stmt].tIf.childStmt);
+                break;
+        case STMT_FOR:
+                msg("for (");
+                pprint_stmt(stmtInfo[stmt].tFor.initStmt);
+                msg("; ");
+                pprint_expr(stmtInfo[stmt].tFor.condExpr);
+                msg("; ");
+                pprint_expr_stmt(stmtInfo[stmt].tFor.stepStmt);
+                msg(")\n");
+                pprint_stmt(stmtInfo[stmt].tFor.childStmt);
+                break;
+        case STMT_WHILE:
+                msg("if (");
+                pprint_expr(stmtInfo[stmt].tWhile.condExpr);
+                msg(")\n");
+                pprint_stmt(stmtInfo[stmt].tWhile.childStmt);
+                break;
+        case STMT_EXPR:
+                pprint_expr_stmt(stmt);
+                break;
+        case STMT_COMPOUND:
+                pprint_compound_stmt(stmt);
+                break;
+        }
+}
+
 void pprint_proc(Proc p)
 {
         msg("proc ");
@@ -1021,6 +1178,11 @@ void pprint_proc(Proc p)
         }
         msg(")");
         msg(";\n");
+
+        int nst = stmtInfo[procInfo[p].body].tCompound.numStatements;
+        msg("%d sub-statements\n", nst);
+        for (int i = 0; i < nst; i++)
+                pprint_stmt(stmtInfo[procInfo[p].body].tCompound.firstStmt + i);
 }
 
 void prettyprint(void)

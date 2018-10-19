@@ -28,7 +28,6 @@ const char *tokenKindString[] = {
 #undef MAKE
 };
 
-
 const char *tokenKindString[];
 String constStr[NUM_CONSTSTRS];  // has initializer
 
@@ -64,6 +63,12 @@ int unopExprCnt;
 int binopExprCnt;
 int callExprCnt;
 int exprCnt;
+int compoundStmtCnt;
+int exprStmtCnt;
+int ifStmtCnt;
+int forStmtCnt;
+int whileStmtCnt;
+int stmtCnt;
 
 char *lexbuf;
 char *strbuf;
@@ -84,6 +89,12 @@ struct UnopExprInfo *unopExprInfo;
 struct BinopExprInfo *binopExprInfo;
 struct CallExprInfo *callExprInfo;
 struct ExprInfo *exprInfo;
+struct CompoundStmtInfo *compoundStmtInfo;
+struct ExprStmtInfo *exprStmtInfo;
+struct IfStmtInfo *ifStmtInfo;
+struct ForStmtInfo *forStmtInfo;
+struct WhileStmtInfo *whileStmtInfo;
+struct StmtInfo *stmtInfo;
 
 struct Alloc lexbufAlloc;
 struct Alloc strbufAlloc;
@@ -104,3 +115,10 @@ struct Alloc unopExprInfoAlloc;
 struct Alloc binopExprInfoAlloc;
 struct Alloc callExprInfoAlloc;
 struct Alloc exprInfoAlloc;
+struct Alloc compoundStmtInfoAlloc;
+struct Alloc exprStmtInfoAlloc;
+struct Alloc ifStmtInfoAlloc;
+struct Alloc forStmtInfoAlloc;
+struct Alloc whileStmtInfoAlloc;
+struct Alloc stmtInfoAlloc;
+
