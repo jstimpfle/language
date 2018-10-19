@@ -237,17 +237,29 @@ void add_procarg(Proc proc, Type argtp, Symbol argsym)
 
 Expr add_symref_expr(Token UNUSED tok)
 {
-        return -1;
+        Expr x = exprCnt++;
+        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        exprInfo[x].kind = EXPR_SYMREF;
+        exprInfo[x].tSymref.name = tokenInfo[tok].word.string;
+        exprInfo[x].tSymref.tok = tok;
+        return x;
 }
 
 Expr add_literal_expr(Token UNUSED tok)
 {
-        return -1;
+        Expr x = exprCnt++;
+        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        exprInfo[x].kind = EXPR_LITERAL;
+        exprInfo[x].tLiteral.tok = tok;
+        return x;
 }
 
 Expr add_call_expr(Expr UNUSED callee)
 {
-        return -1;
+        Expr x = exprCnt++;
+        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        exprInfo[x].kind = EXPR_CALL;
+        return x;
 }
 
 Expr add_unop_expr(int opkind, Expr expr)
@@ -255,8 +267,8 @@ Expr add_unop_expr(int opkind, Expr expr)
         Expr x = exprCnt++;
         BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
         exprInfo[x].kind = EXPR_UNOP;
-        exprInfo[x].unop.kind = opkind;
-        exprInfo[x].unop.expr = expr;
+        exprInfo[x].tUnop.kind = opkind;
+        exprInfo[x].tUnop.expr = expr;
         return x;
 }
 
@@ -265,9 +277,9 @@ Expr add_binop_expr(int opkind, Expr expr1, Expr expr2)
         Expr x = exprCnt++;
         BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
         exprInfo[x].kind = EXPR_BINOP;
-        exprInfo[x].binop.kind = opkind;
-        exprInfo[x].binop.expr1 = expr1;
-        exprInfo[x].binop.expr2 = expr2;
+        exprInfo[x].tBinop.kind = opkind;
+        exprInfo[x].tBinop.expr1 = expr1;
+        exprInfo[x].tBinop.expr2 = expr2;
         return x;
 }
 
@@ -387,47 +399,28 @@ int token_is_word(Token tok, String string)
                 tokenInfo[tok].word.string == string;
 }
 
-int token_is_unary_prefix_operator(Token tok, int *out_optype) {
-        static const struct {
-                int ttype;
-                int optype;
-        } tbl[] = {
-                { TOKTYPE_BANG,        UNOP_NOT },
-                { TOKTYPE_AMPERSAND,   UNOP_ADDRESSOF },
-                { TOKTYPE_ASTERISK,    UNOP_DEREF },
-                { TOKTYPE_MINUS,       UNOP_NEGATIVE },
-                { TOKTYPE_PLUS,        UNOP_POSITIVE },
-                { TOKTYPE_DOUBLEMINUS, UNOP_PREDECREMENT },
-                { TOKTYPE_DOUBLEPLUS,  UNOP_PREINCREMENT },
-        };
-
+int token_is_unary_prefix_operator(Token tok, int *out_optype)
+{
         int ans = 0;
         int tp = tokenInfo[tok].kind;
-        for (int i = 0; i < LENGTH(tbl); i++) {
-                if (tp == tbl[i].ttype) {
+        for (int i = 0; i < toktypeToPrefixUnopCnt; i++) {
+                if (tp == toktypeToPrefixUnop[i].ttype) {
                         ans = 1;
-                        *out_optype = tbl[i].optype;
+                        *out_optype = toktypeToPrefixUnop[i].optype;
                         break;
                 }
         }
         return ans;
 }
 
-int token_is_unary_postfix_operator(Token tok, int *out_optype) {
-        static const struct {
-                int ttype;
-                int optype;
-        } tbl[] = {
-                { TOKTYPE_DOUBLEMINUS, UNOP_POSTDECREMENT },
-                { TOKTYPE_DOUBLEPLUS,  UNOP_POSTINCREMENT },
-        };
-
+int token_is_unary_postfix_operator(Token tok, int *out_optype)
+{
         int ans = 0;
         int tp = tokenInfo[tok].kind;
-        for (int i = 0; i < LENGTH(tbl); i++) {
-                if (tp == tbl[i].ttype) {
+        for (int i = 0; i < toktypeToPostfixUnopCnt; i++) {
+                if (tp == toktypeToPostfixUnop[i].ttype) {
                         ans = 1;
-                        *out_optype = tbl[i].optype;
+                        *out_optype = toktypeToPostfixUnop[i].optype;
                         break;
                 }
         }
@@ -436,29 +429,13 @@ int token_is_unary_postfix_operator(Token tok, int *out_optype) {
 
 int token_is_binary_infix_operator(Token tok, int *out_optp, int *out_prec)
 {
-        static const struct {
-                int ttp;
-                int optp;
-                int prec;
-        } tbl[] = {
-                { TOKTYPE_ASSIGNEQUALS, OP_ASSIGN, 0 },
-                { TOKTYPE_DOUBLEEQUALS, OP_EQUALS, 1 },
-                { TOKTYPE_MINUS,        OP_MINUS,  2 },
-                { TOKTYPE_PLUS,         OP_PLUS,   2 },
-                { TOKTYPE_ASTERISK,     OP_MUL,    3 },
-                { TOKTYPE_SLASH,        OP_DIV,    3 },
-                { TOKTYPE_AMPERSAND,    OP_BITAND, 3 },
-                { TOKTYPE_PIPE,         OP_BITOR,  3 },
-                { TOKTYPE_CARET,        OP_BITXOR, 3 },
-        };
-
         int ans = 0;
         int tp = tokenInfo[tok].kind;
-        for (int i = 0; i < LENGTH(tbl); i++) {
-                if (tp == tbl[i].ttp) {
+        for (int i = 0; i < toktypeToBinopCnt; i++) {
+                if (tp == toktypeToBinop[i].ttype) {
                         ans = 1;
-                        *out_optp = tbl[i].optp;
-                        *out_prec = tbl[i].prec;
+                        *out_optp = toktypeToBinop[i].optype;
+                        *out_prec = toktypeToBinop[i].prec;
                         break;
                 }
         }
@@ -856,6 +833,7 @@ Expr parse_expr(int minprec)
         for (;;) {
                 tok = look_next_token();
                 if (token_is_unary_postfix_operator(tok, &opkind)) {
+                        msg("UNARY\n");
                         parse_next_token();
                         expr = add_unop_expr(opkind, expr);
                 }
@@ -992,26 +970,26 @@ Stmt parse_stmt(void)
                 String s = tokenInfo[tok].word.string;
                 if (s == constStr[CONSTSTR_DATA]) {
                         parse_next_token();
-                        parse_data();
+                        return parse_data();
                 }
                 else if (s == constStr[CONSTSTR_IF]) {
                         parse_next_token();
-                        parse_ifstmt();
+                        return parse_ifstmt();
                 }
                 else if (s == constStr[CONSTSTR_WHILE]) {
                         parse_next_token();
-                        parse_while_stmt();
+                        return parse_while_stmt();
                 }
                 else if (s == constStr[CONSTSTR_FOR]) {
                         parse_next_token();
-                        parse_for_stmt();
+                        return parse_for_stmt();
                 }
                 else {
-                        parse_expr_stmt();
+                        return parse_expr_stmt();
                 }
         }
         else {
-                parse_expr_stmt();
+                return parse_expr_stmt();
         }
 }
 
@@ -1112,7 +1090,33 @@ void pprint_data(Data d)
 
 void pprint_expr(Expr expr)
 {
-        msg("EXPR");
+        switch (exprInfo[expr].kind) {
+        case EXPR_SYMREF: {
+                String s = exprInfo[expr].tSymref.name;
+                msg("%s", string_buffer(s));
+                break;
+        }
+        case EXPR_LITERAL: {
+                Token tok = exprInfo[expr].tLiteral.tok;
+                msg("%lld", tokenInfo[tok].integer);
+                break;
+        }
+        case EXPR_UNOP: {
+                int unop = exprInfo[expr].tUnop.kind;
+                msg("%s", unopInfo[unop].str);
+                pprint_expr(exprInfo[expr].tUnop.expr);
+                break;
+        }
+        case EXPR_BINOP: {
+                pprint_expr(exprInfo[expr].tBinop.expr1);
+                int binop = exprInfo[expr].tBinop.kind;
+                msg(" %s ", binopInfo[binop].str);
+                pprint_expr(exprInfo[expr].tBinop.expr2);
+                break;
+        }
+        case EXPR_CALL:
+                break;
+        }
 }
 
 void pprint_expr_stmt(Expr expr)

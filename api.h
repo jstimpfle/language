@@ -80,21 +80,25 @@ enum {
         UNOP_PREINCREMENT,
         UNOP_POSTDECREMENT,
         UNOP_POSTINCREMENT,
+        NUM_UNOPS,
 };
 
 enum {
-        OP_ASSIGN,
-        OP_EQUALS,
-        OP_MINUS,
-        OP_PLUS,
-        OP_MUL,
-        OP_DIV,
-        OP_BITAND,
-        OP_BITOR,
-        OP_BITXOR,
+        BINOP_ASSIGN,
+        BINOP_EQUALS,
+        BINOP_MINUS,
+        BINOP_PLUS,
+        BINOP_MUL,
+        BINOP_DIV,
+        BINOP_BITAND,
+        BINOP_BITOR,
+        BINOP_BITXOR,
+        NUM_BINOPS,
 };
 
 enum {
+        EXPR_LITERAL,
+        EXPR_SYMREF,
         EXPR_UNOP,
         EXPR_BINOP,
         EXPR_CALL,
@@ -103,6 +107,31 @@ enum {
 enum {
         SCOPE_GLOBAL,
         SCOPE_PROC,
+};
+
+struct ToktypeToPrefixUnop {
+        int ttype;
+        int optype;
+};
+
+struct ToktypeToPostfixUnop {
+        int ttype;
+        int optype;
+};
+
+struct ToktypeToBinop {
+        int ttype;
+        int optype;
+        int prec;
+};
+
+struct UnopInfo {
+        int isprefix;
+        char *str;
+};
+
+struct BinopInfo {
+        char *str;
 };
 
 struct Alloc {
@@ -206,7 +235,7 @@ struct ProcArgInfo {
 };
 
 struct SymrefExprInfo {
-        Symbol sym;
+        String name;
         Token tok;
 };
 
@@ -234,10 +263,11 @@ struct BinopExprInfo {
 struct ExprInfo {
         int kind;
         union {
-                struct SymrefExprInfo symref;
-                struct CallExprInfo call;
-                struct UnopExprInfo unop;
-                struct BinopExprInfo binop;
+                struct SymrefExprInfo tSymref;
+                struct LiteralExprInfo tLiteral;
+                struct CallExprInfo tCall;
+                struct UnopExprInfo tUnop;
+                struct BinopExprInfo tBinop;
         };
 };
 
@@ -279,6 +309,14 @@ struct StmtInfo {
 };
 
 extern const char *tokenKindString[];
+extern const struct ToktypeToPrefixUnop toktypeToPrefixUnop[];
+extern const struct ToktypeToPostfixUnop toktypeToPostfixUnop[];
+extern const struct ToktypeToBinop toktypeToBinop[];
+extern const struct UnopInfo unopInfo[NUM_UNOPS];
+extern const struct BinopInfo binopInfo[NUM_BINOPS];
+extern const int toktypeToPrefixUnopCnt;
+extern const int toktypeToPostfixUnopCnt;
+extern const int toktypeToBinopCnt;
 extern String constStr[NUM_CONSTSTRS];  // has initializer
 
 extern File current_file;
@@ -313,11 +351,6 @@ extern int unopExprCnt;
 extern int binopExprCnt;
 extern int callExprCnt;
 extern int exprCnt;
-extern int compoundStmtCnt;
-extern int exprStmtCnt;
-extern int ifStmtCnt;
-extern int forStmtCnt;
-extern int whileStmtCnt;
 extern int stmtCnt;
 
 extern char *lexbuf;
@@ -339,11 +372,6 @@ extern struct UnopExprInfo *unopExprInfo;
 extern struct BinopExprInfo *binopExprInfo;
 extern struct CallExprInfo *callExprInfo;
 extern struct ExprInfo *exprInfo;
-extern struct CompoundStmtInfo *compoundStmtInfo;
-extern struct ExprStmtInfo *exprStmtInfo;
-extern struct IfStmtInfo *ifStmtInfo;
-extern struct ForStmtInfo *forStmtInfo;
-extern struct WhileStmtInfo *whileStmtInfo;
 extern struct StmtInfo *stmtInfo;
 
 extern struct Alloc lexbufAlloc;
@@ -365,11 +393,6 @@ extern struct Alloc unopExprInfoAlloc;
 extern struct Alloc binopExprInfoAlloc;
 extern struct Alloc callExprInfoAlloc;
 extern struct Alloc exprInfoAlloc;
-extern struct Alloc compoundStmtInfoAlloc;
-extern struct Alloc exprStmtInfoAlloc;
-extern struct Alloc ifStmtInfoAlloc;
-extern struct Alloc forStmtInfoAlloc;
-extern struct Alloc whileStmtInfoAlloc;
 extern struct Alloc stmtInfoAlloc;
 
 static inline const char *string_buffer(String s)

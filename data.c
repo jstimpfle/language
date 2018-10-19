@@ -28,8 +28,68 @@ const char *tokenKindString[] = {
 #undef MAKE
 };
 
-const char *tokenKindString[];
+const struct ToktypeToPrefixUnop toktypeToPrefixUnop[] = {
+        { TOKTYPE_BANG,        UNOP_NOT },
+        { TOKTYPE_AMPERSAND,   UNOP_ADDRESSOF },
+        { TOKTYPE_ASTERISK,    UNOP_DEREF },
+        { TOKTYPE_MINUS,       UNOP_NEGATIVE },
+        { TOKTYPE_PLUS,        UNOP_POSITIVE },
+        { TOKTYPE_DOUBLEMINUS, UNOP_PREDECREMENT },
+        { TOKTYPE_DOUBLEPLUS,  UNOP_PREINCREMENT },
+};
+
+const struct ToktypeToPostfixUnop toktypeToPostfixUnop[] = {
+        { TOKTYPE_DOUBLEMINUS, UNOP_POSTDECREMENT },
+        { TOKTYPE_DOUBLEPLUS,  UNOP_POSTINCREMENT },
+};
+
+const struct ToktypeToBinop toktypeToBinop[] = {
+        { TOKTYPE_ASSIGNEQUALS, BINOP_ASSIGN, 0 },
+        { TOKTYPE_DOUBLEEQUALS, BINOP_EQUALS, 1 },
+        { TOKTYPE_MINUS,        BINOP_MINUS,  2 },
+        { TOKTYPE_PLUS,         BINOP_PLUS,   2 },
+        { TOKTYPE_ASTERISK,     BINOP_MUL,    3 },
+        { TOKTYPE_SLASH,        BINOP_DIV,    3 },
+        { TOKTYPE_AMPERSAND,    BINOP_BITAND, 3 },
+        { TOKTYPE_PIPE,         BINOP_BITOR,  3 },
+        { TOKTYPE_CARET,        BINOP_BITXOR, 3 },
+};
+
+const struct UnopInfo unopInfo[NUM_UNOPS] = {
+#define MAKE(x, y, z) [x] = { y, z }
+        MAKE(UNOP_NOT,           1, "!"),
+        MAKE(UNOP_ADDRESSOF,     1, "&"),
+        MAKE(UNOP_DEREF,         1, "*"),
+        MAKE(UNOP_NEGATIVE,      1, "-"),
+        MAKE(UNOP_POSITIVE,      1, "+"),
+        MAKE(UNOP_PREDECREMENT,  1, "--"),
+        MAKE(UNOP_PREINCREMENT,  1, "++"),
+        MAKE(UNOP_POSTDECREMENT, 0, "--"),
+        MAKE(UNOP_POSTINCREMENT, 0, "++"),
+#undef MAKE
+};
+
+const struct BinopInfo binopInfo[NUM_BINOPS] = {
+#define MAKE(x, y) [x] = { y }
+        MAKE(BINOP_ASSIGN, "="),
+        MAKE(BINOP_EQUALS, "=="),
+        MAKE(BINOP_MINUS, "-"),
+        MAKE(BINOP_PLUS, "+"),
+        MAKE(BINOP_MUL, "*"),
+        MAKE(BINOP_DIV, "/"),
+        MAKE(BINOP_BITAND, "&"),
+        MAKE(BINOP_BITOR, "|"),
+        MAKE(BINOP_BITXOR, "^"),
+#undef MAKE
+};
+
+const int toktypeToPrefixUnopCnt = LENGTH(toktypeToPrefixUnop);
+const int toktypeToPostfixUnopCnt = LENGTH(toktypeToPostfixUnop);
+const int toktypeToBinopCnt = LENGTH(toktypeToBinop);
+
+
 String constStr[NUM_CONSTSTRS];  // has initializer
+
 
 File current_file;
 int current_offset;
