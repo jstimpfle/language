@@ -355,6 +355,15 @@ void add_ChildStmt(Stmt parent, Stmt child)
         childStmtInfo[x].rank = x;
 }
 
+void add_CallArg(Expr callExpr, Expr argExpr)
+{
+        int x = callArgCnt++;
+        BUF_RESERVE(callArgInfo, callArgInfoAlloc, callArgCnt);
+        callArgInfo[x].callExpr = callExpr;
+        callArgInfo[x].argExpr = argExpr;
+        callArgInfo[x].rank = x;
+}
+
 void init_strings(void)
 {
 
@@ -825,7 +834,7 @@ Expr parse_expr(int minprec)
                         expr = add_call_expr(expr);
                         while (look_token_kind(TOKTYPE_RIGHTPAREN) == -1) {
                                 subexpr = parse_expr(0);
-                                /* TODO: add call argument */
+                                add_CallArg(expr, subexpr);
                                 if (look_token_kind(TOKTYPE_COMMA) == -1)
                                         break;
                                 parse_next_token();

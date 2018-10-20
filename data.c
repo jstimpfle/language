@@ -71,15 +71,15 @@ const struct UnopInfo unopInfo[NUM_UNOPS] = {
 
 const struct BinopInfo binopInfo[NUM_BINOPS] = {
 #define MAKE(x, y, z) [x] = { y, z }
-        MAKE( BINOP_ASSIGN,  "=",  1 ),
-        MAKE( BINOP_EQUALS,  "==", 1 ),
-        MAKE( BINOP_MINUS,   "-",  1 ),
-        MAKE( BINOP_PLUS,    "+",  1 ),
-        MAKE( BINOP_MUL,     "*",  1 ),
-        MAKE( BINOP_DIV,     "/",  1 ),
-        MAKE( BINOP_BITAND,  "&",  1 ),
-        MAKE( BINOP_BITOR,   "|",  1 ),
-        MAKE( BINOP_BITXOR,  "^",  1 ),
+        MAKE( BINOP_ASSIGN, 1,  "="  ),
+        MAKE( BINOP_EQUALS, 1,  "==" ),
+        MAKE( BINOP_MINUS,  1,  "-"  ),
+        MAKE( BINOP_PLUS,   1,  "+"  ),
+        MAKE( BINOP_MUL,    1,  "*"  ),
+        MAKE( BINOP_DIV,    1,  "/"  ),
+        MAKE( BINOP_BITAND, 1,  "&"  ),
+        MAKE( BINOP_BITOR,  1,  "|"  ),
+        MAKE( BINOP_BITXOR, 1,  "^"  ),
 #undef MAKE
 };
 
@@ -93,7 +93,7 @@ const struct StringToBeInterned stringToBeInterned[] = {
         MAKE( CONSTSTR_ENTITY, "entity" ),
         MAKE( CONSTSTR_TABLE,  "table"  ),
         MAKE( CONSTSTR_COLUMN, "column" ),
-#endif
+#undef MAKE
 };
 
 const int toktypeToPrefixUnopCnt = LENGTH(toktypeToPrefixUnop);
@@ -138,6 +138,7 @@ int callExprCnt;
 int exprCnt;
 int stmtCnt;
 int childStmtCnt;
+int callArgCnt;
 
 char *lexbuf;
 char *strbuf;
@@ -160,6 +161,7 @@ struct CallExprInfo *callExprInfo;
 struct ExprInfo *exprInfo;
 struct StmtInfo *stmtInfo;
 struct ChildStmtInfo *childStmtInfo;
+struct CallArgInfo *callArgInfo;
 
 struct Alloc lexbufAlloc;
 struct Alloc strbufAlloc;
@@ -182,4 +184,4 @@ struct Alloc callExprInfoAlloc;
 struct Alloc exprInfoAlloc;
 struct Alloc stmtInfoAlloc;
 struct Alloc childStmtInfoAlloc;
-
+struct Alloc callArgInfoAlloc;

@@ -135,8 +135,8 @@ struct UnopInfo {
 };
 
 struct BinopInfo {
-        char *str;
         int prec;
+        char *str;
 };
 
 struct Alloc {
@@ -252,6 +252,12 @@ struct CallExprInfo {
         Expr callee;
         Expr firstArgIndex;  // speed-up
         Expr lastArgIndex;  // speed-up
+};
+
+struct CallArgInfo {
+        Expr callExpr;
+        Expr argExpr;
+        int rank;
 };
 
 struct UnopExprInfo {
@@ -373,6 +379,7 @@ extern int callExprCnt;
 extern int exprCnt;
 extern int stmtCnt;
 extern int childStmtCnt;
+extern int callArgCnt;
 
 extern char *lexbuf;
 extern char *strbuf;
@@ -395,6 +402,7 @@ extern struct CallExprInfo *callExprInfo;
 extern struct ExprInfo *exprInfo;
 extern struct StmtInfo *stmtInfo;
 extern struct ChildStmtInfo *childStmtInfo;
+extern struct CallArgInfo *callArgInfo;
 
 extern struct Alloc lexbufAlloc;
 extern struct Alloc strbufAlloc;
@@ -417,6 +425,7 @@ extern struct Alloc callExprInfoAlloc;
 extern struct Alloc exprInfoAlloc;
 extern struct Alloc stmtInfoAlloc;
 extern struct Alloc childStmtInfoAlloc;
+extern struct Alloc callArgInfoAlloc;
 
 static inline const char *string_buffer(String s)
 {
