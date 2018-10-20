@@ -216,23 +216,23 @@ Proc add_proc(Type tp, Symbol sym, Scope scope)
         procInfo[x].tp = tp;
         procInfo[x].sym = sym;
         procInfo[x].scope = scope;
-        procInfo[x].nargs = 0;
+        procInfo[x].nparams = 0;
         procInfo[x].body = -1;
         return x;
 }
 
 void add_procarg(Proc proc, Type argtp, Symbol argsym)
 {
-        ProcArg x = procArgCnt++;
-        BUF_RESERVE(procArgInfo, procArgInfoAlloc, procArgCnt);
-        procArgInfo[x].proc = proc;
-        procArgInfo[x].tp = argtp;
-        procArgInfo[x].sym = argsym;
-        procArgInfo[x].argIdx = procInfo[proc].nargs;
+        ProcParam x = procParamCnt++;
+        BUF_RESERVE(procParamInfo, procParamInfoAlloc, procParamCnt);
+        procParamInfo[x].proc = proc;
+        procParamInfo[x].tp = argtp;
+        procParamInfo[x].sym = argsym;
+        procParamInfo[x].argIdx = procInfo[proc].nparams;
 
-        if (procInfo[proc].nargs == 0)
-                procInfo[proc].firstArg = x;
-        procInfo[proc].nargs++;
+        if (procInfo[proc].nparams == 0)
+                procInfo[proc].firstParam = x;
+        procInfo[proc].nparams++;
 }
 
 Expr add_symref_expr(Token tok)
@@ -357,23 +357,10 @@ void add_ChildStmt(Stmt parent, Stmt child)
 
 void init_strings(void)
 {
-        static const struct {
-                int constant;
-                const char *string;
-        } tbl[] = {
-                { CONSTSTR_IF,     "if" },
-                { CONSTSTR_WHILE,  "while" },
-                { CONSTSTR_FOR,    "for" },
-                { CONSTSTR_PROC,   "proc" },
-                { CONSTSTR_DATA,   "data" },
-                { CONSTSTR_ENTITY, "entity" },
-                { CONSTSTR_TABLE,  "table" },
-                { CONSTSTR_COLUMN, "column" },
-        };
 
-        for (int i = 0; i < LENGTH(tbl); i++) {
-                int idx = tbl[i].constant;
-                const char *str = tbl[i].string;
+        for (int i = 0; i < LENGTH(stringToBeInterned); i++) {
+                int idx = stringToBeInterned[i].constant;
+                const char *str = stringToBeInterned[i].string;
                 constStr[idx] = intern_cstring(str);
         }
 }
@@ -450,14 +437,14 @@ int token_is_binary_infix_operator(Token tok, int *out_optp, int *out_prec)
 int read_char(void)
 {
         int ans;
-        if (have_saved_char) {
-                have_saved_char = 0;
-                ans = saved_char;
-                current_offset++;
+        if (haveSavedChar) {
+                haveSavedChar = 0;
+                ans = savedChar;
+                currentOffset++;
         }
-        else if (current_offset < fileInfo[current_file].size) {
-                int pos = current_offset++;
-                ans = fileInfo[current_file].buf[pos];
+        else if (currentOffset < fileInfo[currentFile].size) {
+                int pos = currentOffset++;
+                ans = fileInfo[currentFile].buf[pos];
         }
         else {
                 ans = -1;
@@ -467,16 +454,16 @@ int read_char(void)
 
 int look_char(void)
 {
-        if (! have_saved_char) {
-                if (current_offset < fileInfo[current_file].size) {
-                        have_saved_char = 1;
-                        saved_char = fileInfo[current_file].buf[current_offset];
+        if (! haveSavedChar) {
+                if (currentOffset < fileInfo[currentFile].size) {
+                        haveSavedChar = 1;
+                        savedChar = fileInfo[currentFile].buf[currentOffset];
                 }
                 else {
-                        saved_char = -1;
+                        savedChar = -1;
                 }
         }
-        return saved_char;
+        return savedChar;
 }
 
 /* offset may be 1 past the end of file (i.e., equal to file size) */
@@ -521,23 +508,23 @@ int compute_colno(File file, int offset)
 #define PARSE_LOG() \
         msg("AT %s() at %d:%d\n", \
             __func__, \
-            compute_lineno(current_file, current_offset), \
-            compute_colno(current_file, current_offset))
+            compute_lineno(currentFile, currentOffset), \
+            compute_colno(currentFile, currentOffset))
 
 void push_scope(Scope scope)
 {
-        if (scope_stack_count >= LENGTH(scope_stack))
-                PARSE_ERROR_AT(current_file, current_offset,
+        if (scopeStackCnt >= LENGTH(scopeStack))
+                PARSE_ERROR_AT(currentFile, currentOffset,
                                "Maximum scope nesting depth reached\n");
-        scope_stack[scope_stack_count++] = scope;
-        current_scope = scope;
+        scopeStack[scopeStackCnt++] = scope;
+        currentScope = scope;
 }
 
 void pop_scope(void)
 {
-        assert(scope_stack_count > 1);
-        scope_stack_count--;
-        current_scope = scope_stack[scope_stack_count-1];
+        assert(scopeStackCnt > 1);
+        scopeStackCnt--;
+        currentScope = scopeStack[scopeStackCnt-1];
 }
 
 Token parse_next_token(void)
@@ -546,9 +533,9 @@ Token parse_next_token(void)
         int off;
         Token ans;
 
-        if (have_saved_token) {
-                have_saved_token = 0;
-                return saved_token;
+        if (haveSavedToken) {
+                haveSavedToken = 0;
+                return savedToken;
         }
 
         for (;;) {
@@ -556,14 +543,14 @@ Token parse_next_token(void)
                 if (c == -1)
                         return -1;
                 if (char_is_invalid(c))
-                        PARSE_ERROR_AT(current_file, current_offset,
+                        PARSE_ERROR_AT(currentFile, currentOffset,
                                        "Invalid byte %d\n", c);
                 if (! char_is_whitespace(c))
                         break;
                 read_char();
         }
 
-        off = current_offset;
+        off = currentOffset;
 
         c = read_char();
         if (char_is_alpha(c)) {
@@ -579,7 +566,7 @@ Token parse_next_token(void)
                                 break;
                         read_char();
                 }
-                ans = add_word_token(current_file, off, lexbuf, lexbufCnt);
+                ans = add_word_token(currentFile, off, lexbuf, lexbufCnt);
         }
         else if (char_is_digit(c)) {
                 long long x = c - '0';
@@ -589,35 +576,35 @@ Token parse_next_token(void)
                         c = read_char();
                         x = 10 * x + c - '0';
                 }
-                ans = add_integer_token(current_file, off, x);
+                ans = add_integer_token(currentFile, off, x);
         }
         else if (c == '(') {
-                ans = add_bare_token(current_file, off, TOKTYPE_LEFTPAREN);
+                ans = add_bare_token(currentFile, off, TOKTYPE_LEFTPAREN);
         }
         else if (c == ')') {
-                ans = add_bare_token(current_file, off, TOKTYPE_RIGHTPAREN);
+                ans = add_bare_token(currentFile, off, TOKTYPE_RIGHTPAREN);
         }
         else if (c == '{') {
-                ans = add_bare_token(current_file, off, TOKTYPE_LEFTBRACE);
+                ans = add_bare_token(currentFile, off, TOKTYPE_LEFTBRACE);
         }
         else if (c == '}') {
-                ans = add_bare_token(current_file, off, TOKTYPE_RIGHTBRACE);
+                ans = add_bare_token(currentFile, off, TOKTYPE_RIGHTBRACE);
         }
         else if (c == '[') {
-                ans = add_bare_token(current_file, off, TOKTYPE_LEFTBRACKET);
+                ans = add_bare_token(currentFile, off, TOKTYPE_LEFTBRACKET);
         }
         else if (c == ']') {
-                ans = add_bare_token(current_file, off, TOKTYPE_RIGHTBRACKET);
+                ans = add_bare_token(currentFile, off, TOKTYPE_RIGHTBRACKET);
         }
         else if (c == '-') {
                 c = look_char();
                 if (c == '-') {
                         read_char();
-                        ans = add_bare_token(current_file, off,
+                        ans = add_bare_token(currentFile, off,
                                              TOKTYPE_DOUBLEMINUS);
                 }
                 else {
-                        ans = add_bare_token(current_file, off,
+                        ans = add_bare_token(currentFile, off,
                                              TOKTYPE_MINUS);
                 }
         }
@@ -625,54 +612,54 @@ Token parse_next_token(void)
                 c = look_char();
                 if (c == '+') {
                         read_char();
-                        ans = add_bare_token(current_file, off,
+                        ans = add_bare_token(currentFile, off,
                                              TOKTYPE_DOUBLEPLUS);
                 }
                 else {
-                        ans = add_bare_token(current_file, off, TOKTYPE_PLUS);
+                        ans = add_bare_token(currentFile, off, TOKTYPE_PLUS);
                 }
         }
         else if (c == '*') {
-                ans = add_bare_token(current_file, off, TOKTYPE_ASTERISK);
+                ans = add_bare_token(currentFile, off, TOKTYPE_ASTERISK);
         }
         else if (c == '/') {
-                ans = add_bare_token(current_file, off, TOKTYPE_SLASH);
+                ans = add_bare_token(currentFile, off, TOKTYPE_SLASH);
         }
         else if (c == ',') {
-                ans = add_bare_token(current_file, off, TOKTYPE_COMMA);
+                ans = add_bare_token(currentFile, off, TOKTYPE_COMMA);
         }
         else if (c == ';') {
-                ans = add_bare_token(current_file, off, TOKTYPE_SEMICOLON);
+                ans = add_bare_token(currentFile, off, TOKTYPE_SEMICOLON);
         }
         else if (c == ':') {
-                ans = add_bare_token(current_file, off, TOKTYPE_COLON);
+                ans = add_bare_token(currentFile, off, TOKTYPE_COLON);
         }
         else if (c == '&') {
-                ans = add_bare_token(current_file, off, TOKTYPE_AMPERSAND);
+                ans = add_bare_token(currentFile, off, TOKTYPE_AMPERSAND);
         }
         else if (c == '|') {
-                ans = add_bare_token(current_file, off, TOKTYPE_PIPE);
+                ans = add_bare_token(currentFile, off, TOKTYPE_PIPE);
         }
         else if (c == '^') {
-                ans = add_bare_token(current_file, off, TOKTYPE_CARET);
+                ans = add_bare_token(currentFile, off, TOKTYPE_CARET);
         }
         else if (c == '!') {
-                ans = add_bare_token(current_file, off, TOKTYPE_BANG);
+                ans = add_bare_token(currentFile, off, TOKTYPE_BANG);
         }
         else if (c == '=') {
                 c = look_char();
                 if (c == '=') {
                         read_char();
-                        ans = add_bare_token(current_file, off,
+                        ans = add_bare_token(currentFile, off,
                                              TOKTYPE_DOUBLEEQUALS);
                 }
                 else {
-                        ans = add_bare_token(current_file, off,
+                        ans = add_bare_token(currentFile, off,
                                              TOKTYPE_ASSIGNEQUALS);
                 }
         }
         else {
-                PARSE_ERROR_AT(current_file, current_offset,
+                PARSE_ERROR_AT(currentFile, currentOffset,
                                "Failed to lex token\n");
         }
 
@@ -681,12 +668,12 @@ Token parse_next_token(void)
 
 Token look_next_token(void)
 {
-        if (have_saved_token)
-                return saved_token;
+        if (haveSavedToken)
+                return savedToken;
         else {
-                saved_token = parse_next_token();
-                have_saved_token = 1;
-                return saved_token;
+                savedToken = parse_next_token();
+                haveSavedToken = 1;
+                return savedToken;
         }
 }
 
@@ -694,7 +681,7 @@ Token parse_token_kind(int tkind)
 {
         Token tok = parse_next_token();
         if (tok == -1) {
-                PARSE_ERROR_AT(current_file, current_offset,
+                PARSE_ERROR_AT(currentFile, currentOffset,
                                "Unexpected end of file. Expected %s token\n",
                                tokenKindString[tkind]);
         }
@@ -798,7 +785,7 @@ Data parse_data(void)
         sym = parse_symbol();
         parse_token_kind(TOKTYPE_SEMICOLON);
 
-        return add_data(current_scope, tp, sym);
+        return add_data(currentScope, tp, sym);
 }
 
 Expr parse_expr(int minprec)
@@ -1027,7 +1014,7 @@ void parse_proc(void)
 
         rettp = parse_type();
         psym = parse_symbol();
-        pscope = add_proc_scope(current_scope);
+        pscope = add_proc_scope(currentScope);
         proc = add_proc(rettp, psym, pscope);
         scopeInfo[pscope].tProc.proc = proc;
 
@@ -1069,8 +1056,8 @@ void parse_global_scope(void)
         Token tok;
         String s;
 
-        global_scope = add_global_scope();
-        push_scope(global_scope);
+        globalScope = add_global_scope();
+        push_scope(globalScope);
 
         for (;;) {
                 tok = look_next_token();

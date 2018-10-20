@@ -83,6 +83,17 @@ const struct BinopInfo binopInfo[NUM_BINOPS] = {
 #undef MAKE
 };
 
+const struct StringToBeInterned stringToBeInterned[] = {
+        { CONSTSTR_IF,     "if" },
+        { CONSTSTR_WHILE,  "while" },
+        { CONSTSTR_FOR,    "for" },
+        { CONSTSTR_PROC,   "proc" },
+        { CONSTSTR_DATA,   "data" },
+        { CONSTSTR_ENTITY, "entity" },
+        { CONSTSTR_TABLE,  "table" },
+        { CONSTSTR_COLUMN, "column" },
+};
+
 const int toktypeToPrefixUnopCnt = LENGTH(toktypeToPrefixUnop);
 const int toktypeToPostfixUnopCnt = LENGTH(toktypeToPostfixUnop);
 const int toktypeToBinopCnt = LENGTH(toktypeToBinop);
@@ -91,18 +102,18 @@ const int toktypeToBinopCnt = LENGTH(toktypeToBinop);
 String constStr[NUM_CONSTSTRS];  // has initializer
 
 
-File current_file;
-int current_offset;
-int have_saved_char;
-int saved_char;
+File currentFile;
+int currentOffset;
+int haveSavedChar;
+int savedChar;
 
-int have_saved_token;
-Token saved_token;
+int haveSavedToken;
+Token savedToken;
 
-Scope global_scope;
-Scope current_scope;
-Scope scope_stack[16];
-int scope_stack_count;
+Scope globalScope;
+Scope currentScope;
+Scope scopeStack[16];
+int scopeStackCnt;
 
 int lexbufCnt;
 int strbufCnt;
@@ -118,16 +129,11 @@ int columnCnt;
 int dataCnt;
 int scopeCnt;
 int procCnt;
-int procArgCnt;
+int procParamCnt;
 int unopExprCnt;
 int binopExprCnt;
 int callExprCnt;
 int exprCnt;
-int compoundStmtCnt;
-int exprStmtCnt;
-int ifStmtCnt;
-int forStmtCnt;
-int whileStmtCnt;
 int stmtCnt;
 int childStmtCnt;
 
@@ -145,16 +151,11 @@ struct ColumnInfo *columnInfo;
 struct DataInfo *dataInfo;
 struct ScopeInfo *scopeInfo;
 struct ProcInfo *procInfo;
-struct ProcArgInfo *procArgInfo;
+struct ProcParamInfo *procParamInfo;
 struct UnopExprInfo *unopExprInfo;
 struct BinopExprInfo *binopExprInfo;
 struct CallExprInfo *callExprInfo;
 struct ExprInfo *exprInfo;
-struct CompoundStmtInfo *compoundStmtInfo;
-struct ExprStmtInfo *exprStmtInfo;
-struct IfStmtInfo *ifStmtInfo;
-struct ForStmtInfo *forStmtInfo;
-struct WhileStmtInfo *whileStmtInfo;
 struct StmtInfo *stmtInfo;
 struct ChildStmtInfo *childStmtInfo;
 
@@ -172,15 +173,11 @@ struct Alloc columnInfoAlloc;
 struct Alloc dataInfoAlloc;
 struct Alloc scopeInfoAlloc;
 struct Alloc procInfoAlloc;
-struct Alloc procArgInfoAlloc;
+struct Alloc procParamInfoAlloc;
 struct Alloc unopExprInfoAlloc;
 struct Alloc binopExprInfoAlloc;
 struct Alloc callExprInfoAlloc;
 struct Alloc exprInfoAlloc;
-struct Alloc compoundStmtInfoAlloc;
-struct Alloc exprStmtInfoAlloc;
-struct Alloc ifStmtInfoAlloc;
-struct Alloc forStmtInfoAlloc;
-struct Alloc whileStmtInfoAlloc;
 struct Alloc stmtInfoAlloc;
 struct Alloc childStmtInfoAlloc;
+

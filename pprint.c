@@ -170,12 +170,12 @@ void pprint_proc(Proc p)
         msg(" ");
         msg("%s", SS(procInfo[p].sym));
         msg("(");
-        int firstArg = procInfo[p].firstArg;
-        for (int i = 0; i < procInfo[p].nargs; i++) {
+        int firstParam = procInfo[p].firstParam;
+        for (int i = 0; i < procInfo[p].nparams; i++) {
                 if (i > 0)
                         msg(", ");
-                pprint_type(procArgInfo[firstArg+i].tp);
-                msg(" %s", SS(procArgInfo[firstArg+i].sym));
+                pprint_type(procParamInfo[firstParam+i].tp);
+                msg(" %s", SS(procParamInfo[firstParam+i].sym));
         }
         msg(")");
         pprint_newline();
@@ -185,8 +185,7 @@ void pprint_proc(Proc p)
 void prettyprint(void)
 {
         for (Data i = 0; i < dataCnt; i++) {
-                //if (scopeInfo[dataInfo[i].scope].kind == global_scope) {
-                if (i[dataInfo].scope[scopeInfo].kind == global_scope) {
+                if (scopeInfo[dataInfo[i].scope].kind == globalScope) {
                         pprint_data(i);
                 }
         }

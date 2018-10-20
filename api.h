@@ -10,7 +10,7 @@ typedef int Table;
 typedef int Column;
 typedef int Data;
 typedef int Proc;
-typedef int ProcArg;
+typedef int ProcParam;
 typedef int SymrefExpr;
 typedef int CallExpr;
 typedef int UnopExpr;
@@ -107,6 +107,11 @@ enum {
 enum {
         SCOPE_GLOBAL,
         SCOPE_PROC,
+};
+
+struct StringToBeInterned {
+        int constant;  // CONSTSTR_
+        const char *string;
 };
 
 struct ToktypeToPrefixUnop {
@@ -220,14 +225,14 @@ struct ScopeInfo {
 
 struct ProcInfo {
         Type tp;
-        int nargs;
+        int nparams;
         Symbol sym;
         Scope scope;
         Stmt body;
-        ProcArg firstArg;  // speed-up
+        ProcParam firstParam;  // speed-up
 };
 
-struct ProcArgInfo {
+struct ProcParamInfo {
         Proc proc;
         int argIdx;
         Type tp;
@@ -325,23 +330,27 @@ extern const struct ToktypeToPostfixUnop toktypeToPostfixUnop[];
 extern const struct ToktypeToBinop toktypeToBinop[];
 extern const struct UnopInfo unopInfo[NUM_UNOPS];
 extern const struct BinopInfo binopInfo[NUM_BINOPS];
+extern const struct StringToBeInterned stringToBeInterned[NUM_CONSTSTRS];
 extern const int toktypeToPrefixUnopCnt;
 extern const int toktypeToPostfixUnopCnt;
 extern const int toktypeToBinopCnt;
 extern String constStr[NUM_CONSTSTRS];  // has initializer
 
-extern File current_file;
-extern int current_offset;
-extern int have_saved_char;
-extern int saved_char;
 
-extern int have_saved_token;
-extern Token saved_token;
+/**/
 
-extern Scope global_scope;
-extern Scope current_scope;
-extern Scope scope_stack[16];
-extern int scope_stack_count;
+extern File currentFile;
+extern int currentOffset;
+extern int haveSavedChar;
+extern int savedChar;
+
+extern int haveSavedToken;
+extern Token savedToken;
+
+extern Scope globalScope;
+extern Scope currentScope;
+extern Scope scopeStack[16];
+extern int scopeStackCnt;
 
 extern int lexbufCnt;
 extern int strbufCnt;
@@ -357,7 +366,7 @@ extern int columnCnt;
 extern int dataCnt;
 extern int scopeCnt;
 extern int procCnt;
-extern int procArgCnt;
+extern int procParamCnt;
 extern int unopExprCnt;
 extern int binopExprCnt;
 extern int callExprCnt;
@@ -379,7 +388,7 @@ extern struct ColumnInfo *columnInfo;
 extern struct DataInfo *dataInfo;
 extern struct ScopeInfo *scopeInfo;
 extern struct ProcInfo *procInfo;
-extern struct ProcArgInfo *procArgInfo;
+extern struct ProcParamInfo *procParamInfo;
 extern struct UnopExprInfo *unopExprInfo;
 extern struct BinopExprInfo *binopExprInfo;
 extern struct CallExprInfo *callExprInfo;
@@ -401,7 +410,7 @@ extern struct Alloc columnInfoAlloc;
 extern struct Alloc dataInfoAlloc;
 extern struct Alloc scopeInfoAlloc;
 extern struct Alloc procInfoAlloc;
-extern struct Alloc procArgInfoAlloc;
+extern struct Alloc procParamInfoAlloc;
 extern struct Alloc unopExprInfoAlloc;
 extern struct Alloc binopExprInfoAlloc;
 extern struct Alloc callExprInfoAlloc;
