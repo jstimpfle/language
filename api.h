@@ -244,7 +244,7 @@ struct LiteralExprInfo {
 };
 
 struct CallExprInfo {
-        Proc proc;
+        Expr callee;
         Expr firstArgIndex;  // speed-up
         Expr lastArgIndex;  // speed-up
 };
@@ -271,9 +271,13 @@ struct ExprInfo {
         };
 };
 
+struct DataStmtInfo {
+        Data data;
+};
+
 struct CompoundStmtInfo {
-        Stmt firstStmt;
         int numStatements;
+        int firstChildStmtIdx;
 };
 
 struct ExprStmtInfo {
@@ -300,12 +304,19 @@ struct WhileStmtInfo {
 struct StmtInfo {
         int kind;
         union {
+                struct DataStmtInfo tData;
                 struct CompoundStmtInfo tCompound;
                 struct ExprStmtInfo tExpr;
                 struct IfStmtInfo tIf;
                 struct WhileStmtInfo tWhile;
                 struct ForStmtInfo tFor;
         };
+};
+
+struct ChildStmtInfo {
+        Stmt parent;
+        Stmt child;
+        int rank;
 };
 
 extern const char *tokenKindString[];
@@ -352,6 +363,7 @@ extern int binopExprCnt;
 extern int callExprCnt;
 extern int exprCnt;
 extern int stmtCnt;
+extern int childStmtCnt;
 
 extern char *lexbuf;
 extern char *strbuf;
@@ -373,6 +385,7 @@ extern struct BinopExprInfo *binopExprInfo;
 extern struct CallExprInfo *callExprInfo;
 extern struct ExprInfo *exprInfo;
 extern struct StmtInfo *stmtInfo;
+extern struct ChildStmtInfo *childStmtInfo;
 
 extern struct Alloc lexbufAlloc;
 extern struct Alloc strbufAlloc;
@@ -394,6 +407,7 @@ extern struct Alloc binopExprInfoAlloc;
 extern struct Alloc callExprInfoAlloc;
 extern struct Alloc exprInfoAlloc;
 extern struct Alloc stmtInfoAlloc;
+extern struct Alloc childStmtInfoAlloc;
 
 static inline const char *string_buffer(String s)
 {
@@ -403,6 +417,21 @@ static inline const char *string_buffer(String s)
 static inline int string_length(String s)
 {
         return stringInfo[s+1].pos - stringInfo[s].pos - 1;
+}
+
+static inline const char *SS(Symbol sym)
+{
+        return string_buffer(symbolInfo[sym].name);
+}
+
+static inline const char *TS(Token tok)
+{
+        return string_buffer(tokenInfo[tok].word.string);
+}
+
+static inline const char *TKS(Token tok)
+{
+        return tokenKindString[tokenInfo[tok].kind];
 }
 
 String lookup_string_with_hash(const void *buf, int len, unsigned hsh);

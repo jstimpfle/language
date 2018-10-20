@@ -129,6 +129,7 @@ int ifStmtCnt;
 int forStmtCnt;
 int whileStmtCnt;
 int stmtCnt;
+int childStmtCnt;
 
 char *lexbuf;
 char *strbuf;
@@ -155,6 +156,7 @@ struct IfStmtInfo *ifStmtInfo;
 struct ForStmtInfo *forStmtInfo;
 struct WhileStmtInfo *whileStmtInfo;
 struct StmtInfo *stmtInfo;
+struct ChildStmtInfo *childStmtInfo;
 
 struct Alloc lexbufAlloc;
 struct Alloc strbufAlloc;
@@ -181,4 +183,4 @@ struct Alloc ifStmtInfoAlloc;
 struct Alloc forStmtInfoAlloc;
 struct Alloc whileStmtInfoAlloc;
 struct Alloc stmtInfoAlloc;
-
+struct Alloc childStmtInfoAlloc;

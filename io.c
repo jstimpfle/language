@@ -26,7 +26,6 @@ void read_whole_file(File file)
                             fileInfo[file].size + chunksize);
                 nread = fread(fileInfo[file].buf + fileInfo[file].size,
                               1, chunksize, f);
-                printf("Read %d bytes\n", (int) nread);
                 fileInfo[file].size += (int) nread;
         }
         if (ferror(f))

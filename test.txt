@@ -17,7 +17,7 @@ proc int test(int x, int a)
     testcall(3, y*y);
     testcall(3, y*(y+z));
 
-    (z++)(3, 4);
+    (z++)(0, 18);
 }
 
 data int lastvar;
