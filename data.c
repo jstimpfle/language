@@ -44,15 +44,15 @@ const struct ToktypeToPostfixUnop toktypeToPostfixUnop[] = {
 };
 
 const struct ToktypeToBinop toktypeToBinop[] = {
-        { TOKTYPE_ASSIGNEQUALS, BINOP_ASSIGN, 0 },
-        { TOKTYPE_DOUBLEEQUALS, BINOP_EQUALS, 1 },
-        { TOKTYPE_MINUS,        BINOP_MINUS,  2 },
-        { TOKTYPE_PLUS,         BINOP_PLUS,   2 },
-        { TOKTYPE_ASTERISK,     BINOP_MUL,    3 },
-        { TOKTYPE_SLASH,        BINOP_DIV,    3 },
-        { TOKTYPE_AMPERSAND,    BINOP_BITAND, 3 },
-        { TOKTYPE_PIPE,         BINOP_BITOR,  3 },
-        { TOKTYPE_CARET,        BINOP_BITXOR, 3 },
+        { TOKTYPE_ASSIGNEQUALS, BINOP_ASSIGN  },
+        { TOKTYPE_DOUBLEEQUALS, BINOP_EQUALS  },
+        { TOKTYPE_MINUS,        BINOP_MINUS   },
+        { TOKTYPE_PLUS,         BINOP_PLUS    },
+        { TOKTYPE_ASTERISK,     BINOP_MUL     },
+        { TOKTYPE_SLASH,        BINOP_DIV     },
+        { TOKTYPE_AMPERSAND,    BINOP_BITAND  },
+        { TOKTYPE_PIPE,         BINOP_BITOR   },
+        { TOKTYPE_CARET,        BINOP_BITXOR  },
 };
 
 const struct UnopInfo unopInfo[NUM_UNOPS] = {
@@ -70,16 +70,16 @@ const struct UnopInfo unopInfo[NUM_UNOPS] = {
 };
 
 const struct BinopInfo binopInfo[NUM_BINOPS] = {
-#define MAKE(x, y) [x] = { y }
-        MAKE(BINOP_ASSIGN, "="),
-        MAKE(BINOP_EQUALS, "=="),
-        MAKE(BINOP_MINUS, "-"),
-        MAKE(BINOP_PLUS, "+"),
-        MAKE(BINOP_MUL, "*"),
-        MAKE(BINOP_DIV, "/"),
-        MAKE(BINOP_BITAND, "&"),
-        MAKE(BINOP_BITOR, "|"),
-        MAKE(BINOP_BITXOR, "^"),
+#define MAKE(x, y, z) [x] = { y, z }
+        MAKE(BINOP_ASSIGN,  "=",  1),
+        MAKE(BINOP_EQUALS,  "==", 1),
+        MAKE(BINOP_MINUS,   "-",  1),
+        MAKE(BINOP_PLUS,    "+",  1),
+        MAKE(BINOP_MUL,     "*",  1),
+        MAKE(BINOP_DIV,     "/",  1),
+        MAKE(BINOP_BITAND,  "&",  1),
+        MAKE(BINOP_BITOR,   "|",  1),
+        MAKE(BINOP_BITXOR,  "^",  1),
 #undef MAKE
 };
 

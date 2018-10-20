@@ -393,63 +393,54 @@ int token_is_word(Token tok, String string)
 
 int token_is_unary_prefix_operator(Token tok, int *out_optype)
 {
-        int ans = 0;
         int tp = tokenInfo[tok].kind;
         for (int i = 0; i < toktypeToPrefixUnopCnt; i++) {
                 if (tp == toktypeToPrefixUnop[i].ttype) {
-                        ans = 1;
                         *out_optype = toktypeToPrefixUnop[i].optype;
-                        break;
+                        return 1;
                 }
         }
-        return ans;
+        return 0;
 }
 
 int token_is_unary_postfix_operator(Token tok, int *out_optype)
 {
-        int ans = 0;
         int tp = tokenInfo[tok].kind;
         for (int i = 0; i < toktypeToPostfixUnopCnt; i++) {
                 if (tp == toktypeToPostfixUnop[i].ttype) {
-                        ans = 1;
                         *out_optype = toktypeToPostfixUnop[i].optype;
-                        break;
+                        return 1;
                 }
         }
-        return ans;
+        return 0;
 }
 
-int token_is_binary_infix_operator(Token tok, int *out_optp, int *out_prec)
+int token_is_binary_infix_operator(Token tok, int *out_optp)
 {
-        int ans = 0;
         int tp = tokenInfo[tok].kind;
         for (int i = 0; i < toktypeToBinopCnt; i++) {
                 if (tp == toktypeToBinop[i].ttype) {
-                        ans = 1;
                         *out_optp = toktypeToBinop[i].optype;
-                        *out_prec = toktypeToBinop[i].prec;
-                        break;
+                        return 1;
                 }
         }
-        return ans;
+        return 0;
 }
 
 int read_char(void)
 {
-        int ans;
         if (haveSavedChar) {
                 haveSavedChar = 0;
-                ans = savedChar;
                 currentOffset++;
+                return savedChar;
         }
         else if (currentOffset < fileInfo[currentFile].size) {
                 int pos = currentOffset++;
-                ans = fileInfo[currentFile].buf[pos];
+                return fileInfo[currentFile].buf[pos];
         }
         else {
-                ans = -1;
+                return -1;
         }
-        return ans;
 }
 
 int look_char(void)
@@ -848,8 +839,9 @@ Expr parse_expr(int minprec)
 
         for (;;) {
                 tok = look_next_token();
-                if (! token_is_binary_infix_operator(tok, &opkind, &opprec))
+                if (! token_is_binary_infix_operator(tok, &opkind))
                         break;
+                opprec = binopInfo[opkind].prec;
                 if (opprec < minprec)
                         break;
                 parse_next_token();

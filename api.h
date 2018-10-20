@@ -127,7 +127,6 @@ struct ToktypeToPostfixUnop {
 struct ToktypeToBinop {
         int ttype;
         int optype;
-        int prec;
 };
 
 struct UnopInfo {
@@ -137,6 +136,7 @@ struct UnopInfo {
 
 struct BinopInfo {
         char *str;
+        int prec;
 };
 
 struct Alloc {
