@@ -57,41 +57,43 @@ const struct ToktypeToBinop toktypeToBinop[] = {
 
 const struct UnopInfo unopInfo[NUM_UNOPS] = {
 #define MAKE(x, y, z) [x] = { y, z }
-        MAKE(UNOP_NOT,           1, "!"),
-        MAKE(UNOP_ADDRESSOF,     1, "&"),
-        MAKE(UNOP_DEREF,         1, "*"),
-        MAKE(UNOP_NEGATIVE,      1, "-"),
-        MAKE(UNOP_POSITIVE,      1, "+"),
-        MAKE(UNOP_PREDECREMENT,  1, "--"),
-        MAKE(UNOP_PREINCREMENT,  1, "++"),
-        MAKE(UNOP_POSTDECREMENT, 0, "--"),
-        MAKE(UNOP_POSTINCREMENT, 0, "++"),
+        MAKE( UNOP_NOT,           1, "!"  ),
+        MAKE( UNOP_ADDRESSOF,     1, "&"  ),
+        MAKE( UNOP_DEREF,         1, "*"  ),
+        MAKE( UNOP_NEGATIVE,      1, "-"  ),
+        MAKE( UNOP_POSITIVE,      1, "+"  ),
+        MAKE( UNOP_PREDECREMENT,  1, "--" ),
+        MAKE( UNOP_PREINCREMENT,  1, "++" ),
+        MAKE( UNOP_POSTDECREMENT, 0, "--" ),
+        MAKE( UNOP_POSTINCREMENT, 0, "++" ),
 #undef MAKE
 };
 
 const struct BinopInfo binopInfo[NUM_BINOPS] = {
 #define MAKE(x, y, z) [x] = { y, z }
-        MAKE(BINOP_ASSIGN,  "=",  1),
-        MAKE(BINOP_EQUALS,  "==", 1),
-        MAKE(BINOP_MINUS,   "-",  1),
-        MAKE(BINOP_PLUS,    "+",  1),
-        MAKE(BINOP_MUL,     "*",  1),
-        MAKE(BINOP_DIV,     "/",  1),
-        MAKE(BINOP_BITAND,  "&",  1),
-        MAKE(BINOP_BITOR,   "|",  1),
-        MAKE(BINOP_BITXOR,  "^",  1),
+        MAKE( BINOP_ASSIGN,  "=",  1 ),
+        MAKE( BINOP_EQUALS,  "==", 1 ),
+        MAKE( BINOP_MINUS,   "-",  1 ),
+        MAKE( BINOP_PLUS,    "+",  1 ),
+        MAKE( BINOP_MUL,     "*",  1 ),
+        MAKE( BINOP_DIV,     "/",  1 ),
+        MAKE( BINOP_BITAND,  "&",  1 ),
+        MAKE( BINOP_BITOR,   "|",  1 ),
+        MAKE( BINOP_BITXOR,  "^",  1 ),
 #undef MAKE
 };
 
 const struct StringToBeInterned stringToBeInterned[] = {
-        { CONSTSTR_IF,     "if" },
-        { CONSTSTR_WHILE,  "while" },
-        { CONSTSTR_FOR,    "for" },
-        { CONSTSTR_PROC,   "proc" },
-        { CONSTSTR_DATA,   "data" },
-        { CONSTSTR_ENTITY, "entity" },
-        { CONSTSTR_TABLE,  "table" },
-        { CONSTSTR_COLUMN, "column" },
+#define MAKE(x, y) [x] = { x, y }
+        MAKE( CONSTSTR_IF,     "if"     ),
+        MAKE( CONSTSTR_WHILE,  "while"  ),
+        MAKE( CONSTSTR_FOR,    "for"    ),
+        MAKE( CONSTSTR_PROC,   "proc"   ),
+        MAKE( CONSTSTR_DATA,   "data"   ),
+        MAKE( CONSTSTR_ENTITY, "entity" ),
+        MAKE( CONSTSTR_TABLE,  "table"  ),
+        MAKE( CONSTSTR_COLUMN, "column" ),
+#endif
 };
 
 const int toktypeToPrefixUnopCnt = LENGTH(toktypeToPrefixUnop);
