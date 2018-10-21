@@ -1,4 +1,5 @@
 #include "defs.h"
+#define DATA_IMPL
 #include "api.h"
 
 const char *tokenKindString[] = {
@@ -99,80 +100,3 @@ const struct StringToBeInterned stringToBeInterned[] = {
 const int toktypeToPrefixUnopCnt = LENGTH(toktypeToPrefixUnop);
 const int toktypeToPostfixUnopCnt = LENGTH(toktypeToPostfixUnop);
 const int toktypeToBinopCnt = LENGTH(toktypeToBinop);
-
-
-String constStr[NUM_CONSTSTRS];  // has initializer
-
-
-File currentFile;
-int currentOffset;
-int haveSavedChar;
-int savedChar;
-
-int haveSavedToken;
-Token savedToken;
-
-Scope globalScope;
-Scope currentScope;
-Scope scopeStack[16];
-int scopeStackCnt;
-
-int lexbufCnt;
-int strbufCnt;
-int stringCnt;
-int strBucketCnt;
-int fileCnt;
-int tokenCnt;
-int typeCnt;
-int symbolCnt;
-int entityCnt;
-int tableCnt;
-int columnCnt;
-int dataCnt;
-int scopeCnt;
-int procCnt;
-int procParamCnt;
-int exprCnt;
-int stmtCnt;
-int childStmtCnt;
-int callArgCnt;
-
-char *lexbuf;
-char *strbuf;
-struct StringInfo *stringInfo;
-struct StringBucketInfo *strBucketInfo;
-struct FileInfo *fileInfo;
-struct TokenInfo *tokenInfo;
-struct TypeInfo *typeInfo;
-struct SymbolInfo *symbolInfo;
-struct EntityInfo *entityInfo;
-struct TableInfo *tableInfo;
-struct ColumnInfo *columnInfo;
-struct DataInfo *dataInfo;
-struct ScopeInfo *scopeInfo;
-struct ProcInfo *procInfo;
-struct ProcParamInfo *procParamInfo;
-struct ExprInfo *exprInfo;
-struct StmtInfo *stmtInfo;
-struct ChildStmtInfo *childStmtInfo;
-struct CallArgInfo *callArgInfo;
-
-struct Alloc lexbufAlloc;
-struct Alloc strbufAlloc;
-struct Alloc stringInfoAlloc;
-struct Alloc strBucketInfoAlloc;
-struct Alloc fileInfoAlloc;
-struct Alloc tokenInfoAlloc;
-struct Alloc typeInfoAlloc;
-struct Alloc symbolInfoAlloc;
-struct Alloc entityInfoAlloc;
-struct Alloc tableInfoAlloc;
-struct Alloc columnInfoAlloc;
-struct Alloc dataInfoAlloc;
-struct Alloc scopeInfoAlloc;
-struct Alloc procInfoAlloc;
-struct Alloc procParamInfoAlloc;
-struct Alloc exprInfoAlloc;
-struct Alloc stmtInfoAlloc;
-struct Alloc childStmtInfoAlloc;
-struct Alloc callArgInfoAlloc;

@@ -1,9 +1,16 @@
+#ifdef DATA_IMPL
+#define DATA
+#else
+#define DATA extern
+#endif
+
 typedef int File;
 typedef int String;
 typedef int Token;
 typedef int Type;
 typedef int Symbol;
 typedef int Symref;
+typedef int Typeref;
 typedef int Scope;
 typedef int Entity;
 typedef int Table;
@@ -11,10 +18,6 @@ typedef int Column;
 typedef int Data;
 typedef int Proc;
 typedef int ProcParam;
-typedef int SymrefExpr;
-typedef int CallExpr;
-typedef int UnopExpr;
-typedef int BinopExpr;
 typedef int Expr;
 typedef int CompoundStmt;
 typedef int ExprStmt;
@@ -109,6 +112,12 @@ enum {
         SCOPE_PROC,
 };
 
+enum {
+        SYMBOL_DATA,
+        SYMBOL_PROC,
+        SYMBOL_LOCALDATA,
+};
+
 struct StringToBeInterned {
         int constant;  // CONSTSTR_
         const char *string;
@@ -198,7 +207,9 @@ struct TableInfo {
 };
 
 struct SymbolInfo {
+        int kind;  // SYMBOL_
         String name;
+        Scope scope;
 };
 
 struct ColumnInfo {
@@ -214,11 +225,13 @@ struct DataInfo {
 };
 
 struct ScopeInfo {
+        int numSymbols;
+        Scope parentScope;
+        Symbol firstSymbol; // speed-up
         int kind;
         union {
                 struct {
                         Proc proc;
-                        Scope parentScope;
                 } tProc;
         };
 };
@@ -239,9 +252,11 @@ struct ProcParamInfo {
         String sym;
 };
 
-struct SymrefExprInfo {
+struct SymrefInfo {
         String name;
+        Scope refScope;
         Token tok;
+        Symbol sym;  // only valid after symbol resolution
 };
 
 struct LiteralExprInfo {
@@ -274,7 +289,7 @@ struct BinopExprInfo {
 struct ExprInfo {
         int kind;
         union {
-                struct SymrefExprInfo tSymref;
+                Symref tSymref;
                 struct LiteralExprInfo tLiteral;
                 struct CallExprInfo tCall;
                 struct UnopExprInfo tUnop;
@@ -340,83 +355,86 @@ extern const struct StringToBeInterned stringToBeInterned[NUM_CONSTSTRS];
 extern const int toktypeToPrefixUnopCnt;
 extern const int toktypeToPostfixUnopCnt;
 extern const int toktypeToBinopCnt;
-extern String constStr[NUM_CONSTSTRS];  // has initializer
+DATA String constStr[NUM_CONSTSTRS];  // has initializer
 
 
 /**/
 
-extern File currentFile;
-extern int currentOffset;
-extern int haveSavedChar;
-extern int savedChar;
+DATA File currentFile;
+DATA int currentOffset;
+DATA int haveSavedChar;
+DATA int savedChar;
 
-extern int haveSavedToken;
-extern Token savedToken;
+DATA int haveSavedToken;
+DATA Token savedToken;
 
-extern Scope globalScope;
-extern Scope currentScope;
-extern Scope scopeStack[16];
-extern int scopeStackCnt;
+DATA Scope globalScope;
+DATA Scope currentScope;
+DATA Scope scopeStack[16];
+DATA int scopeStackCnt;
 
-extern int lexbufCnt;
-extern int strbufCnt;
-extern int stringCnt;
-extern int strBucketCnt;
-extern int fileCnt;
-extern int tokenCnt;
-extern int typeCnt;
-extern int symbolCnt;
-extern int entityCnt;
-extern int tableCnt;
-extern int columnCnt;
-extern int dataCnt;
-extern int scopeCnt;
-extern int procCnt;
-extern int procParamCnt;
-extern int exprCnt;
-extern int stmtCnt;
-extern int childStmtCnt;
-extern int callArgCnt;
+DATA int lexbufCnt;
+DATA int strbufCnt;
+DATA int stringCnt;
+DATA int strBucketCnt;
+DATA int fileCnt;
+DATA int tokenCnt;
+DATA int typeCnt;
+DATA int symbolCnt;
+DATA int entityCnt;
+DATA int tableCnt;
+DATA int columnCnt;
+DATA int dataCnt;
+DATA int scopeCnt;
+DATA int procCnt;
+DATA int procParamCnt;
+DATA int symrefCnt;
+DATA int exprCnt;
+DATA int stmtCnt;
+DATA int childStmtCnt;
+DATA int callArgCnt;
 
-extern char *lexbuf;
-extern char *strbuf;
-extern struct StringInfo *stringInfo;
-extern struct StringBucketInfo *strBucketInfo;
-extern struct FileInfo *fileInfo;
-extern struct TokenInfo *tokenInfo;
-extern struct TypeInfo *typeInfo;
-extern struct SymbolInfo *symbolInfo;
-extern struct EntityInfo *entityInfo;
-extern struct TableInfo *tableInfo;
-extern struct ColumnInfo *columnInfo;
-extern struct DataInfo *dataInfo;
-extern struct ScopeInfo *scopeInfo;
-extern struct ProcInfo *procInfo;
-extern struct ProcParamInfo *procParamInfo;
-extern struct ExprInfo *exprInfo;
-extern struct StmtInfo *stmtInfo;
-extern struct ChildStmtInfo *childStmtInfo;
-extern struct CallArgInfo *callArgInfo;
+DATA char *lexbuf;
+DATA char *strbuf;
+DATA struct StringInfo *stringInfo;
+DATA struct StringBucketInfo *strBucketInfo;
+DATA struct FileInfo *fileInfo;
+DATA struct TokenInfo *tokenInfo;
+DATA struct TypeInfo *typeInfo;
+DATA struct SymbolInfo *symbolInfo;
+DATA struct EntityInfo *entityInfo;
+DATA struct TableInfo *tableInfo;
+DATA struct ColumnInfo *columnInfo;
+DATA struct DataInfo *dataInfo;
+DATA struct ScopeInfo *scopeInfo;
+DATA struct ProcInfo *procInfo;
+DATA struct ProcParamInfo *procParamInfo;
+DATA struct SymrefInfo *symrefInfo;
+DATA struct ExprInfo *exprInfo;
+DATA struct StmtInfo *stmtInfo;
+DATA struct ChildStmtInfo *childStmtInfo;
+DATA struct CallArgInfo *callArgInfo;
 
-extern struct Alloc lexbufAlloc;
-extern struct Alloc strbufAlloc;
-extern struct Alloc stringInfoAlloc;
-extern struct Alloc strBucketInfoAlloc;
-extern struct Alloc fileInfoAlloc;
-extern struct Alloc tokenInfoAlloc;
-extern struct Alloc typeInfoAlloc;
-extern struct Alloc symbolInfoAlloc;
-extern struct Alloc entityInfoAlloc;
-extern struct Alloc tableInfoAlloc;
-extern struct Alloc columnInfoAlloc;
-extern struct Alloc dataInfoAlloc;
-extern struct Alloc scopeInfoAlloc;
-extern struct Alloc procInfoAlloc;
-extern struct Alloc procParamInfoAlloc;
-extern struct Alloc exprInfoAlloc;
-extern struct Alloc stmtInfoAlloc;
-extern struct Alloc childStmtInfoAlloc;
-extern struct Alloc callArgInfoAlloc;
+DATA struct Alloc lexbufAlloc;
+DATA struct Alloc strbufAlloc;
+DATA struct Alloc stringInfoAlloc;
+DATA struct Alloc strBucketInfoAlloc;
+DATA struct Alloc fileInfoAlloc;
+DATA struct Alloc tokenInfoAlloc;
+DATA struct Alloc typeInfoAlloc;
+DATA struct Alloc symbolInfoAlloc;
+DATA struct Alloc entityInfoAlloc;
+DATA struct Alloc tableInfoAlloc;
+DATA struct Alloc columnInfoAlloc;
+DATA struct Alloc dataInfoAlloc;
+DATA struct Alloc scopeInfoAlloc;
+DATA struct Alloc procInfoAlloc;
+DATA struct Alloc procParamInfoAlloc;
+DATA struct Alloc symrefInfoAlloc;
+DATA struct Alloc exprInfoAlloc;
+DATA struct Alloc stmtInfoAlloc;
+DATA struct Alloc childStmtInfoAlloc;
+DATA struct Alloc callArgInfoAlloc;
 
 static inline const char *string_buffer(String s)
 {

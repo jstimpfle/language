@@ -146,11 +146,12 @@ Type add_type(Symbol sym)
         return x;
 }
 
-Symbol add_symbol(String s)
+Symbol add_symbol(String name, Scope scope)
 {
         Symbol x = symbolCnt++;
         BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
-        symbolInfo[x].name = s;
+        symbolInfo[x].name = name;
+        symbolInfo[x].scope = scope;
         return x;
 }
 
@@ -196,6 +197,8 @@ Scope add_global_scope(void)
 {
         Scope x = scopeCnt++;
         BUF_RESERVE(scopeInfo, scopeInfoAlloc, scopeCnt);
+        scopeInfo[x].numSymbols = 0;
+        scopeInfo[x].parentScope = -1;
         scopeInfo[x].kind = SCOPE_GLOBAL;
         return x;
 }
@@ -204,8 +207,9 @@ Scope add_proc_scope(Scope parent)
 {
         Scope x = scopeCnt++;
         BUF_RESERVE(scopeInfo, scopeInfoAlloc, scopeCnt);
+        scopeInfo[x].numSymbols = 0;
+        scopeInfo[x].parentScope = parent;
         scopeInfo[x].kind = SCOPE_PROC;
-        scopeInfo[x].tProc.parentScope = parent;
         return x;
 }
 
@@ -235,13 +239,22 @@ void add_procarg(Proc proc, Type argtp, Symbol argsym)
         procInfo[proc].nparams++;
 }
 
-Expr add_symref_expr(Token tok)
+Symref add_symref(Token tok, Scope refScope)
+{
+        Symref ref = symrefCnt++;
+        BUF_RESERVE(symrefInfo, symrefInfoAlloc, symrefCnt);
+        symrefInfo[ref].name = tokenInfo[tok].word.string;
+        symrefInfo[ref].refScope = refScope;
+        symrefInfo[ref].tok = tok;
+        return ref;
+}
+
+Expr add_symref_expr(Symref ref)
 {
         Expr x = exprCnt++;
         BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
         exprInfo[x].kind = EXPR_SYMREF;
-        exprInfo[x].tSymref.name = tokenInfo[tok].word.string;
-        exprInfo[x].tSymref.tok = tok;
+        exprInfo[x].tSymref = ref;
         return x;
 }
 
@@ -707,17 +720,21 @@ Symbol parse_symbol(void)
         PARSE_LOG();
 
         Token tok = parse_token_kind(TOKTYPE_WORD);
-        return add_symbol(tokenInfo[tok].word.string);
+        return add_symbol(tokenInfo[tok].word.string, currentScope);
 }
 
-Type parse_type(void)
+Symref parse_symref(void)
 {
         PARSE_LOG();
 
-        Symbol sym;
+        Token tok = parse_token_kind(TOKTYPE_WORD);
+        add_symref(tok, currentScope);
+}
 
-        sym = parse_symbol();
-        return add_type(sym);
+Typeref parse_typeref(void)
+{
+        PARSE_LOG();
+        return parse_symref(); // XXX
 }
 
 Entity parse_entity(void)
@@ -727,7 +744,7 @@ Entity parse_entity(void)
         Type tp;
         Symbol sym;
 
-        tp = parse_type();
+        tp = parse_typeref();
         sym = parse_symbol();
         parse_token_kind(TOKTYPE_SEMICOLON);
 
@@ -741,7 +758,7 @@ void parse_column(Table table)
         Type tp;
         Symbol sym;
 
-        tp = parse_type();
+        tp = parse_typeref();
         sym = parse_symbol();
         parse_token_kind(TOKTYPE_SEMICOLON);
 
@@ -757,7 +774,7 @@ void parse_table(void)
         Symbol sym;
         Table table;
 
-        tp = parse_type();
+        tp = parse_typeref();
         sym = parse_symbol();
 
         table = add_table(tp, sym);
@@ -783,7 +800,7 @@ Data parse_data(void)
         Type tp;
         Symbol sym;
 
-        tp = parse_type();
+        tp = parse_typeref();
         sym = parse_symbol();
         parse_token_kind(TOKTYPE_SEMICOLON);
 
@@ -808,8 +825,8 @@ Expr parse_expr(int minprec)
                 expr = add_unop_expr(opkind, subexpr);
         }
         else if (tokenInfo[tok].kind == TOKTYPE_WORD) {
-                parse_next_token();
-                expr = add_symref_expr(tok);
+                Symref ref = parse_symref(tok, currentScope);
+                expr = add_symref_expr(ref);
         }
         else if (tokenInfo[tok].kind == TOKTYPE_INTEGER) {
                 parse_next_token();
@@ -1015,7 +1032,7 @@ void parse_proc(void)
         Token tok;
         Stmt body;
 
-        rettp = parse_type();
+        rettp = parse_typeref();
         psym = parse_symbol();
         pscope = add_proc_scope(currentScope);
         proc = add_proc(rettp, psym, pscope);
@@ -1028,7 +1045,7 @@ void parse_proc(void)
                 tok = look_next_token();
                 if (tokenInfo[tok].kind == TOKTYPE_RIGHTPAREN)
                         break;
-                argtp = parse_type();
+                argtp = parse_typeref();
                 argsym = parse_symbol();
                 add_procarg(proc, argtp, argsym);
                 if (look_token_kind(TOKTYPE_COMMA) == -1)
@@ -1043,7 +1060,14 @@ void parse_proc(void)
         pop_scope();
 }
 
-int compare_ChildStmt(const void *a, const void *b)
+int compare_Symbol(const void *a, const void *b)
+{
+        const Symbol *x = a;
+        const Symbol *y = b;
+        return symbolInfo[*x].scope - symbolInfo[*y].scope;
+}
+
+int compare_ChildStmtInfo(const void *a, const void *b)
 {
         const struct ChildStmtInfo *x = a;
         const struct ChildStmtInfo *y = b;
@@ -1052,7 +1076,7 @@ int compare_ChildStmt(const void *a, const void *b)
         return x->rank - y->rank;
 }
 
-int compare_CallArg(const void *a, const void *b)
+int compare_CallArgInfo(const void *a, const void *b)
 {
         const struct CallArgInfo *x = a;
         const struct CallArgInfo *y = b;
@@ -1094,10 +1118,45 @@ void parse_global_scope(void)
                 }
         }
 
+        {
+                /* permute Symbol array so they are grouped by defining scope */
+                /* TODO: this kind of renaming should be abstracted */
+                Symbol *order;
+                Symbol *newname;
+                struct Alloc orderAlloc;
+                struct Alloc newnameAlloc;
+                BUF_INIT(order, orderAlloc);
+                BUF_INIT(newname, newnameAlloc);
+                BUF_RESERVE(order, orderAlloc, symbolCnt);
+                BUF_RESERVE(newname, newnameAlloc, symbolCnt);
+                for (Symbol i = 0; i < symbolCnt; i++)
+                        order[i] = i;
+                sort_array(order, symbolCnt, sizeof *order,
+                           compare_Symbol);
+                for (Symbol i = 0; i < symbolCnt; i++)
+                        newname[order[i]] = i;
+                for (Type i = 0; i < typeCnt; i++) {
+                        typeInfo[i].sym = newname[typeInfo[i].sym];
+                }
+                for (Symbol i = 0; i < symbolCnt; i++) {
+                        Symbol j = newname[i];
+                        while (j != i) {
+                                struct SymbolInfo tmp = symbolInfo[i];
+                                symbolInfo[i] = symbolInfo[j];
+                                symbolInfo[j] = tmp;
+                                Symbol next = newname[j];
+                                newname[j] = j;
+                                j = next;
+                        }
+                }
+                BUF_EXIT(order, orderAlloc);
+                BUF_EXIT(newname, newnameAlloc);
+        }
+
         sort_array(childStmtInfo, childStmtCnt, sizeof *childStmtInfo,
-                   compare_ChildStmt);
+                   compare_ChildStmtInfo);
         sort_array(callArgInfo, callArgCnt, sizeof *callArgInfo,
-                   compare_CallArg);
+                   compare_CallArgInfo);
 
         for (int i = childStmtCnt; i --> 0;) {
                 Stmt parent = childStmtInfo[i].parent;
@@ -1112,11 +1171,51 @@ void parse_global_scope(void)
         }
 }
 
+Symbol find_symbol_in_scope(String name, Scope scope)
+{
+        printf("RESOLVE %s\n", string_buffer(name));
+
+        for (; scope != -1; scope = scopeInfo[scope].parentScope) {
+                Symbol first = scopeInfo[scope].firstSymbol;
+                Symbol last = first + scopeInfo[scope].numSymbols;
+                for (Symbol i = first; i < last; i++) {
+                        if (symbolInfo[i].name == name) {
+                                printf("FOUND symbol %s\n", string_buffer(name));
+                                return i;
+                        }
+                }
+        }
+        printf("Symbol %s MISSING\n", string_buffer(name));
+        return -1;
+}
+
+void resolve_symbols(void)
+{
+        printf("Scope, symbol:\n");
+        for (Symbol i = 0; i < symbolCnt; i++) {
+                scopeInfo[symbolInfo[i].scope].firstSymbol = i;
+                printf("%d %s\n", symbolInfo[i].scope,
+                       string_buffer(symbolInfo[i].name));
+        }
+
+        for (Symbol i = symbolCnt; i --> 0;) {
+                scopeInfo[symbolInfo[i].scope].numSymbols++;
+                scopeInfo[symbolInfo[i].scope].firstSymbol = i;
+        }
+
+        for (Symref ref = 0; ref < symrefCnt; ref++) {
+                String name = symrefInfo[ref].name;
+                Scope refScope = symrefInfo[ref].refScope;
+                symrefInfo[ref].sym = find_symbol_in_scope(name, refScope);
+        }
+}
+
 int main(void)
 {
         init_strings();
         add_file(intern_cstring("test.txt"));
         parse_global_scope();
+        resolve_symbols();
         msg("\n\n\n");
         prettyprint();
 

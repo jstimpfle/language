@@ -1,12 +1,14 @@
 data int test;
 data bla bla;
+data int testcall;
 
 proc int test(int x, int a)
 {
     data foo y;
+    data foo z;
     *&z = 1;
     z = (1 + 3) + 3 * 4;
-    y = 3 + 4;
+    y = 3 + k;
     if (z++ + 2)
         a = b;
     if (z  ++  -- + 2)

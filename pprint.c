@@ -20,9 +20,16 @@ void pprint_newline(void)
                 msg(" ");
 }
 
-void pprint_type(Type tp)
+void pprint_type(Typeref tref)
 {
-        msg("%s", SS(typeInfo[tp].sym));
+        //XXX: for now, this is a symref
+        Symbol sym = symrefInfo[tref].sym;
+        if (sym >= 0)
+                msg("%s", SS(sym));
+        else {
+                String name = symrefInfo[tref].name;
+                msg("(unknown type \"%s\")", string_buffer(name));
+        }
 }
 
 void pprint_data(Data d)
@@ -39,7 +46,7 @@ void pprint_expr(Expr expr)
 {
         switch (exprInfo[expr].kind) {
                 case EXPR_SYMREF: {
-                        String s = exprInfo[expr].tSymref.name;
+                        String s = symrefInfo[exprInfo[expr].tSymref].name;
                         msg("%s", string_buffer(s));
                         break;
                 }
