@@ -57,6 +57,7 @@ enum {
         CONSTSTR_IF,
         CONSTSTR_WHILE,
         CONSTSTR_FOR,
+        CONSTSTR_RETURN,
         CONSTSTR_PROC,
         CONSTSTR_DATA,
         CONSTSTR_ENTITY,
@@ -69,6 +70,7 @@ enum {
         STMT_IF,
         STMT_FOR,
         STMT_WHILE,
+        STMT_RETURN,
         STMT_DATA,
         STMT_EXPR,
         STMT_COMPOUND,
@@ -341,6 +343,10 @@ struct WhileStmtInfo {
         Stmt childStmt;
 };
 
+struct ReturnStmtInfo {
+        Expr expr;
+};
+
 struct StmtInfo {
         int kind;
         union {
@@ -350,6 +356,7 @@ struct StmtInfo {
                 struct IfStmtInfo tIf;
                 struct WhileStmtInfo tWhile;
                 struct ForStmtInfo tFor;
+                struct ReturnStmtInfo tReturn;
         };
 };
 

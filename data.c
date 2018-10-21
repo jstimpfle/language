@@ -89,6 +89,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_IF,     "if"     ),
         MAKE( CONSTSTR_WHILE,  "while"  ),
         MAKE( CONSTSTR_FOR,    "for"    ),
+        MAKE( CONSTSTR_RETURN, "return" ),
         MAKE( CONSTSTR_PROC,   "proc"   ),
         MAKE( CONSTSTR_DATA,   "data"   ),
         MAKE( CONSTSTR_ENTITY, "entity" ),

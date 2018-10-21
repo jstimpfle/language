@@ -22,4 +22,9 @@ proc int test(int x, int a)
     (z++)(0, 18);
 }
 
+proc int test2(int x, int a)
+{
+        return x * a;
+}
+
 data int lastvar;

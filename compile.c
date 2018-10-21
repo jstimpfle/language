@@ -327,6 +327,15 @@ Stmt add_while_stmt(Expr condExpr, Stmt childStmt)
         return stmt;
 }
 
+Stmt add_return_stmt(Expr expr)
+{
+        Stmt stmt = stmtCnt++;
+        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        stmtInfo[stmt].kind = STMT_RETURN;
+        stmtInfo[stmt].tReturn.expr = expr;
+        return stmt;
+}
+
 Stmt add_for_stmt(Stmt initStmt, Expr condExpr, Stmt stepStmt, Stmt childStmt)
 {
         Stmt stmt = stmtCnt++;
@@ -590,7 +599,7 @@ Token parse_next_token(void)
                         c = look_char();
                         if (c == -1)
                                 break;
-                        if (! char_is_alpha(c))
+                        if (! char_is_alpha(c) && ! char_is_digit(c))
                                 break;
                         read_char();
                 }
@@ -838,7 +847,7 @@ Expr parse_expr(int minprec)
                 expr = add_unop_expr(opkind, subexpr);
         }
         else if (tokenInfo[tok].kind == TOKTYPE_WORD) {
-                Symref ref = parse_symref(tok, currentScope);
+                Symref ref = parse_symref();
                 expr = add_symref_expr(ref);
         }
         else if (tokenInfo[tok].kind == TOKTYPE_INTEGER) {
@@ -992,6 +1001,15 @@ Stmt parse_for_stmt(void)
         return add_for_stmt(initStmt, condExpr, stepStmt, childStmt);
 }
 
+Stmt parse_return_stmt(void)
+{
+        PARSE_LOG();
+
+        Expr expr = parse_expr(0);
+        parse_token_kind(TOKTYPE_SEMICOLON);
+        return add_return_stmt(expr);
+}
+
 Stmt parse_stmt(void)
 {
         PARSE_LOG();
@@ -1016,6 +1034,10 @@ Stmt parse_stmt(void)
                 else if (s == constStr[CONSTSTR_FOR]) {
                         parse_next_token();
                         return parse_for_stmt();
+                }
+                else if (s == constStr[CONSTSTR_RETURN]) {
+                        parse_next_token();
+                        return parse_return_stmt();
                 }
                 else {
                         return parse_expr_stmt();
@@ -1186,18 +1208,18 @@ void parse_global_scope(void)
 
 Symbol find_symbol_in_scope(String name, Scope scope)
 {
-        printf("RESOLVE %s\n", string_buffer(name));
+        msg("RESOLVE %s\n", string_buffer(name));
         for (; scope != -1; scope = scopeInfo[scope].parentScope) {
                 Symbol first = scopeInfo[scope].firstSymbol;
                 Symbol last = first + scopeInfo[scope].numSymbols;
                 for (Symbol i = first; i < last; i++) {
                         if (symbolInfo[i].name == name) {
-                                printf("FOUND symbol %s\n", string_buffer(name));
+                                msg("FOUND symbol %s\n", string_buffer(name));
                                 return i;
                         }
                 }
         }
-        printf("Symbol %s MISSING\n", string_buffer(name));
+        msg("Symbol %s MISSING\n", string_buffer(name));
         return -1;
 }
 

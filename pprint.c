@@ -166,6 +166,10 @@ void pprint_stmt(Stmt stmt)
                 remove_indent();
                 pprint_newline();
                 break;
+        case STMT_RETURN:
+                msg("return ");
+                pprint_expr(stmtInfo[stmt].tReturn.expr);
+                break;
         case STMT_EXPR:
                 pprint_expr_stmt(stmt);
                 break;
@@ -182,6 +186,7 @@ void pprint_stmt(Stmt stmt)
 
 void pprint_proc(Proc p)
 {
+        msg("\n");
         msg("proc ");
         pprint_typeref(procInfo[p].tref);
         msg(" ");
@@ -197,6 +202,7 @@ void pprint_proc(Proc p)
         msg(")");
         pprint_newline();
         pprint_compound_stmt(procInfo[p].body);
+        msg("\n");
 }
 
 void prettyprint(void)
