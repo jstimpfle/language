@@ -234,7 +234,7 @@ struct ColumnInfo {
 
 struct DataInfo {
         Scope scope;
-        Type tp;
+        Typeref tref;
         Symbol sym;
 };
 
@@ -251,7 +251,7 @@ struct ScopeInfo {
 };
 
 struct ProcInfo {
-        Type tp;
+        Typeref tref;
         int nparams;
         Symbol sym;
         Scope scope;
@@ -262,7 +262,7 @@ struct ProcInfo {
 struct ProcParamInfo {
         Proc proc;
         int argIdx;
-        Type tp;
+        Type tref;
         String sym;
 };
 

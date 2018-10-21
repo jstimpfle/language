@@ -183,12 +183,12 @@ Column add_column(Table table, Type tp, Symbol sym)
         return x;
 }
 
-Data add_data(Scope scope, Type tp, Symbol sym)
+Data add_data(Scope scope, Typeref tref, Symbol sym)
 {
         Data x = dataCnt++;
         BUF_RESERVE(dataInfo, dataInfoAlloc, dataCnt);
         dataInfo[x].scope = scope;
-        dataInfo[x].tp = tp;
+        dataInfo[x].tref = tref;
         dataInfo[x].sym = sym;
         return x;
 }
@@ -213,11 +213,11 @@ Scope add_proc_scope(Scope parent)
         return x;
 }
 
-Proc add_proc(Type tp, Symbol sym, Scope scope)
+Proc add_proc(Typeref tref, Symbol sym, Scope scope)
 {
         Proc x = procCnt++;
         BUF_RESERVE(procInfo, procInfoAlloc, procCnt);
-        procInfo[x].tp = tp;
+        procInfo[x].tref = tref;
         procInfo[x].sym = sym;
         procInfo[x].scope = scope;
         procInfo[x].nparams = 0;
@@ -225,12 +225,12 @@ Proc add_proc(Type tp, Symbol sym, Scope scope)
         return x;
 }
 
-void add_procarg(Proc proc, Type argtp, Symbol argsym)
+void add_procarg(Proc proc, Typeref argtref, Symbol argsym)
 {
         ProcParam x = procParamCnt++;
         BUF_RESERVE(procParamInfo, procParamInfoAlloc, procParamCnt);
         procParamInfo[x].proc = proc;
-        procParamInfo[x].tp = argtp;
+        procParamInfo[x].tref = argtref;
         procParamInfo[x].sym = argsym;
         procParamInfo[x].argIdx = procInfo[proc].nparams;
 
@@ -810,14 +810,14 @@ Data parse_data(void)
 {
         PARSE_LOG();
 
-        Type tp;
+        Typeref tref;
         Symbol sym;
 
-        tp = parse_typeref();
+        tref = parse_typeref();
         sym = parse_symbol();
         parse_token_kind(TOKTYPE_SEMICOLON);
 
-        return add_data(currentScope, tp, sym);
+        return add_data(currentScope, tref, sym);
 }
 
 Expr parse_expr(int minprec)
@@ -1036,8 +1036,8 @@ void parse_proc(void)
 {
         PARSE_LOG();
 
-        Type rettp;  /* out-arg type */
-        Type argtp;  /* in-arg type */
+        Typeref rettref;  /* out-arg type */
+        Typeref argtref;  /* in-arg type */
         Symbol argsym;  /* in-arg name */
         Symbol psym;  /* proc name */
         Scope pscope; /* proc scope */
@@ -1045,10 +1045,10 @@ void parse_proc(void)
         Token tok;
         Stmt body;
 
-        rettp = parse_typeref();
+        rettref = parse_typeref();
         psym = parse_symbol();
         pscope = add_proc_scope(currentScope);
-        proc = add_proc(rettp, psym, pscope);
+        proc = add_proc(rettref, psym, pscope);
         scopeInfo[pscope].tProc.proc = proc;
 
         push_scope(pscope);
@@ -1058,9 +1058,9 @@ void parse_proc(void)
                 tok = look_next_token();
                 if (tokenInfo[tok].kind == TOKTYPE_RIGHTPAREN)
                         break;
-                argtp = parse_typeref();
+                argtref = parse_typeref();
                 argsym = parse_symbol();
-                add_procarg(proc, argtp, argsym);
+                add_procarg(proc, argtref, argsym);
                 if (look_token_kind(TOKTYPE_COMMA) == -1)
                         break;
                 parse_next_token();

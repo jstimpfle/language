@@ -20,7 +20,7 @@ void pprint_newline(void)
                 msg(" ");
 }
 
-void pprint_type(Typeref tref)
+void pprint_typeref(Typeref tref)
 {
         //XXX: for now, this is a symref
         Symbol sym = symrefInfo[tref].sym;
@@ -35,7 +35,7 @@ void pprint_type(Typeref tref)
 void pprint_data(Data d)
 {
         msg("data ");
-        pprint_type(dataInfo[d].tp);
+        pprint_typeref(dataInfo[d].tref);
         msg(" ");
         msg("%s", SS(dataInfo[d].sym));
         msg(";");
@@ -183,7 +183,7 @@ void pprint_stmt(Stmt stmt)
 void pprint_proc(Proc p)
 {
         msg("proc ");
-        pprint_type(procInfo[p].tp);
+        pprint_typeref(procInfo[p].tref);
         msg(" ");
         msg("%s", SS(procInfo[p].sym));
         msg("(");
@@ -191,7 +191,7 @@ void pprint_proc(Proc p)
         for (int i = 0; i < procInfo[p].nparams; i++) {
                 if (i > 0)
                         msg(", ");
-                pprint_type(procParamInfo[firstParam+i].tp);
+                pprint_typeref(procParamInfo[firstParam+i].tref);
                 msg(" %s", SS(procParamInfo[firstParam+i].sym));
         }
         msg(")");
