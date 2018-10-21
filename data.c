@@ -84,7 +84,7 @@ const struct BinopInfo binopInfo[NUM_BINOPS] = {
 #undef MAKE
 };
 
-const struct StringToBeInterned stringToBeInterned[] = {
+const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
 #define MAKE(x, y) [x] = { x, y }
         MAKE( CONSTSTR_IF,     "if"     ),
         MAKE( CONSTSTR_WHILE,  "while"  ),
@@ -97,6 +97,11 @@ const struct StringToBeInterned stringToBeInterned[] = {
 #undef MAKE
 };
 
+extern const struct BasetypeToBeInitialized basetypesToBeInitialized[] = {
+        { "int", 4 },
+};
+
 const int toktypeToPrefixUnopCnt = LENGTH(toktypeToPrefixUnop);
 const int toktypeToPostfixUnopCnt = LENGTH(toktypeToPostfixUnop);
 const int toktypeToBinopCnt = LENGTH(toktypeToBinop);
+const int basetypesToBeInitializedCnt = LENGTH(basetypesToBeInitialized);

@@ -382,10 +382,23 @@ void add_CallArg(Expr callExpr, Expr argExpr)
 void init_strings(void)
 {
 
-        for (int i = 0; i < LENGTH(stringToBeInterned); i++) {
-                int idx = stringToBeInterned[i].constant;
-                const char *str = stringToBeInterned[i].string;
+        for (int i = 0; i < LENGTH(stringsToBeInterned); i++) {
+                int idx = stringsToBeInterned[i].constant;
+                const char *str = stringsToBeInterned[i].string;
                 constStr[idx] = intern_cstring(str);
+        }
+}
+
+void init_basetypes(void)
+{
+        basetypeCnt = basetypesToBeInitializedCnt;
+        BUF_RESERVE(basetypeInfo, basetypeInfoAlloc, basetypeCnt);
+        for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
+                Basetype x = i;
+                int size = basetypesToBeInitialized[i].size;
+                String name = intern_cstring(basetypesToBeInitialized[i].name);
+                basetypeInfo[x].size = size;
+                add_symbol(name, globalScope);
         }
 }
 
@@ -1174,7 +1187,6 @@ void parse_global_scope(void)
 Symbol find_symbol_in_scope(String name, Scope scope)
 {
         printf("RESOLVE %s\n", string_buffer(name));
-
         for (; scope != -1; scope = scopeInfo[scope].parentScope) {
                 Symbol first = scopeInfo[scope].firstSymbol;
                 Symbol last = first + scopeInfo[scope].numSymbols;
@@ -1213,13 +1225,11 @@ void resolve_symbols(void)
 int main(void)
 {
         init_strings();
+        init_basetypes();
         add_file(intern_cstring("test.txt"));
         parse_global_scope();
         resolve_symbols();
         msg("\n\n\n");
         prettyprint();
-
-        int x = 1;
-
         return 0;
 }

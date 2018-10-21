@@ -7,6 +7,7 @@
 typedef int File;
 typedef int String;
 typedef int Token;
+typedef int Basetype;
 typedef int Type;
 typedef int Symbol;
 typedef int Symref;
@@ -123,6 +124,11 @@ struct StringToBeInterned {
         const char *string;
 };
 
+struct BasetypeToBeInitialized {
+        const char *name;
+        int size;
+};
+
 struct ToktypeToPrefixUnop {
         int ttype;
         int optype;
@@ -191,8 +197,16 @@ struct TokenInfo {
         };
 };
 
+struct BasetypeInfo {
+        int size;
+};
+
 struct TypeInfo {
         Symbol sym;
+        int kind;
+        union {
+                struct BasetypeInfo basetype;
+        };
         // TODO
 };
 
@@ -351,10 +365,12 @@ extern const struct ToktypeToPostfixUnop toktypeToPostfixUnop[];
 extern const struct ToktypeToBinop toktypeToBinop[];
 extern const struct UnopInfo unopInfo[NUM_UNOPS];
 extern const struct BinopInfo binopInfo[NUM_BINOPS];
-extern const struct StringToBeInterned stringToBeInterned[NUM_CONSTSTRS];
+extern const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS];
+extern const struct BasetypeToBeInitialized basetypesToBeInitialized[];
 extern const int toktypeToPrefixUnopCnt;
 extern const int toktypeToPostfixUnopCnt;
 extern const int toktypeToBinopCnt;
+extern const int basetypesToBeInitializedCnt;
 DATA String constStr[NUM_CONSTSTRS];  // has initializer
 
 
@@ -379,6 +395,7 @@ DATA int stringCnt;
 DATA int strBucketCnt;
 DATA int fileCnt;
 DATA int tokenCnt;
+DATA int basetypeCnt;
 DATA int typeCnt;
 DATA int symbolCnt;
 DATA int entityCnt;
@@ -400,6 +417,7 @@ DATA struct StringInfo *stringInfo;
 DATA struct StringBucketInfo *strBucketInfo;
 DATA struct FileInfo *fileInfo;
 DATA struct TokenInfo *tokenInfo;
+DATA struct BasetypeInfo *basetypeInfo;
 DATA struct TypeInfo *typeInfo;
 DATA struct SymbolInfo *symbolInfo;
 DATA struct EntityInfo *entityInfo;
@@ -421,6 +439,7 @@ DATA struct Alloc stringInfoAlloc;
 DATA struct Alloc strBucketInfoAlloc;
 DATA struct Alloc fileInfoAlloc;
 DATA struct Alloc tokenInfoAlloc;
+DATA struct Alloc basetypeInfoAlloc;
 DATA struct Alloc typeInfoAlloc;
 DATA struct Alloc symbolInfoAlloc;
 DATA struct Alloc entityInfoAlloc;
