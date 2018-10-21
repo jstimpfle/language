@@ -250,8 +250,8 @@ struct LiteralExprInfo {
 
 struct CallExprInfo {
         Expr callee;
-        Expr firstArgIndex;  // speed-up
-        Expr lastArgIndex;  // speed-up
+        Expr firstArgIdx;  // speed-up
+        int nargs;
 };
 
 struct CallArgInfo {
@@ -373,9 +373,6 @@ extern int dataCnt;
 extern int scopeCnt;
 extern int procCnt;
 extern int procParamCnt;
-extern int unopExprCnt;
-extern int binopExprCnt;
-extern int callExprCnt;
 extern int exprCnt;
 extern int stmtCnt;
 extern int childStmtCnt;
@@ -396,9 +393,6 @@ extern struct DataInfo *dataInfo;
 extern struct ScopeInfo *scopeInfo;
 extern struct ProcInfo *procInfo;
 extern struct ProcParamInfo *procParamInfo;
-extern struct UnopExprInfo *unopExprInfo;
-extern struct BinopExprInfo *binopExprInfo;
-extern struct CallExprInfo *callExprInfo;
 extern struct ExprInfo *exprInfo;
 extern struct StmtInfo *stmtInfo;
 extern struct ChildStmtInfo *childStmtInfo;
@@ -419,9 +413,6 @@ extern struct Alloc dataInfoAlloc;
 extern struct Alloc scopeInfoAlloc;
 extern struct Alloc procInfoAlloc;
 extern struct Alloc procParamInfoAlloc;
-extern struct Alloc unopExprInfoAlloc;
-extern struct Alloc binopExprInfoAlloc;
-extern struct Alloc callExprInfoAlloc;
 extern struct Alloc exprInfoAlloc;
 extern struct Alloc stmtInfoAlloc;
 extern struct Alloc childStmtInfoAlloc;

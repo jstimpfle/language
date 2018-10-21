@@ -67,7 +67,17 @@ void pprint_expr(Expr expr)
                         break;
                 }
                 case EXPR_CALL: {
-                        msg("CALL()");
+                        Expr callee = exprInfo[expr].tCall.callee;
+                        int first = exprInfo[expr].tCall.firstArgIdx;
+                        int last = first + exprInfo[expr].tCall.nargs;
+                        pprint_expr(callee);
+                        msg("(");
+                        for (int i = first; i < last; i++) {
+                                if (i > first)
+                                        msg(", ");
+                                pprint_expr(callArgInfo[i].argExpr);
+                        }
+                        msg(")");
                         break;
                 }
                 default:

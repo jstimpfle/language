@@ -260,6 +260,7 @@ Expr add_call_expr(Expr callee)
         BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
         exprInfo[x].kind = EXPR_CALL;
         exprInfo[x].tCall.callee = callee;
+        exprInfo[x].tCall.nargs = 0;
         return x;
 }
 
@@ -357,6 +358,7 @@ void add_ChildStmt(Stmt parent, Stmt child)
 
 void add_CallArg(Expr callExpr, Expr argExpr)
 {
+        exprInfo[callExpr].tCall.nargs++;
         int x = callArgCnt++;
         BUF_RESERVE(callArgInfo, callArgInfoAlloc, callArgCnt);
         callArgInfo[x].callExpr = callExpr;
@@ -1050,6 +1052,15 @@ int compare_ChildStmt(const void *a, const void *b)
         return x->rank - y->rank;
 }
 
+int compare_CallArg(const void *a, const void *b)
+{
+        const struct CallArgInfo *x = a;
+        const struct CallArgInfo *y = b;
+        if (x->callExpr != y->callExpr)
+                return x->callExpr - y->callExpr;
+        return x->rank - y->rank;
+}
+
 void parse_global_scope(void)
 {
         PARSE_LOG();
@@ -1085,10 +1096,19 @@ void parse_global_scope(void)
 
         sort_array(childStmtInfo, childStmtCnt, sizeof *childStmtInfo,
                    compare_ChildStmt);
+        sort_array(callArgInfo, callArgCnt, sizeof *callArgInfo,
+                   compare_CallArg);
+
         for (int i = childStmtCnt; i --> 0;) {
                 Stmt parent = childStmtInfo[i].parent;
                 assert(stmtInfo[parent].kind == STMT_COMPOUND);
                 stmtInfo[parent].tCompound.firstChildStmtIdx = i;
+        }
+
+        for (int i = callArgCnt; i --> 0;) {
+                Expr callee = callArgInfo[i].callExpr;
+                assert(exprInfo[callee].kind == EXPR_CALL);
+                exprInfo[callee].tCall.firstArgIdx = i;
         }
 }
 
@@ -1099,5 +1119,8 @@ int main(void)
         parse_global_scope();
         msg("\n\n\n");
         prettyprint();
+
+        int x = 1;
+
         return 0;
 }
