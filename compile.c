@@ -17,7 +17,7 @@ Token add_word_token(File file, int offset, const char *string, int length)
         tokenInfo[x].file = file;
         tokenInfo[x].offset = offset;
         tokenInfo[x].kind = TOKTYPE_WORD;
-        tokenInfo[x].word.string = intern_string(string, length);
+        tokenInfo[x].tWord.string = intern_string(string, length);
         return x;
 }
 
@@ -28,7 +28,7 @@ Token add_integer_token(File file, int offset, long long value)
         tokenInfo[x].file = file;
         tokenInfo[x].offset = offset;
         tokenInfo[x].kind = TOKTYPE_INTEGER;
-        tokenInfo[x].integer.value = value;
+        tokenInfo[x].tInteger.value = value;
         return x;
 }
 
@@ -150,7 +150,7 @@ Symref add_symref(Token tok, Scope refScope)
 {
         Symref ref = symrefCnt++;
         BUF_RESERVE(symrefInfo, symrefInfoAlloc, symrefCnt);
-        symrefInfo[ref].name = tokenInfo[tok].word.string;
+        symrefInfo[ref].name = tokenInfo[tok].tWord.string;
         symrefInfo[ref].refScope = refScope;
         symrefInfo[ref].tok = tok;
         return ref;
@@ -203,6 +203,26 @@ Expr add_binop_expr(int opkind, Expr expr1, Expr expr2)
         exprInfo[x].tBinop.kind = opkind;
         exprInfo[x].tBinop.expr1 = expr1;
         exprInfo[x].tBinop.expr2 = expr2;
+        return x;
+}
+
+Expr add_member_expr(Expr expr, String name)
+{
+        Expr x = exprCnt++;
+        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        exprInfo[x].kind = EXPR_MEMBER;
+        exprInfo[x].tMember.expr = expr;
+        exprInfo[x].tMember.name = name;
+        return x;
+}
+
+Expr add_subscript_expr(Expr expr1, Expr expr2)
+{
+        Expr x = exprCnt++;
+        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        exprInfo[x].kind = EXPR_SUBSCRIPT;
+        exprInfo[x].tSubscript.expr1 = expr1;
+        exprInfo[x].tSubscript.expr2 = expr2;
         return x;
 }
 
@@ -338,7 +358,7 @@ int char_is_invalid(int c)
 int token_is_word(Token tok, String string)
 {
         return tokenInfo[tok].kind == TOKTYPE_WORD &&
-                tokenInfo[tok].word.string == string;
+                tokenInfo[tok].tWord.string == string;
 }
 
 int token_is_unary_prefix_operator(Token tok, int *out_optype)
@@ -537,6 +557,9 @@ Token parse_next_token(void)
         else if (c == ']') {
                 ans = add_bare_token(currentFile, off, TOKTYPE_RIGHTBRACKET);
         }
+        else if (c == '.') {
+                ans = add_bare_token(currentFile, off, TOKTYPE_DOT);
+        }
         else if (c == '-') {
                 c = look_char();
                 if (c == '-') {
@@ -583,6 +606,9 @@ Token parse_next_token(void)
         }
         else if (c == '^') {
                 ans = add_bare_token(currentFile, off, TOKTYPE_CARET);
+        }
+        else if (c == '~') {
+                ans = add_bare_token(currentFile, off, TOKTYPE_TILDE);
         }
         else if (c == '!') {
                 ans = add_bare_token(currentFile, off, TOKTYPE_BANG);
@@ -645,7 +671,7 @@ Symbol parse_symbol(int kind)
 {
         PARSE_LOG();
         Token tok = parse_token_kind(TOKTYPE_WORD);
-        return add_symbol(kind, tokenInfo[tok].word.string, currentScope);
+        return add_symbol(kind, tokenInfo[tok].tWord.string, currentScope);
 }
 
 Symref parse_symref(void)
@@ -766,7 +792,6 @@ Expr parse_expr(int minprec)
                         expr = add_unop_expr(opkind, expr);
                 }
                 else if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
-                        /* function call */
                         parse_next_token();
                         expr = add_call_expr(expr);
                         while (look_token_kind(TOKTYPE_RIGHTPAREN) == -1) {
@@ -778,21 +803,29 @@ Expr parse_expr(int minprec)
                         }
                         parse_token_kind(TOKTYPE_RIGHTPAREN);
                 }
+                else if (tokenInfo[tok].kind == TOKTYPE_DOT) {
+                        parse_next_token();
+                        Token x = parse_token_kind(TOKTYPE_WORD);
+                        String name = tokenInfo[x].tWord.string;
+                        expr = add_member_expr(expr, name);
+                }
+                else if (tokenInfo[tok].kind == TOKTYPE_LEFTBRACKET) {
+                        parse_next_token();
+                        subexpr = parse_expr(0);
+                        parse_token_kind(TOKTYPE_RIGHTBRACKET);
+                        expr = add_subscript_expr(expr, subexpr);
+                }
+                else if (token_is_binary_infix_operator(tok, &opkind)) {
+                        opprec = binopInfo[opkind].prec;
+                        if (opprec < minprec)
+                                break;
+                        parse_next_token();
+                        subexpr = parse_expr(opprec + 1);
+                        expr = add_binop_expr(opkind, expr, subexpr);
+                }
                 else {
                         break;
                 }
-        }
-
-        for (;;) {
-                tok = look_next_token();
-                if (! token_is_binary_infix_operator(tok, &opkind))
-                        break;
-                opprec = binopInfo[opkind].prec;
-                if (opprec < minprec)
-                        break;
-                parse_next_token();
-                subexpr = parse_expr(opprec + 1);
-                expr = add_binop_expr(opkind, expr, subexpr);
         }
 
         return expr;
@@ -905,7 +938,7 @@ Stmt parse_stmt(void)
         PARSE_LOG();
         tok = look_next_token();
         if (tokenInfo[tok].kind == TOKTYPE_WORD) {
-                String s = tokenInfo[tok].word.string;
+                String s = tokenInfo[tok].tWord.string;
                 if (s == constStr[CONSTSTR_DATA]) {
                         parse_next_token();
                         return parse_data_stmt();
@@ -1028,7 +1061,7 @@ void parse_global_scope(void)
                 if (tok == -1)
                         break;
                 parse_token_kind(TOKTYPE_WORD);
-                s = tokenInfo[tok].word.string;
+                s = tokenInfo[tok].tWord.string;
                 if (s == constStr[CONSTSTR_ENTITY]) {
                         parse_entity();
                 }

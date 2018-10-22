@@ -90,7 +90,7 @@ void pprint_expr(Expr expr)
                 }
                 case EXPR_LITERAL: {
                         Token tok = exprInfo[expr].tLiteral.tok;
-                        msg("%lld", tokenInfo[tok].integer);
+                        msg("%lld", tokenInfo[tok].tInteger);
                         break;
                 }
                 case EXPR_UNOP: {
@@ -109,6 +109,19 @@ void pprint_expr(Expr expr)
                         int binop = exprInfo[expr].tBinop.kind;
                         msg(" %s ", binopInfo[binop].str);
                         pprint_expr(exprInfo[expr].tBinop.expr2);
+                        break;
+                }
+                case EXPR_MEMBER: {
+                        pprint_expr(exprInfo[expr].tMember.expr);
+                        msg(".");
+                        msg("%s", string_buffer(exprInfo[expr].tMember.name));
+                        break;
+                }
+                case EXPR_SUBSCRIPT: {
+                        pprint_expr(exprInfo[expr].tSubscript.expr1);
+                        msg("[");
+                        pprint_expr(exprInfo[expr].tSubscript.expr2);
+                        msg("]");
                         break;
                 }
                 case EXPR_CALL: {

@@ -11,6 +11,7 @@ const char *tokenKindString[] = {
         MAKE( TOKTYPE_RIGHTBRACE ),
         MAKE( TOKTYPE_LEFTBRACKET ),
         MAKE( TOKTYPE_RIGHTBRACKET ),
+        MAKE( TOKTYPE_DOT ),
         MAKE( TOKTYPE_MINUS ),
         MAKE( TOKTYPE_PLUS ),
         MAKE( TOKTYPE_ASTERISK ),
@@ -23,6 +24,7 @@ const char *tokenKindString[] = {
         MAKE( TOKTYPE_AMPERSAND ),
         MAKE( TOKTYPE_PIPE ),
         MAKE( TOKTYPE_CARET ),
+        MAKE( TOKTYPE_TILDE ),
         MAKE( TOKTYPE_BANG ),
         MAKE( TOKTYPE_ASSIGNEQUALS ),
         MAKE( TOKTYPE_DOUBLEEQUALS ),
@@ -30,6 +32,7 @@ const char *tokenKindString[] = {
 };
 
 const struct ToktypeToPrefixUnop toktypeToPrefixUnop[] = {
+        { TOKTYPE_TILDE,       UNOP_INVERTBITS },
         { TOKTYPE_BANG,        UNOP_NOT },
         { TOKTYPE_AMPERSAND,   UNOP_ADDRESSOF },
         { TOKTYPE_ASTERISK,    UNOP_DEREF },
@@ -58,6 +61,7 @@ const struct ToktypeToBinop toktypeToBinop[] = {
 
 const struct UnopInfo unopInfo[NUM_UNOPS] = {
 #define MAKE(x, y, z) [x] = { y, z }
+        MAKE( UNOP_INVERTBITS,    1, "~"  ),
         MAKE( UNOP_NOT,           1, "!"  ),
         MAKE( UNOP_ADDRESSOF,     1, "&"  ),
         MAKE( UNOP_DEREF,         1, "*"  ),

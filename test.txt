@@ -1,6 +1,6 @@
 entity int Foobar;
 
-table Foobar baz {
+table foobar BazTab {
     column int bazx;
     column int bazy;
 }
@@ -13,9 +13,12 @@ proc int test(int x, int a)
 {
     data int y;
     data foo z;
+    data Foobar asdf;
+    data BazTab baztab;
     *&z = 1;
+    a.b;
     z = (1 + 3) + 3 * 4;
-    y = 3 + k;
+    y = 3 + k[baztab.bazx];
     if (z++ + 2)
         a = b;
     if (z  ++  -- + 2)

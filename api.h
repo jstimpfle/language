@@ -36,6 +36,7 @@ enum {
         TOKTYPE_RIGHTBRACE,
         TOKTYPE_LEFTBRACKET,
         TOKTYPE_RIGHTBRACKET,
+        TOKTYPE_DOT,
         TOKTYPE_MINUS,
         TOKTYPE_PLUS,
         TOKTYPE_ASTERISK,
@@ -48,6 +49,7 @@ enum {
         TOKTYPE_AMPERSAND,
         TOKTYPE_PIPE,
         TOKTYPE_CARET,
+        TOKTYPE_TILDE,
         TOKTYPE_BANG,
         TOKTYPE_ASSIGNEQUALS,
         TOKTYPE_DOUBLEEQUALS,
@@ -77,6 +79,7 @@ enum {
 };
 
 enum {
+        UNOP_INVERTBITS,
         UNOP_NOT,
         UNOP_ADDRESSOF,
         UNOP_DEREF,
@@ -107,6 +110,8 @@ enum {
         EXPR_SYMREF,
         EXPR_UNOP,
         EXPR_BINOP,
+        EXPR_MEMBER,
+        EXPR_SUBSCRIPT,
         EXPR_CALL,
 };
 
@@ -199,9 +204,9 @@ struct TokenInfo {
         int offset;
         int kind;
         union {
-                struct WordTokenInfo word;
-                struct IntegerTokenInfo integer;
-                struct StringTokenInfo string;
+                struct WordTokenInfo tWord;
+                struct IntegerTokenInfo tInteger;
+                struct StringTokenInfo tString;
         };
 };
 
@@ -317,6 +322,16 @@ struct BinopExprInfo {
         Expr expr2;
 };
 
+struct MemberExprInfo {
+        Expr expr;
+        String name;
+};
+
+struct SubscriptExprInfo {
+        Expr expr1;
+        Expr expr2;
+};
+
 struct ExprInfo {
         int kind;
         union {
@@ -325,6 +340,8 @@ struct ExprInfo {
                 struct CallExprInfo tCall;
                 struct UnopExprInfo tUnop;
                 struct BinopExprInfo tBinop;
+                struct MemberExprInfo tMember;
+                struct SubscriptExprInfo tSubscript;
         };
 };
 
@@ -548,7 +565,7 @@ static inline const char *SS(Symbol sym)
 
 static inline const char *TS(Token tok)
 {
-        return string_buffer(tokenInfo[tok].word.string);
+        return string_buffer(tokenInfo[tok].tWord.string);
 }
 
 static inline const char *TKS(Token tok)
