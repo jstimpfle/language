@@ -462,60 +462,30 @@ DATA struct Alloc stmtInfoAlloc;
 DATA struct Alloc childStmtInfoAlloc;
 DATA struct Alloc callArgInfoAlloc;
 
-static inline const char *string_buffer(String s)
-{
-        return &strbuf[stringInfo[s].pos];
-}
-
-static inline int string_length(String s)
-{
-        return stringInfo[s+1].pos - stringInfo[s].pos - 1;
-}
-
-static inline const char *SS(Symbol sym)
-{
-        return string_buffer(symbolInfo[sym].name);
-}
-
-static inline const char *TS(Token tok)
-{
-        return string_buffer(tokenInfo[tok].word.string);
-}
-
-static inline const char *TKS(Token tok)
-{
-        return tokenKindString[tokenInfo[tok].kind];
-}
-
-String lookup_string_with_hash(const void *buf, int len, unsigned hsh);
-String intern_string(const void *buf, int len);
-String intern_cstring(const char *str);
-
 
 void read_whole_file(File file);
-
 void mem_fill(void *ptr, int val, int size);
 void mem_copy(void *dst, const void *src, int size);
 int mem_compare(const void *m1, const void *m2, int size);
 int cstr_length(const char *s);
-
 void *mem_realloc(void *ptr, int size);
-
 void sort_array(void *ptr, int nelems, int elemsize,
                 int (*compare)(const void*, const void*));
 
+
+
+
+void msg(const char *fmt, ...);
 void NORETURN _fatal(const char *filename, int line, const char *msg, ...);
 
 #define FATAL(msg, ...) _fatal(__FILE__, __LINE__, msg, ##__VA_ARGS__)
 
-void msg(const char *fmt, ...);
+
 
 void _buf_init(void **ptr, struct Alloc *alloc, int elsize,
                const char *UNUSED file, int UNUSED line);
-
 void _buf_exit(void **ptr, struct Alloc *alloc, int elsize,
                const char *UNUSED file, int UNUSED line);
-
 void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                   int clear, const char *UNUSED file, int UNUSED line);
 
@@ -541,3 +511,35 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                              __FILE__, __LINE__); \
                 (buf)[_appendpos] = el; \
         } while (0)
+
+
+static inline const char *string_buffer(String s)
+{
+        return &strbuf[stringInfo[s].pos];
+}
+
+static inline int string_length(String s)
+{
+        return stringInfo[s+1].pos - stringInfo[s].pos - 1;
+}
+
+static inline const char *SS(Symbol sym)
+{
+        return string_buffer(symbolInfo[sym].name);
+}
+
+static inline const char *TS(Token tok)
+{
+        return string_buffer(tokenInfo[tok].word.string);
+}
+
+static inline const char *TKS(Token tok)
+{
+        return tokenKindString[tokenInfo[tok].kind];
+}
+
+String intern_string(const void *buf, int len);
+String intern_cstring(const char *str);
+
+
+void prettyprint(void);
