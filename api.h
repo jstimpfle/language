@@ -263,9 +263,9 @@ struct ProcInfo {
 
 struct ProcParamInfo {
         Proc proc;
-        int argIdx;
         Type tref;
         String sym;
+        int rank;
 };
 
 struct SymrefInfo {

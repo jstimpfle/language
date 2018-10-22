@@ -158,11 +158,7 @@ void add_procarg(Proc proc, Typeref argtref, Symbol argsym)
         procParamInfo[x].proc = proc;
         procParamInfo[x].tref = argtref;
         procParamInfo[x].sym = argsym;
-        procParamInfo[x].argIdx = procInfo[proc].nparams;
-
-        if (procInfo[proc].nparams == 0)
-                procInfo[proc].firstParam = x;
-        procInfo[proc].nparams++;
+        procParamInfo[x].rank = x;
 }
 
 Symref add_symref(Token tok, Scope refScope)
@@ -929,12 +925,6 @@ Stmt parse_stmt(void)
         }
 }
 
-Stmt parse_proc_body(Proc proc)
-{
-        PARSE_LOG();
-        return parse_compound_stmt();
-}
-
 void parse_proc(void)
 {
         Typeref rettref;  /* out-arg type */
@@ -954,7 +944,6 @@ void parse_proc(void)
         scopeInfo[pscope].tProc.proc = proc;
 
         push_scope(pscope);
-
         parse_token_kind(TOKTYPE_LEFTPAREN);
         for (;;) {
                 tok = look_next_token();
@@ -968,10 +957,8 @@ void parse_proc(void)
                 parse_next_token();
         }
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-
-        body = parse_proc_body(proc);
+        body = parse_compound_stmt();
         procInfo[proc].body = body;
-
         pop_scope();
 }
 
@@ -980,6 +967,15 @@ int compare_Symbol(const void *a, const void *b)
         const Symbol *x = a;
         const Symbol *y = b;
         return symbolInfo[*x].scope - symbolInfo[*y].scope;
+}
+
+int compare_ProcParamInfo(const void *a, const void *b)
+{
+        const struct ProcParamInfo *x = a;
+        const struct ProcParamInfo *y = b;
+        if (x->proc != y->proc)
+                return x->proc - y->proc;
+        return x->rank - y->rank;
 }
 
 int compare_ChildStmtInfo(const void *a, const void *b)
@@ -1008,7 +1004,6 @@ void parse_global_scope(void)
         PARSE_LOG();
         globalScope = add_global_scope();
         push_scope(globalScope);
-
         for (;;) {
                 tok = look_next_token();
                 if (tok == -1)
@@ -1066,10 +1061,18 @@ void parse_global_scope(void)
                 BUF_EXIT(newname, newnameAlloc);
         }
 
+        sort_array(procParamInfo, procParamCnt, sizeof *procParamInfo,
+                   compare_ProcParamInfo);
         sort_array(childStmtInfo, childStmtCnt, sizeof *childStmtInfo,
                    compare_ChildStmtInfo);
         sort_array(callArgInfo, callArgCnt, sizeof *callArgInfo,
                    compare_CallArgInfo);
+
+        for (ProcParam param = procParamCnt; param --> 0;) {
+                Proc proc = procParamInfo[param].proc;
+                procInfo[proc].nparams++;
+                procInfo[proc].firstParam = param;
+        }
 
         for (int i = childStmtCnt; i --> 0;) {
                 Stmt parent = childStmtInfo[i].parent;
