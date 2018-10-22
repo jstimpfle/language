@@ -34,12 +34,34 @@ void pprint_typeref(Typeref tref)
 
 void pprint_data(Data d)
 {
+        pprint_newline();
         msg("data ");
         pprint_typeref(dataInfo[d].tref);
         msg(" ");
         msg("%s", SS(dataInfo[d].sym));
         msg(";");
+}
+
+void pprint_column(Column c)
+{
         pprint_newline();
+        msg("column ");
+        pprint_typeref(columnInfo[c].tref);
+        msg(" %s;", SS(columnInfo[c].sym));
+}
+
+void pprint_table(Table t)
+{
+        pprint_newline();
+        msg("table %s {", SS(tableInfo[t].sym));
+        Column first = tableInfo[t].firstColumn;
+        Column last = first + tableInfo[t].numColumns;
+        add_indent();
+        for (Column i = first; i < last; i++)
+                pprint_column(i);
+        remove_indent();
+        pprint_newline();
+        msg("}");
 }
 
 void pprint_expr(Expr expr)
@@ -94,9 +116,9 @@ void pprint_expr(Expr expr)
 
 void pprint_expr_stmt(Stmt stmt)
 {
+        pprint_newline();
         pprint_expr(stmtInfo[stmt].tExpr.expr);
         msg(";");
-        pprint_newline();
 }
 
 void pprint_stmt(Stmt stmt);
@@ -105,7 +127,6 @@ void pprint_compound_stmt(Stmt stmt)
 {
         msg("{");
         add_indent();
-        pprint_newline();
         for (int i = stmtInfo[stmt].tCompound.firstChildStmtIdx;
              childStmtInfo[i].parent == stmt; i++) {
                 pprint_stmt(childStmtInfo[i].child);
@@ -126,6 +147,7 @@ void pprint_stmt(Stmt stmt)
         case STMT_IF: {
                 Stmt child = stmtInfo[stmt].tIf.childStmt;
                 int isCompound = stmtInfo[child].kind == STMT_COMPOUND;
+                pprint_newline();
                 msg("if (");
                 pprint_expr(stmtInfo[stmt].tIf.condExpr);
                 msg(")");
@@ -135,11 +157,9 @@ void pprint_stmt(Stmt stmt)
                 }
                 else {
                         add_indent();
-                        pprint_newline();
                         pprint_stmt(child);
                         remove_indent();
                 }
-                pprint_newline();
                 break;
         }
         case STMT_FOR:
@@ -167,6 +187,7 @@ void pprint_stmt(Stmt stmt)
                 pprint_newline();
                 break;
         case STMT_RETURN:
+                pprint_newline();
                 msg("return ");
                 pprint_expr(stmtInfo[stmt].tReturn.expr);
                 break;
@@ -207,12 +228,14 @@ void pprint_proc(Proc p)
 
 void prettyprint(void)
 {
-        for (Data i = 0; i < dataCnt; i++) {
-                if (scopeInfo[dataInfo[i].scope].kind == globalScope) {
+        for (Data i = 0; i < dataCnt; i++)
+                if (scopeInfo[dataInfo[i].scope].kind == globalScope)
                         pprint_data(i);
-                }
-        }
-        for (Proc i = 0; i < procCnt; i++) {
+        pprint_newline();
+        for (Table i = 0; i < tableCnt; i++)
+                pprint_table(i);
+        pprint_newline();
+        for (Proc i = 0; i < procCnt; i++)
                 pprint_proc(i);
-        }
+        pprint_newline();
 }

@@ -2,6 +2,11 @@ data int test;
 data bla blub;
 data int testcall;
 
+table int baz {
+    column int bazx;
+    column int bazy;
+}
+
 proc int test(int x, int a)
 {
     data int y;

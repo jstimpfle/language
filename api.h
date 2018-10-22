@@ -220,6 +220,8 @@ struct EntityInfo {
 struct TableInfo {
         Type tp;
         Symbol sym;
+        Column firstColumn;
+        int numColumns;
 };
 
 struct SymbolInfo {
@@ -230,8 +232,9 @@ struct SymbolInfo {
 
 struct ColumnInfo {
         Table table;
-        Type tp;
+        Type tref;
         Symbol sym;
+        int rank;
 };
 
 struct DataInfo {
@@ -241,9 +244,9 @@ struct DataInfo {
 };
 
 struct ScopeInfo {
-        int numSymbols;
         Scope parentScope;
         Symbol firstSymbol; // speed-up
+        int numSymbols;
         int kind;
         union {
                 struct {

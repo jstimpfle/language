@@ -1,28 +1,6 @@
 #include "defs.h"
 #include "api.h"
 
-void init_strings(void)
-{
-        for (int i = 0; i < LENGTH(stringsToBeInterned); i++) {
-                int idx = stringsToBeInterned[i].constant;
-                const char *str = stringsToBeInterned[i].string;
-                constStr[idx] = intern_cstring(str);
-        }
-}
-
-void init_basetypes(void)
-{
-        basetypeCnt = basetypesToBeInitializedCnt;
-        BUF_RESERVE(basetypeInfo, basetypeInfoAlloc, basetypeCnt);
-        for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
-                Basetype x = i;
-                int size = basetypesToBeInitialized[i].size;
-                String name = intern_cstring(basetypesToBeInitialized[i].name);
-                basetypeInfo[x].size = size;
-                add_symbol(name, globalScope);
-        }
-}
-
 File add_file(String filepath)
 {
         File x = fileCnt++;
@@ -96,16 +74,18 @@ Table add_table(Type tp, Symbol sym)
         BUF_RESERVE(tableInfo, tableInfoAlloc, tableCnt);
         tableInfo[x].tp = tp;
         tableInfo[x].sym = sym;
+        tableInfo[x].numColumns = 0;
         return x;
 }
 
-Column add_column(Table table, Type tp, Symbol sym)
+Column add_column(Table table, Typeref tref, Symbol sym)
 {
         Column x = columnCnt++;
         BUF_RESERVE(columnInfo, columnInfoAlloc, columnCnt);
         columnInfo[x].table = table;
-        columnInfo[x].tp = tp;
+        columnInfo[x].tref = tref;
         columnInfo[x].sym = sym;
+        columnInfo[x].rank = x;
         return x;
 }
 
@@ -123,8 +103,8 @@ Scope add_global_scope(void)
 {
         Scope x = scopeCnt++;
         BUF_RESERVE(scopeInfo, scopeInfoAlloc, scopeCnt);
-        scopeInfo[x].numSymbols = 0;
         scopeInfo[x].parentScope = -1;
+        scopeInfo[x].numSymbols = 0;
         scopeInfo[x].kind = SCOPE_GLOBAL;
         return x;
 }
@@ -133,8 +113,8 @@ Scope add_proc_scope(Scope parent)
 {
         Scope x = scopeCnt++;
         BUF_RESERVE(scopeInfo, scopeInfoAlloc, scopeCnt);
-        scopeInfo[x].numSymbols = 0;
         scopeInfo[x].parentScope = parent;
+        scopeInfo[x].numSymbols = 0;
         scopeInfo[x].kind = SCOPE_PROC;
         return x;
 }
@@ -305,6 +285,28 @@ void add_CallArg(Expr callExpr, Expr argExpr)
         callArgInfo[x].callExpr = callExpr;
         callArgInfo[x].argExpr = argExpr;
         callArgInfo[x].rank = x;
+}
+
+void init_strings(void)
+{
+        for (int i = 0; i < LENGTH(stringsToBeInterned); i++) {
+                int idx = stringsToBeInterned[i].constant;
+                const char *str = stringsToBeInterned[i].string;
+                constStr[idx] = intern_cstring(str);
+        }
+}
+
+void init_basetypes(void)
+{
+        basetypeCnt = basetypesToBeInitializedCnt;
+        BUF_RESERVE(basetypeInfo, basetypeInfoAlloc, basetypeCnt);
+        for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
+                Basetype x = i;
+                int size = basetypesToBeInitialized[i].size;
+                String name = intern_cstring(basetypesToBeInitialized[i].name);
+                basetypeInfo[x].size = size;
+                add_symbol(name, globalScope);
+        }
 }
 
 int char_is_alpha(int c)
@@ -667,15 +669,15 @@ Entity parse_entity(void)
 
 void parse_column(Table table)
 {
-        Type tp;
+        Typeref tref;
         Symbol sym;
 
         PARSE_LOG();
-        tp = parse_typeref();
+        tref = parse_typeref();
         sym = parse_symbol();
         parse_token_kind(TOKTYPE_SEMICOLON);
 
-        add_column(table, tp, sym);
+        add_column(table, tref, sym);
 }
 
 void parse_table(void)
@@ -697,6 +699,7 @@ void parse_table(void)
                 if (tok == -1)
                         break;
                 if (token_is_word(tok, constStr[CONSTSTR_COLUMN])) {
+                        parse_next_token();
                         parse_column(table);
                 }
                 else
@@ -811,7 +814,7 @@ Stmt parse_compound_stmt(void)
 {
         Stmt stmt;
         Stmt substmt;
-        
+
         PARSE_LOG();
         stmt = add_compound_stmt();
         parse_token_kind(TOKTYPE_LEFTBRACE);
@@ -891,7 +894,7 @@ Stmt parse_return_stmt(void)
 Stmt parse_stmt(void)
 {
         Token tok;
-       
+
         PARSE_LOG();
         tok = look_next_token();
         if (tokenInfo[tok].kind == TOKTYPE_WORD) {
@@ -967,6 +970,15 @@ int compare_Symbol(const void *a, const void *b)
         const Symbol *x = a;
         const Symbol *y = b;
         return symbolInfo[*x].scope - symbolInfo[*y].scope;
+}
+
+int compare_ColumnInfo(const void *a, const void *b)
+{
+        const struct ColumnInfo *x = a;
+        const struct ColumnInfo *y = b;
+        if (x->table != y->table)
+                return x->table - y->table;
+        return x->rank - y->rank;
 }
 
 int compare_ProcParamInfo(const void *a, const void *b)
@@ -1061,12 +1073,20 @@ void parse_global_scope(void)
                 BUF_EXIT(newname, newnameAlloc);
         }
 
+        sort_array(columnInfo, columnCnt, sizeof *columnInfo,
+                   compare_ColumnInfo);
         sort_array(procParamInfo, procParamCnt, sizeof *procParamInfo,
                    compare_ProcParamInfo);
         sort_array(childStmtInfo, childStmtCnt, sizeof *childStmtInfo,
                    compare_ChildStmtInfo);
         sort_array(callArgInfo, callArgCnt, sizeof *callArgInfo,
                    compare_CallArgInfo);
+
+        for (Column col = columnCnt; col --> 0;) {
+                Table table = columnInfo[col].table;
+                tableInfo[table].numColumns++;
+                tableInfo[table].firstColumn = col;
+        }
 
         for (ProcParam param = procParamCnt; param --> 0;) {
                 Proc proc = procParamInfo[param].proc;
