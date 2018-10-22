@@ -3,7 +3,6 @@
 
 void init_strings(void)
 {
-
         for (int i = 0; i < LENGTH(stringsToBeInterned); i++) {
                 int idx = stringsToBeInterned[i].constant;
                 const char *str = stringsToBeInterned[i].string;
@@ -305,7 +304,6 @@ void add_ChildStmt(Stmt parent, Stmt child)
 
 void add_CallArg(Expr callExpr, Expr argExpr)
 {
-        exprInfo[callExpr].tCall.nargs++;
         int x = callArgCnt++;
         BUF_RESERVE(callArgInfo, callArgInfoAlloc, callArgCnt);
         callArgInfo[x].callExpr = callExpr;
@@ -1051,9 +1049,8 @@ void parse_global_scope(void)
                            compare_Symbol);
                 for (Symbol i = 0; i < symbolCnt; i++)
                         newname[order[i]] = i;
-                for (Type i = 0; i < typeCnt; i++) {
+                for (Type i = 0; i < typeCnt; i++)
                         typeInfo[i].sym = newname[typeInfo[i].sym];
-                }
                 for (Symbol i = 0; i < symbolCnt; i++) {
                         Symbol j = newname[i];
                         while (j != i) {
@@ -1084,6 +1081,7 @@ void parse_global_scope(void)
         for (int i = callArgCnt; i --> 0;) {
                 Expr callee = callArgInfo[i].callExpr;
                 assert(exprInfo[callee].kind == EXPR_CALL);
+                exprInfo[callee].tCall.nargs++;
                 exprInfo[callee].tCall.firstArgIdx = i;
         }
 
