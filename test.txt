@@ -1,11 +1,13 @@
-data int test;
-data bla blub;
-data int testcall;
+entity int Foobar;
 
-table int baz {
+table Foobar baz {
     column int bazx;
     column int bazy;
 }
+
+data int test;
+data bla blub;
+data int testcall;
 
 proc int test(int x, int a)
 {

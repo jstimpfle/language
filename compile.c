@@ -50,30 +50,32 @@ Type add_type(Symbol sym)
         return x;
 }
 
-Symbol add_symbol(String name, Scope scope)
+Symbol add_symbol(int kind, String name, Scope scope)
 {
         Symbol x = symbolCnt++;
         BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
+        symbolInfo[x].kind = kind;
         symbolInfo[x].name = name;
         symbolInfo[x].scope = scope;
         return x;
 }
 
-Entity add_entity(Type tp, Symbol sym)
+Entity add_entity(Typeref tref, Symbol sym)
 {
         Entity x = entityCnt++;
         BUF_RESERVE(entityInfo, entityInfoAlloc, entityCnt);
-        entityInfo[x].tp = tp;
+        entityInfo[x].tref = tref;
         entityInfo[x].sym = sym;
         return x;
 }
 
-Table add_table(Type tp, Symbol sym)
+Table add_table(Typeref tref, Symbol sym)
 {
         Table x = tableCnt++;
         BUF_RESERVE(tableInfo, tableInfoAlloc, tableCnt);
-        tableInfo[x].tp = tp;
+        tableInfo[x].tref = tref;
         tableInfo[x].sym = sym;
+        tableInfo[x].firstColumn = -1;
         tableInfo[x].numColumns = 0;
         return x;
 }
@@ -104,6 +106,7 @@ Scope add_global_scope(void)
         Scope x = scopeCnt++;
         BUF_RESERVE(scopeInfo, scopeInfoAlloc, scopeCnt);
         scopeInfo[x].parentScope = -1;
+        scopeInfo[x].firstSymbol = -1;
         scopeInfo[x].numSymbols = 0;
         scopeInfo[x].kind = SCOPE_GLOBAL;
         return x;
@@ -114,6 +117,7 @@ Scope add_proc_scope(Scope parent)
         Scope x = scopeCnt++;
         BUF_RESERVE(scopeInfo, scopeInfoAlloc, scopeCnt);
         scopeInfo[x].parentScope = parent;
+        scopeInfo[x].firstSymbol = -1;
         scopeInfo[x].numSymbols = 0;
         scopeInfo[x].kind = SCOPE_PROC;
         return x;
@@ -126,6 +130,7 @@ Proc add_proc(Typeref tref, Symbol sym, Scope scope)
         procInfo[x].tref = tref;
         procInfo[x].sym = sym;
         procInfo[x].scope = scope;
+        procInfo[x].firstParam = -1;
         procInfo[x].nparams = 0;
         procInfo[x].body = -1;
         return x;
@@ -175,6 +180,7 @@ Expr add_call_expr(Expr callee)
         BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
         exprInfo[x].kind = EXPR_CALL;
         exprInfo[x].tCall.callee = callee;
+        exprInfo[x].tCall.firstArgIdx = -1;
         exprInfo[x].tCall.nargs = 0;
         return x;
 }
@@ -305,7 +311,7 @@ void init_basetypes(void)
                 int size = basetypesToBeInitialized[i].size;
                 String name = intern_cstring(basetypesToBeInitialized[i].name);
                 basetypeInfo[x].size = size;
-                add_symbol(name, globalScope);
+                add_symbol(SYMBOL_TYPE, name, globalScope);
         }
 }
 
@@ -441,10 +447,11 @@ int compute_colno(File file, int offset)
               tokenKindString[tokenInfo[tok].kind], \
               ##__VA_ARGS__)
 #define PARSE_LOG() \
-        msg("AT %s() at %d:%d\n", \
-            __func__, \
-            compute_lineno(currentFile, currentOffset), \
-            compute_colno(currentFile, currentOffset))
+        if (doDebug) \
+                msg("AT %s() at %d:%d\n", \
+                    __func__, \
+                    compute_lineno(currentFile, currentOffset), \
+                    compute_colno(currentFile, currentOffset))
 
 void push_scope(Scope scope)
 {
@@ -634,11 +641,11 @@ Token look_token_kind(int tkind)
         return tok;
 }
 
-Symbol parse_symbol(void)
+Symbol parse_symbol(int kind)
 {
         PARSE_LOG();
         Token tok = parse_token_kind(TOKTYPE_WORD);
-        return add_symbol(tokenInfo[tok].word.string, currentScope);
+        return add_symbol(kind, tokenInfo[tok].word.string, currentScope);
 }
 
 Symref parse_symref(void)
@@ -656,15 +663,15 @@ Typeref parse_typeref(void)
 
 Entity parse_entity(void)
 {
-        Type tp;
+        Typeref tref;
         Symbol sym;
 
         PARSE_LOG();
-        tp = parse_typeref();
-        sym = parse_symbol();
+        tref = parse_typeref();
+        sym = parse_symbol(SYMBOL_TYPE);
         parse_token_kind(TOKTYPE_SEMICOLON);
 
-        return add_entity(tp, sym);
+        return add_entity(tref, sym);
 }
 
 void parse_column(Table table)
@@ -674,7 +681,7 @@ void parse_column(Table table)
 
         PARSE_LOG();
         tref = parse_typeref();
-        sym = parse_symbol();
+        sym = parse_symbol(SYMBOL_LOCALDATA /*TODO: other kind?*/);
         parse_token_kind(TOKTYPE_SEMICOLON);
 
         add_column(table, tref, sym);
@@ -683,15 +690,15 @@ void parse_column(Table table)
 void parse_table(void)
 {
         Token tok;
-        Type tp;
+        Typeref tref;
         Symbol sym;
         Table table;
 
         PARSE_LOG();
-        tp = parse_typeref();
-        sym = parse_symbol();
+        tref = parse_typeref();
+        sym = parse_symbol(SYMBOL_TYPE);
 
-        table = add_table(tp, sym);
+        table = add_table(tref, sym);
 
         parse_token_kind(TOKTYPE_LEFTBRACE);
         for (;;) {
@@ -715,7 +722,7 @@ Data parse_data(void)
 
         PARSE_LOG();
         tref = parse_typeref();
-        sym = parse_symbol();
+        sym = parse_symbol(SYMBOL_DATA);
         parse_token_kind(TOKTYPE_SEMICOLON);
         return add_data(currentScope, tref, sym);
 }
@@ -941,7 +948,7 @@ void parse_proc(void)
 
         PARSE_LOG();
         rettref = parse_typeref();
-        psym = parse_symbol();
+        psym = parse_symbol(SYMBOL_PROC);
         pscope = add_proc_scope(currentScope);
         proc = add_proc(rettref, psym, pscope);
         scopeInfo[pscope].tProc.proc = proc;
@@ -953,7 +960,7 @@ void parse_proc(void)
                 if (tokenInfo[tok].kind == TOKTYPE_RIGHTPAREN)
                         break;
                 argtref = parse_typeref();
-                argsym = parse_symbol();
+                argsym = parse_symbol(SYMBOL_LOCALDATA /*TODO: new kind?*/);
                 add_procarg(proc, argtref, argsym);
                 if (look_token_kind(TOKTYPE_COMMA) == -1)
                         break;
@@ -1039,6 +1046,14 @@ void parse_global_scope(void)
                 }
         }
 
+        /* fix up symbolInfo table: add references to various entities */
+        for (Type x = 0; x < typeCnt; x++)
+                symbolInfo[typeInfo[x].sym].tType = x;
+        for (Data x = 0; x < dataCnt; x++)
+                symbolInfo[dataInfo[x].sym].tData = x;
+        for (Proc x = 0; x < procCnt; x++)
+                symbolInfo[procInfo[x].sym].tProc = x;
+
         {
                 /* permute Symbol array so they are grouped by defining scope */
                 /* TODO: this kind of renaming should be abstracted */
@@ -1058,6 +1073,10 @@ void parse_global_scope(void)
                         newname[order[i]] = i;
                 for (Type i = 0; i < typeCnt; i++)
                         typeInfo[i].sym = newname[typeInfo[i].sym];
+                for (Data i = 0; i < dataCnt; i++)
+                        dataInfo[i].sym = newname[dataInfo[i].sym];
+                for (Proc i = 0; i < procCnt; i++)
+                        procInfo[i].sym = newname[procInfo[i].sym];
                 for (Symbol i = 0; i < symbolCnt; i++) {
                         Symbol j = newname[i];
                         while (j != i) {
@@ -1127,7 +1146,7 @@ Symbol find_symbol_in_scope(String name, Scope scope)
                         }
                 }
         }
-        //msg("Symbol %s MISSING\n", string_buffer(name));
+        msg("Symbol %s MISSING\n", string_buffer(name));
         return -1;
 }
 
@@ -1140,10 +1159,13 @@ void resolve_symbols(void)
         }
 }
 
-int main(void)
+int main(int argc, const char **argv)
 {
         init_strings();
         init_basetypes();
+        for (int i = 1; i < argc; i++)
+                if (cstr_compare(argv[i], "-debug") == 0)
+                        doDebug = 1;
         add_file(intern_cstring("test.txt"));
         parse_global_scope();
         resolve_symbols();

@@ -57,6 +57,11 @@ int cstr_length(const char *s)
         return (int) strlen(s);
 }
 
+int cstr_compare(const char *s1, const char *s2)
+{
+        return strcmp(s1, s2);
+}
+
 void *mem_realloc(void *ptr, int size)
 {
         return realloc(ptr, size);

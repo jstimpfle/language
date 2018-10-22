@@ -116,9 +116,15 @@ enum {
 };
 
 enum {
+        SYMBOL_TYPE,
         SYMBOL_DATA,
         SYMBOL_PROC,
         SYMBOL_LOCALDATA,
+};
+
+enum {
+        TYPE_BUILTIN,
+        TYPE_TABLE,
 };
 
 struct StringToBeInterned {
@@ -205,20 +211,21 @@ struct BasetypeInfo {
 
 struct TypeInfo {
         Symbol sym;
-        int kind;
+        int kind;  // TYPE_?
         union {
-                struct BasetypeInfo basetype;
+                Basetype tBasetype;
+                Table tTable;
         };
         // TODO
 };
 
 struct EntityInfo {
-        Type tp;
+        Typeref tref;
         Symbol sym;
 };
 
 struct TableInfo {
-        Type tp;
+        Typeref tref;
         Symbol sym;
         Column firstColumn;
         int numColumns;
@@ -228,6 +235,11 @@ struct SymbolInfo {
         int kind;  // SYMBOL_
         String name;
         Scope scope;
+        union {
+                Type tType;
+                Data tData;
+                Proc tProc;
+        };
 };
 
 struct ColumnInfo {
@@ -386,6 +398,8 @@ DATA String constStr[NUM_CONSTSTRS];  // has initializer
 
 /**/
 
+DATA int doDebug;
+
 DATA File currentFile;
 DATA int currentOffset;
 DATA int haveSavedChar;
@@ -471,6 +485,7 @@ void mem_fill(void *ptr, int val, int size);
 void mem_copy(void *dst, const void *src, int size);
 int mem_compare(const void *m1, const void *m2, int size);
 int cstr_length(const char *s);
+int cstr_compare(const char *s1, const char *m2);
 void *mem_realloc(void *ptr, int size);
 void sort_array(void *ptr, int nelems, int elemsize,
                 int (*compare)(const void*, const void*));
