@@ -73,7 +73,7 @@ void sort_array(void *ptr, int nelems, int elemsize,
         qsort(ptr, nelems, elemsize, cmp);
 }
 
-void NORETURN _fatal(const char *UNUSED filename, int UNUSED line, 
+void NORETURN _fatal(UNUSED const char *filename, UNUSED int line,
                      const char *msg, ...)
 {
         va_list ap;
@@ -96,15 +96,15 @@ void msg(const char *fmt, ...)
         va_end(ap);
 }
 
-void _buf_init(void **ptr, struct Alloc *alloc, int UNUSED elsize,
-               const char *UNUSED file, int UNUSED line)
+void _buf_init(void **ptr, struct Alloc *alloc, UNUSED int elsize,
+               UNUSED const char *file, UNUSED int line)
 {
         *ptr = NULL;
         CLEAR(*alloc);
 }
 
-void _buf_exit(void **ptr, struct Alloc *alloc, int UNUSED elsize,
-               const char *UNUSED file, int UNUSED line)
+void _buf_exit(void **ptr, struct Alloc *alloc, UNUSED int elsize,
+               UNUSED const char *file, UNUSED int line)
 {
         free(*ptr);
         *ptr = NULL;
@@ -112,7 +112,7 @@ void _buf_exit(void **ptr, struct Alloc *alloc, int UNUSED elsize,
 }
 
 void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
-                  int clear, const char *UNUSED file, int UNUSED line)
+                  int clear, UNUSED const char *file, UNUSED int line)
 {
         int cnt;
         void *p;

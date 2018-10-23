@@ -1,6 +1,3 @@
-#ifndef DEFS_H_
-#define DEFS_H_
-
 #ifdef _MSC_VER
 /* avoid silly warnings for "deprecated" functions like fopen(). Is there a
  * way to disable these warnings only for specific functions? */
@@ -30,5 +27,3 @@
 #ifndef NULL
 #define NULL ((void*)0)
 #endif
-
-#endif  // DEFS_H_

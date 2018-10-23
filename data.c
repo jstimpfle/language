@@ -102,7 +102,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
 #undef MAKE
 };
 
-extern const struct BasetypeToBeInitialized basetypesToBeInitialized[] = {
+const struct BasetypeToBeInitialized basetypesToBeInitialized[] = {
         { "int", 4 },
 };
 
