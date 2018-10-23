@@ -136,16 +136,6 @@ Proc add_proc(Typeref tref, Symbol sym, Scope scope)
         return x;
 }
 
-void add_procarg(Proc proc, Typeref argtref, Symbol argsym)
-{
-        ProcParam x = procParamCnt++;
-        BUF_RESERVE(procParamInfo, procParamInfoAlloc, procParamCnt);
-        procParamInfo[x].proc = proc;
-        procParamInfo[x].tref = argtref;
-        procParamInfo[x].sym = argsym;
-        procParamInfo[x].rank = x;
-}
-
 Symref add_symref(Token tok, Scope refScope)
 {
         Symref ref = symrefCnt++;
@@ -295,6 +285,16 @@ Stmt add_compound_stmt(void)
         return stmt;
 }
 
+void add_ProcParam(Proc proc, Typeref argtref, Symbol argsym)
+{
+        ProcParam x = procParamCnt++;
+        BUF_RESERVE(procParamInfo, procParamInfoAlloc, procParamCnt);
+        procParamInfo[x].proc = proc;
+        procParamInfo[x].tref = argtref;
+        procParamInfo[x].sym = argsym;
+        procParamInfo[x].rank = x;
+}
+
 void add_ChildStmt(Stmt parent, Stmt child)
 {
         int x = childStmtCnt++;
@@ -324,13 +324,13 @@ void init_strings(void)
 
 void init_basetypes(void)
 {
-        basetypeCnt = basetypesToBeInitializedCnt;
-        BUF_RESERVE(basetypeInfo, basetypeInfoAlloc, basetypeCnt);
         for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
-                Basetype x = i;
-                int size = basetypesToBeInitialized[i].size;
+                Basetype x = basetypeCnt++;
+                BUF_RESERVE(basetypeInfo, basetypeInfoAlloc, basetypeCnt);
+                basetypeInfo[x].size = basetypesToBeInitialized[i].size;
+        }
+        for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
                 String name = intern_cstring(basetypesToBeInitialized[i].name);
-                basetypeInfo[x].size = size;
                 add_symbol(SYMBOL_TYPE, name, globalScope);
         }
 }
@@ -696,7 +696,6 @@ Entity parse_entity(void)
         tref = parse_typeref();
         sym = parse_symbol(SYMBOL_TYPE);
         parse_token_kind(TOKTYPE_SEMICOLON);
-
         return add_entity(tref, sym);
 }
 
@@ -709,7 +708,6 @@ void parse_column(Table table)
         tref = parse_typeref();
         sym = parse_symbol(SYMBOL_LOCALDATA /*TODO: other kind?*/);
         parse_token_kind(TOKTYPE_SEMICOLON);
-
         add_column(table, tref, sym);
 }
 
@@ -723,7 +721,6 @@ void parse_table(void)
         PARSE_LOG();
         tref = parse_typeref();
         sym = parse_symbol(SYMBOL_TYPE);
-
         table = add_table(tref, sym);
 
         parse_token_kind(TOKTYPE_LEFTBRACE);
@@ -827,22 +824,20 @@ Expr parse_expr(int minprec)
                         break;
                 }
         }
-
         return expr;
 }
 
 Stmt parse_data_stmt(void)
 {
+        PARSE_LOG();
         Data data = parse_data();
         return add_data_stmt(data);
 }
 
 Stmt parse_expr_stmt(void)
 {
-        Expr expr;
-
         PARSE_LOG();
-        expr = parse_expr(0);
+        Expr expr = parse_expr(0);
         parse_token_kind(TOKTYPE_SEMICOLON);
         return add_expr_stmt(expr);
 }
@@ -870,12 +865,10 @@ Stmt parse_expr_or_compound_stmt(void)
 {
         PARSE_LOG();
         Token tok = look_next_token();
-        if (tokenInfo[tok].kind == TOKTYPE_LEFTBRACE) {
+        if (tokenInfo[tok].kind == TOKTYPE_LEFTBRACE)
                 return parse_compound_stmt();
-        }
-        else {
+        else
                 return parse_expr_stmt();
-        }
 }
 
 Stmt parse_ifstmt(void)
@@ -970,9 +963,9 @@ Stmt parse_stmt(void)
 
 void parse_proc(void)
 {
-        Typeref rettref;  /* out-arg type */
-        Typeref argtref;  /* in-arg type */
-        Symbol argsym;  /* in-arg name */
+        Typeref rettref;  /* result type */
+        Typeref paramtref;  /* in-param type */
+        Symbol paramsym;  /* in-param name */
         Symbol psym;  /* proc name */
         Scope pscope; /* proc scope */
         Proc proc;
@@ -992,9 +985,9 @@ void parse_proc(void)
                 tok = look_next_token();
                 if (tokenInfo[tok].kind == TOKTYPE_RIGHTPAREN)
                         break;
-                argtref = parse_typeref();
-                argsym = parse_symbol(SYMBOL_LOCALDATA /*TODO: new kind?*/);
-                add_procarg(proc, argtref, argsym);
+                paramtref = parse_typeref();
+                paramsym = parse_symbol(SYMBOL_LOCALDATA /*TODO: new kind?*/);
+                add_ProcParam(proc, paramtref, paramsym);
                 if (look_token_kind(TOKTYPE_COMMA) == -1)
                         break;
                 parse_next_token();
