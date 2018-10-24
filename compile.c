@@ -69,13 +69,15 @@ Entity add_entity(Typeref tref, Symbol sym)
         return x;
 }
 
-Array add_array(Typeref idxref, Typeref valueref, Symbol sym)
+Array add_array(Scope scope, Typeref idxref, Typeref valueref, Symbol sym)
 {
         Array x = arrayCnt++;
         BUF_RESERVE(arrayInfo, arrayInfoAlloc, arrayCnt);
+        arrayInfo[x].scope = scope;
         arrayInfo[x].idxref = idxref;
         arrayInfo[x].valueref = valueref;
         arrayInfo[x].sym = sym;
+        msg("added array with symbol %s\n", SS(sym));
         return x;
 }
 
@@ -209,7 +211,16 @@ Stmt add_data_stmt(Data data)
         Stmt stmt = stmtCnt++;
         BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
         stmtInfo[stmt].kind = STMT_DATA;
-        stmtInfo[stmt].tData.data = data;
+        stmtInfo[stmt].tData = data;
+        return stmt;
+}
+
+Stmt add_array_stmt(Array array)
+{
+        Stmt stmt = stmtCnt++;
+        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        stmtInfo[stmt].kind = STMT_ARRAY;
+        stmtInfo[stmt].tArray = array;
         return stmt;
 }
 
@@ -700,7 +711,7 @@ Array parse_array(void)
         idxref = parse_typeref();
         parse_token_kind(TOKTYPE_RIGHTBRACKET);
         parse_token_kind(TOKTYPE_SEMICOLON);
-        return add_array(arraysym, idxref, valueref);
+        return add_array(currentScope, idxref, valueref, arraysym);
 }
 
 Data parse_data(void)
@@ -799,6 +810,13 @@ Stmt parse_data_stmt(void)
         return add_data_stmt(data);
 }
 
+Stmt parse_array_stmt(void)
+{
+        PARSE_LOG();
+        Array array = parse_array();
+        return add_array_stmt(array);
+}
+
 Stmt parse_expr_stmt(void)
 {
         PARSE_LOG();
@@ -836,7 +854,7 @@ Stmt parse_expr_or_compound_stmt(void)
                 return parse_expr_stmt();
 }
 
-Stmt parse_ifstmt(void)
+Stmt parse_if_stmt(void)
 {
         Stmt condExpr;
         Stmt childStmt;
@@ -901,9 +919,13 @@ Stmt parse_stmt(void)
                         parse_next_token();
                         return parse_data_stmt();
                 }
+                else if (s == constStr[CONSTSTR_ARRAY]) {
+                        parse_next_token();
+                        return parse_array_stmt();
+                }
                 else if (s == constStr[CONSTSTR_IF]) {
                         parse_next_token();
-                        return parse_ifstmt();
+                        return parse_if_stmt();
                 }
                 else if (s == constStr[CONSTSTR_WHILE]) {
                         parse_next_token();
@@ -1057,6 +1079,8 @@ void parse_global_scope(void)
                         typeInfo[i].sym = newname[typeInfo[i].sym];
                 for (Data i = 0; i < dataCnt; i++)
                         dataInfo[i].sym = newname[dataInfo[i].sym];
+                for (Array i = 0; i < arrayCnt; i++)
+                        arrayInfo[i].sym = newname[arrayInfo[i].sym];
                 for (Proc i = 0; i < procCnt; i++)
                         procInfo[i].sym = newname[procInfo[i].sym];
                 for (Symbol i = 0; i < symbolCnt; i++) {

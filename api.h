@@ -14,8 +14,8 @@ typedef int Symref;
 typedef int Typeref;
 typedef int Scope;
 typedef int Entity;
-typedef int Array;
 typedef int Data;
+typedef int Array;
 typedef int Proc;
 typedef int ProcParam;
 typedef int Expr;
@@ -71,9 +71,10 @@ enum {
         STMT_FOR,
         STMT_WHILE,
         STMT_RETURN,
-        STMT_DATA,
         STMT_EXPR,
         STMT_COMPOUND,
+        STMT_DATA,
+        STMT_ARRAY,
 };
 
 enum {
@@ -228,6 +229,7 @@ struct EntityInfo {
 };
 
 struct ArrayInfo {
+        Scope scope;
         Typeref idxref;
         Typeref valueref;
         Symbol sym;
@@ -335,10 +337,6 @@ struct ExprInfo {
         };
 };
 
-struct DataStmtInfo {
-        Data data;
-};
-
 struct CompoundStmtInfo {
         int numStatements;
         int firstChildStmtIdx;
@@ -372,13 +370,14 @@ struct ReturnStmtInfo {
 struct StmtInfo {
         int kind;
         union {
-                struct DataStmtInfo tData;
                 struct CompoundStmtInfo tCompound;
                 struct ExprStmtInfo tExpr;
                 struct IfStmtInfo tIf;
                 struct WhileStmtInfo tWhile;
                 struct ForStmtInfo tFor;
                 struct ReturnStmtInfo tReturn;
+                Data tData;
+                Array tArray;
         };
 };
 
@@ -430,8 +429,8 @@ DATA int basetypeCnt;
 DATA int typeCnt;
 DATA int symbolCnt;
 DATA int entityCnt;
-DATA int arrayCnt;
 DATA int dataCnt;
+DATA int arrayCnt;
 DATA int scopeCnt;
 DATA int procCnt;
 DATA int procParamCnt;
@@ -451,8 +450,8 @@ DATA struct BasetypeInfo *basetypeInfo;
 DATA struct TypeInfo *typeInfo;
 DATA struct SymbolInfo *symbolInfo;
 DATA struct EntityInfo *entityInfo;
-DATA struct ArrayInfo *arrayInfo;
 DATA struct DataInfo *dataInfo;
+DATA struct ArrayInfo *arrayInfo;
 DATA struct ScopeInfo *scopeInfo;
 DATA struct ProcInfo *procInfo;
 DATA struct ProcParamInfo *procParamInfo;
@@ -472,8 +471,8 @@ DATA struct Alloc basetypeInfoAlloc;
 DATA struct Alloc typeInfoAlloc;
 DATA struct Alloc symbolInfoAlloc;
 DATA struct Alloc entityInfoAlloc;
-DATA struct Alloc arrayInfoAlloc;
 DATA struct Alloc dataInfoAlloc;
+DATA struct Alloc arrayInfoAlloc;
 DATA struct Alloc scopeInfoAlloc;
 DATA struct Alloc procInfoAlloc;
 DATA struct Alloc procParamInfoAlloc;
@@ -548,6 +547,11 @@ static inline int string_length(String s)
 static inline const char *SS(Symbol sym)
 {
         return string_buffer(symbolInfo[sym].name);
+}
+
+static inline const char *SRS(Symref ref)
+{
+        return string_buffer(symrefInfo[ref].name);
 }
 
 static inline const char *TS(Token tok)

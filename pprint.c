@@ -32,16 +32,6 @@ void pprint_typeref(Typeref tref)
         }
 }
 
-void pprint_data(Data d)
-{
-        pprint_newline();
-        msg("data ");
-        pprint_typeref(dataInfo[d].tref);
-        msg(" ");
-        msg("%s", SS(dataInfo[d].sym));
-        msg(";");
-}
-
 void pprint_entity(Entity e)
 {
         pprint_newline();
@@ -49,6 +39,16 @@ void pprint_entity(Entity e)
         pprint_typeref(entityInfo[e].tref);
         msg(" ");
         msg("%s", SS(entityInfo[e].sym));
+        msg(";");
+}
+
+void pprint_data(Data d)
+{
+        pprint_newline();
+        msg("data ");
+        pprint_typeref(dataInfo[d].tref);
+        msg(" ");
+        msg("%s", SS(dataInfo[d].sym));
         msg(";");
 }
 
@@ -60,7 +60,7 @@ void pprint_array(Array a)
         msg(" ");
         msg("%s", SS(arrayInfo[a].sym));
         msg("[");
-        msg("%s", SS(arrayInfo[a].idxref));
+        pprint_typeref(arrayInfo[a].idxref);
         msg("]");
         msg(";");
 }
@@ -152,7 +152,12 @@ void pprint_compound_stmt(Stmt stmt)
 
 void pprint_data_stmt(Stmt stmt)
 {
-        pprint_data(stmtInfo[stmt].tData.data);
+        pprint_data(stmtInfo[stmt].tData);
+}
+
+void pprint_array_stmt(Stmt stmt)
+{
+        pprint_array(stmtInfo[stmt].tArray);
 }
 
 void pprint_stmt(Stmt stmt)
@@ -215,6 +220,9 @@ void pprint_stmt(Stmt stmt)
         case STMT_DATA:
                 pprint_data_stmt(stmt);
                 break;
+        case STMT_ARRAY:
+                pprint_array_stmt(stmt);
+                break;
         default:
                 assert(0 && "Unhandled!\n");
         }
@@ -251,7 +259,8 @@ void prettyprint(void)
                         pprint_data(i);
         pprint_newline();
         for (Array i = 0; i < arrayCnt; i++)
-                pprint_array(i);
+                if (scopeInfo[arrayInfo[i].scope].kind == globalScope)
+                        pprint_array(i);
         pprint_newline();
         for (Proc i = 0; i < procCnt; i++)
                 pprint_proc(i);
