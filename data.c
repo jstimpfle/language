@@ -97,8 +97,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_PROC,   "proc"   ),
         MAKE( CONSTSTR_DATA,   "data"   ),
         MAKE( CONSTSTR_ENTITY, "entity" ),
-        MAKE( CONSTSTR_TABLE,  "table"  ),
-        MAKE( CONSTSTR_COLUMN, "column" ),
+        MAKE( CONSTSTR_ARRAY,  "array"  ),
 #undef MAKE
 };
 

@@ -52,32 +52,17 @@ void pprint_entity(Entity e)
         msg(";");
 }
 
-void pprint_column(Column c)
+void pprint_array(Array a)
 {
         pprint_newline();
-        msg("column ");
-        pprint_typeref(columnInfo[c].tref);
+        msg("array ");
+        pprint_typeref(arrayInfo[a].valueref);
         msg(" ");
-        msg("%s", SS(columnInfo[c].sym));
+        msg("%s", SS(arrayInfo[a].sym));
+        msg("[");
+        msg("%s", SS(arrayInfo[a].idxref));
+        msg("]");
         msg(";");
-}
-
-void pprint_table(Table t)
-{
-        pprint_newline();
-        msg("table ");
-        pprint_typeref(tableInfo[t].tref);
-        msg(" ");
-        msg("%s", SS(tableInfo[t].sym));
-        msg(" {");
-        Column first = tableInfo[t].firstColumn;
-        Column last = first + tableInfo[t].numColumns;
-        add_indent();
-        for (Column i = first; i < last; i++)
-                pprint_column(i);
-        remove_indent();
-        pprint_newline();
-        msg("}");
 }
 
 void pprint_expr(Expr expr)
@@ -261,12 +246,12 @@ void prettyprint(void)
         for (Entity i = 0; i < entityCnt; i++)
                 pprint_entity(i);
         pprint_newline();
-        for (Table i = 0; i < tableCnt; i++)
-                pprint_table(i);
-        pprint_newline();
         for (Data i = 0; i < dataCnt; i++)
                 if (scopeInfo[dataInfo[i].scope].kind == globalScope)
                         pprint_data(i);
+        pprint_newline();
+        for (Array i = 0; i < arrayCnt; i++)
+                pprint_array(i);
         pprint_newline();
         for (Proc i = 0; i < procCnt; i++)
                 pprint_proc(i);

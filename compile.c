@@ -69,25 +69,13 @@ Entity add_entity(Typeref tref, Symbol sym)
         return x;
 }
 
-Table add_table(Typeref tref, Symbol sym)
+Array add_array(Typeref idxref, Typeref valueref, Symbol sym)
 {
-        Table x = tableCnt++;
-        BUF_RESERVE(tableInfo, tableInfoAlloc, tableCnt);
-        tableInfo[x].tref = tref;
-        tableInfo[x].sym = sym;
-        tableInfo[x].firstColumn = -1;
-        tableInfo[x].numColumns = 0;
-        return x;
-}
-
-Column add_column(Table table, Typeref tref, Symbol sym)
-{
-        Column x = columnCnt++;
-        BUF_RESERVE(columnInfo, columnInfoAlloc, columnCnt);
-        columnInfo[x].table = table;
-        columnInfo[x].tref = tref;
-        columnInfo[x].sym = sym;
-        columnInfo[x].rank = x;
+        Array x = arrayCnt++;
+        BUF_RESERVE(arrayInfo, arrayInfoAlloc, arrayCnt);
+        arrayInfo[x].idxref = idxref;
+        arrayInfo[x].valueref = valueref;
+        arrayInfo[x].sym = sym;
         return x;
 }
 
@@ -433,8 +421,8 @@ int compute_lineno(File file, int offset)
         int i;
         int line = 1;
 
-        for (i = 0; i <= offset; i++)
-                if (fileInfo[file].buf[i-1] == '\n')
+        for (i = 0; i < offset; i++)
+                if (fileInfo[file].buf[i] == '\n')
                         line++;
         return line;
 }
@@ -445,8 +433,8 @@ int compute_colno(File file, int offset)
         int i;
         int column = 1;
 
-        for (i = 1; i <= offset; i++)
-                if (fileInfo[file].buf[i-1] == '\n')
+        for (i = 0; i < offset; i++)
+                if (fileInfo[file].buf[i] == '\n')
                         column = 1;
                 else
                         column ++;
@@ -699,43 +687,20 @@ Entity parse_entity(void)
         return add_entity(tref, sym);
 }
 
-void parse_column(Table table)
+Array parse_array(void)
 {
-        Typeref tref;
-        Symbol sym;
+        Symbol arraysym;
+        Typeref idxref;
+        Typeref valueref;
 
         PARSE_LOG();
-        tref = parse_typeref();
-        sym = parse_symbol(SYMBOL_LOCALDATA /*TODO: other kind?*/);
+        valueref = parse_typeref();
+        arraysym = parse_symbol(SYMBOL_TYPE);
+        parse_token_kind(TOKTYPE_LEFTBRACKET);
+        idxref = parse_typeref();
+        parse_token_kind(TOKTYPE_RIGHTBRACKET);
         parse_token_kind(TOKTYPE_SEMICOLON);
-        add_column(table, tref, sym);
-}
-
-void parse_table(void)
-{
-        Token tok;
-        Typeref tref;
-        Symbol sym;
-        Table table;
-
-        PARSE_LOG();
-        tref = parse_typeref();
-        sym = parse_symbol(SYMBOL_TYPE);
-        table = add_table(tref, sym);
-
-        parse_token_kind(TOKTYPE_LEFTBRACE);
-        for (;;) {
-                tok = look_next_token();
-                if (tok == -1)
-                        break;
-                if (token_is_word(tok, constStr[CONSTSTR_COLUMN])) {
-                        parse_next_token();
-                        parse_column(table);
-                }
-                else
-                        break;
-        }
-        parse_token_kind(TOKTYPE_RIGHTBRACE);
+        return add_array(arraysym, idxref, valueref);
 }
 
 Data parse_data(void)
@@ -1005,15 +970,6 @@ int compare_Symbol(const void *a, const void *b)
         return symbolInfo[*x].scope - symbolInfo[*y].scope;
 }
 
-int compare_ColumnInfo(const void *a, const void *b)
-{
-        const struct ColumnInfo *x = a;
-        const struct ColumnInfo *y = b;
-        if (x->table != y->table)
-                return x->table - y->table;
-        return x->rank - y->rank;
-}
-
 int compare_ProcParamInfo(const void *a, const void *b)
 {
         const struct ProcParamInfo *x = a;
@@ -1058,8 +1014,8 @@ void parse_global_scope(void)
                 if (s == constStr[CONSTSTR_ENTITY]) {
                         parse_entity();
                 }
-                else if (s == constStr[CONSTSTR_TABLE]) {
-                        parse_table();
+                else if (s == constStr[CONSTSTR_ARRAY]) {
+                        parse_array();
                 }
                 else if (s == constStr[CONSTSTR_DATA]) {
                         parse_data();
@@ -1118,20 +1074,12 @@ void parse_global_scope(void)
                 BUF_EXIT(newname, newnameAlloc);
         }
 
-        sort_array(columnInfo, columnCnt, sizeof *columnInfo,
-                   compare_ColumnInfo);
         sort_array(procParamInfo, procParamCnt, sizeof *procParamInfo,
                    compare_ProcParamInfo);
         sort_array(childStmtInfo, childStmtCnt, sizeof *childStmtInfo,
                    compare_ChildStmtInfo);
         sort_array(callArgInfo, callArgCnt, sizeof *callArgInfo,
                    compare_CallArgInfo);
-
-        for (Column col = columnCnt; col --> 0;) {
-                Table table = columnInfo[col].table;
-                tableInfo[table].numColumns++;
-                tableInfo[table].firstColumn = col;
-        }
 
         for (ProcParam param = procParamCnt; param --> 0;) {
                 Proc proc = procParamInfo[param].proc;

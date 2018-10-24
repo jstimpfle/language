@@ -1,13 +1,10 @@
 entity int Foobar;
 
-table foobar BazTab {
-    column int bazx;
-    column int bazy;
-}
-
 data int test;
 data bla blub;
 data int testcall;
+
+array FoobarInfo foobar[Foobar];
 
 proc int test(int x, int a)
 {

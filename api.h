@@ -14,8 +14,7 @@ typedef int Symref;
 typedef int Typeref;
 typedef int Scope;
 typedef int Entity;
-typedef int Table;
-typedef int Column;
+typedef int Array;
 typedef int Data;
 typedef int Proc;
 typedef int ProcParam;
@@ -63,8 +62,7 @@ enum {
         CONSTSTR_PROC,
         CONSTSTR_DATA,
         CONSTSTR_ENTITY,
-        CONSTSTR_TABLE,
-        CONSTSTR_COLUMN,
+        CONSTSTR_ARRAY,
         NUM_CONSTSTRS,
 };
 
@@ -129,7 +127,7 @@ enum {
 
 enum {
         TYPE_BUILTIN,
-        TYPE_TABLE,
+        TYPE_ARRAY,
 };
 
 struct StringToBeInterned {
@@ -219,7 +217,7 @@ struct TypeInfo {
         int kind;  // TYPE_?
         union {
                 Basetype tBasetype;
-                Table tTable;
+                Array tArray;
         };
         // TODO
 };
@@ -229,29 +227,21 @@ struct EntityInfo {
         Symbol sym;
 };
 
-struct TableInfo {
-        Typeref tref;
+struct ArrayInfo {
+        Typeref idxref;
+        Typeref valueref;
         Symbol sym;
-        Column firstColumn;
-        int numColumns;
 };
 
 struct SymbolInfo {
-        int kind;  // SYMBOL_
         String name;
         Scope scope;
+        int kind;  // SYMBOL_
         union {
                 Type tType;
                 Data tData;
                 Proc tProc;
         };
-};
-
-struct ColumnInfo {
-        Table table;
-        Type tref;
-        Symbol sym;
-        int rank;
 };
 
 struct DataInfo {
@@ -440,8 +430,7 @@ DATA int basetypeCnt;
 DATA int typeCnt;
 DATA int symbolCnt;
 DATA int entityCnt;
-DATA int tableCnt;
-DATA int columnCnt;
+DATA int arrayCnt;
 DATA int dataCnt;
 DATA int scopeCnt;
 DATA int procCnt;
@@ -462,8 +451,7 @@ DATA struct BasetypeInfo *basetypeInfo;
 DATA struct TypeInfo *typeInfo;
 DATA struct SymbolInfo *symbolInfo;
 DATA struct EntityInfo *entityInfo;
-DATA struct TableInfo *tableInfo;
-DATA struct ColumnInfo *columnInfo;
+DATA struct ArrayInfo *arrayInfo;
 DATA struct DataInfo *dataInfo;
 DATA struct ScopeInfo *scopeInfo;
 DATA struct ProcInfo *procInfo;
@@ -484,8 +472,7 @@ DATA struct Alloc basetypeInfoAlloc;
 DATA struct Alloc typeInfoAlloc;
 DATA struct Alloc symbolInfoAlloc;
 DATA struct Alloc entityInfoAlloc;
-DATA struct Alloc tableInfoAlloc;
-DATA struct Alloc columnInfoAlloc;
+DATA struct Alloc arrayInfoAlloc;
 DATA struct Alloc dataInfoAlloc;
 DATA struct Alloc scopeInfoAlloc;
 DATA struct Alloc procInfoAlloc;
