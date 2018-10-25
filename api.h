@@ -7,7 +7,6 @@
 typedef int File;
 typedef int String;
 typedef int Token;
-typedef int Basetype;
 typedef int Type;
 typedef int Symbol;
 typedef int Symref;
@@ -127,8 +126,9 @@ enum {
 };
 
 enum {
-        TYPE_BUILTIN,
+        TYPE_BASE,
         TYPE_ARRAY,
+        TYPE_PROC,
 };
 
 struct StringToBeInterned {
@@ -210,15 +210,27 @@ struct TokenInfo {
 };
 
 struct BasetypeInfo {
+        String name;
         int size;
 };
 
+struct ArraytypeInfo {
+        Typeref idxref;
+        Typeref valueref;
+};
+
+struct ProctypeInfo {
+        Typeref retref;
+
+        // TODO: input args
+};
+
 struct TypeInfo {
-        Symbol sym;
         int kind;  // TYPE_?
         union {
-                Basetype tBasetype;
-                Array tArray;
+                struct BasetypeInfo tBasetype;
+                struct ArraytypeInfo tArraytype;
+                struct ProctypeInfo tProctype;
         };
         // TODO
 };
@@ -226,6 +238,13 @@ struct TypeInfo {
 struct EntityInfo {
         Typeref tref;
         Symbol sym;
+};
+
+struct DataInfo {
+        Scope scope;
+        Typeref tref;
+        Symbol sym;
+        Type tp;
 };
 
 struct ArrayInfo {
@@ -244,12 +263,7 @@ struct SymbolInfo {
                 Data tData;
                 Proc tProc;
         };
-};
-
-struct DataInfo {
-        Scope scope;
-        Typeref tref;
-        Symbol sym;
+        Type tp;
 };
 
 struct ScopeInfo {
@@ -265,7 +279,8 @@ struct ScopeInfo {
 };
 
 struct ProcInfo {
-        Typeref tref;
+        Type tp;
+        Typeref retref;
         int nparams;
         Symbol sym;
         Scope scope;
@@ -305,11 +320,13 @@ struct CallArgInfo {
 
 struct UnopExprInfo {
         int kind;
+        Token tok;
         Expr expr;
 };
 
 struct BinopExprInfo {
         int kind;
+        Token tok;
         Expr expr1;
         Expr expr2;
 };
@@ -335,6 +352,7 @@ struct ExprInfo {
                 struct MemberExprInfo tMember;
                 struct SubscriptExprInfo tSubscript;
         };
+        Type tp;
 };
 
 struct CompoundStmtInfo {
@@ -387,7 +405,9 @@ struct ChildStmtInfo {
         int rank;
 };
 
-extern const char *tokenKindString[];
+extern const char *const tokenKindString[];
+extern const char *const exprKindString[];
+extern const char *const typeKindString[];
 extern const struct ToktypeToPrefixUnop toktypeToPrefixUnop[];
 extern const struct ToktypeToPostfixUnop toktypeToPostfixUnop[];
 extern const struct ToktypeToBinop toktypeToBinop[];
@@ -425,7 +445,6 @@ DATA int stringCnt;
 DATA int strBucketCnt;
 DATA int fileCnt;
 DATA int tokenCnt;
-DATA int basetypeCnt;
 DATA int typeCnt;
 DATA int symbolCnt;
 DATA int entityCnt;
@@ -446,7 +465,6 @@ DATA struct StringInfo *stringInfo;
 DATA struct StringBucketInfo *strBucketInfo;
 DATA struct FileInfo *fileInfo;
 DATA struct TokenInfo *tokenInfo;
-DATA struct BasetypeInfo *basetypeInfo;
 DATA struct TypeInfo *typeInfo;
 DATA struct SymbolInfo *symbolInfo;
 DATA struct EntityInfo *entityInfo;
@@ -467,7 +485,6 @@ DATA struct Alloc stringInfoAlloc;
 DATA struct Alloc strBucketInfoAlloc;
 DATA struct Alloc fileInfoAlloc;
 DATA struct Alloc tokenInfoAlloc;
-DATA struct Alloc basetypeInfoAlloc;
 DATA struct Alloc typeInfoAlloc;
 DATA struct Alloc symbolInfoAlloc;
 DATA struct Alloc entityInfoAlloc;
@@ -497,9 +514,12 @@ void sort_array(void *ptr, int nelems, int elemsize,
 
 
 void msg(const char *fmt, ...);
-void NORETURN _fatal(const char *filename, int line, const char *msg, ...);
+void _warn(const char *filename, int line, const char *fmt, ...);
+void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
 
-#define FATAL(msg, ...) _fatal(__FILE__, __LINE__, msg, ##__VA_ARGS__)
+#define WARN(fmt, ...) _warn(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define FATAL(fmt, ...) _fatal(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define UNHANDLED_CASE() FATAL("Unhandled case!");
 
 
 

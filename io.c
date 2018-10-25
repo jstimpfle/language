@@ -73,18 +73,33 @@ void sort_array(void *ptr, int nelems, int elemsize,
         qsort(ptr, nelems, elemsize, cmp);
 }
 
-void NORETURN _fatal(UNUSED const char *filename, UNUSED int line,
-                     const char *msg, ...)
+void _msg(UNUSED const char *filename, UNUSED int line,
+          const char *loglevel, const char *msg, va_list ap)
 {
-        va_list ap;
-        fprintf(stderr, "FATAL: ");
+        fprintf(stderr, "%s: ", loglevel);
 #ifndef NODEBUG
         fprintf(stderr, "In %s:%d: ", filename, line);
 #endif
-        va_start(ap, msg);
         vfprintf(stderr, msg, ap);
-        va_end(ap);
         fprintf(stderr, "\n");
+}
+
+void _warn(UNUSED const char *filename, UNUSED int line,
+           const char *fmt, ...)
+{
+        va_list ap;
+        va_start(ap, fmt);
+        _msg(filename, line, "WARN", fmt, ap);
+        va_end(ap);
+}
+
+void NORETURN _fatal(UNUSED const char *filename, UNUSED int line,
+                     const char *fmt, ...)
+{
+        va_list ap;
+        va_start(ap, fmt);
+        _msg(filename, line, "FATAL", fmt, ap);
+        va_end(ap);
         abort();
 }
 

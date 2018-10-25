@@ -42,11 +42,22 @@ Token add_bare_token(File file, int offset, int kind)
         return x;
 }
 
-Type add_type(Symbol sym)
+Type add_base_type(String name, int size)
 {
         Type x = typeCnt++;
         BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
-        typeInfo[x].sym = sym;
+        typeInfo[x].kind = TYPE_BASE;
+        typeInfo[x].tBasetype.name = name;
+        typeInfo[x].tBasetype.size = size;
+        return x;
+}
+
+Type add_proc_type(Typeref retref)
+{
+        Type x = typeCnt++;
+        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        typeInfo[x].kind = TYPE_PROC;
+        typeInfo[x].tProctype.retref = retref;
         return x;
 }
 
@@ -77,7 +88,6 @@ Array add_array(Scope scope, Typeref idxref, Typeref valueref, Symbol sym)
         arrayInfo[x].idxref = idxref;
         arrayInfo[x].valueref = valueref;
         arrayInfo[x].sym = sym;
-        msg("added array with symbol %s\n", SS(sym));
         return x;
 }
 
@@ -113,11 +123,11 @@ Scope add_proc_scope(Scope parent)
         return x;
 }
 
-Proc add_proc(Typeref tref, Symbol sym, Scope scope)
+Proc add_proc(Typeref retref, Symbol sym, Scope scope)
 {
         Proc x = procCnt++;
         BUF_RESERVE(procInfo, procInfoAlloc, procCnt);
-        procInfo[x].tref = tref;
+        procInfo[x].retref = retref;
         procInfo[x].sym = sym;
         procInfo[x].scope = scope;
         procInfo[x].firstParam = -1;
@@ -165,22 +175,24 @@ Expr add_call_expr(Expr callee)
         return x;
 }
 
-Expr add_unop_expr(int opkind, Expr expr)
+Expr add_unop_expr(int opkind, Token tok, Expr expr)
 {
         Expr x = exprCnt++;
         BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
         exprInfo[x].kind = EXPR_UNOP;
         exprInfo[x].tUnop.kind = opkind;
+        exprInfo[x].tUnop.tok = tok;
         exprInfo[x].tUnop.expr = expr;
         return x;
 }
 
-Expr add_binop_expr(int opkind, Expr expr1, Expr expr2)
+Expr add_binop_expr(int opkind, Token tok, Expr expr1, Expr expr2)
 {
         Expr x = exprCnt++;
         BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
         exprInfo[x].kind = EXPR_BINOP;
         exprInfo[x].tBinop.kind = opkind;
+        exprInfo[x].tBinop.tok = tok;
         exprInfo[x].tBinop.expr1 = expr1;
         exprInfo[x].tBinop.expr2 = expr2;
         return x;
@@ -324,14 +336,51 @@ void init_strings(void)
 void init_basetypes(void)
 {
         for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
-                Basetype x = basetypeCnt++;
-                BUF_RESERVE(basetypeInfo, basetypeInfoAlloc, basetypeCnt);
-                basetypeInfo[x].size = basetypesToBeInitialized[i].size;
+                String name = intern_cstring(basetypesToBeInitialized[i].name);
+                int size = basetypesToBeInitialized[i].size;
+                add_base_type(name, size);
         }
         for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
                 String name = intern_cstring(basetypesToBeInitialized[i].name);
                 add_symbol(SYMBOL_TYPE, name, globalScope);
         }
+}
+
+void find_expr_position(Expr x, File *file, int *offset)
+{
+        // TODO: should this be added as hard data to ExprInfo?
+        Token tok = -1;
+        for (;;) {
+                switch (exprInfo[x].kind) {
+                case EXPR_LITERAL:
+                        tok = exprInfo[x].tLiteral.tok;
+                        break;
+                case EXPR_SYMREF:
+                        tok = symrefInfo[exprInfo[x].tSymref].tok;
+                        break;
+                case EXPR_UNOP:
+                        tok = exprInfo[x].tUnop.tok;
+                        break;
+                case EXPR_BINOP:
+                        x = exprInfo[x].tBinop.expr1;
+                        continue;
+                case EXPR_MEMBER:
+                        x = exprInfo[x].tMember.expr;
+                        continue;
+                case EXPR_SUBSCRIPT:
+                        x = exprInfo[x].tSubscript.expr1;
+                        continue;
+                case EXPR_CALL:
+                        x = exprInfo[x].tCall.callee;
+                        continue;
+                default:
+                        UNHANDLED_CASE();
+                }
+                break;
+        }
+        assert(tok != -1);
+        *file = tokenInfo[tok].file;
+        *offset = tokenInfo[tok].offset;
 }
 
 int char_is_alpha(int c)
@@ -452,13 +501,26 @@ int compute_colno(File file, int offset)
         return column;
 }
 
-#define PARSE_ERROR_AT(file, offset, mesg, ...) \
+#define WARN_PARSE_ERROR_AT(file, offset, mesg, ...) \
+        WARN( "At %s %d:%d: " mesg, \
+              string_buffer(fileInfo[file].filepath), \
+              compute_lineno(file, offset), \
+              compute_colno(file, offset), \
+              ##__VA_ARGS__)
+#define FATAL_PARSE_ERROR_AT(file, offset, mesg, ...) \
         FATAL("At %s %d:%d: " mesg, \
               string_buffer(fileInfo[file].filepath), \
               compute_lineno(file, offset), \
               compute_colno(file, offset), \
               ##__VA_ARGS__)
-#define PARSE_ERROR(tok, mesg, ...) \
+#define WARN_PARSE_ERROR_EXPR(x, mesg, ...) \
+        do { \
+                File x_file; \
+                int x_offset; \
+                find_expr_position(x, &x_file, &x_offset); \
+                WARN_PARSE_ERROR_AT(x_file, x_offset, mesg, __VA_ARGS__); \
+        } while (0)
+#define FATAL_PARSE_ERROR(tok, mesg, ...) \
         FATAL("At %s %d:%d: ERROR parsing %s token. " mesg, \
               string_buffer(fileInfo[tokenInfo[tok].file].filepath), \
               compute_lineno(tokenInfo[tok].file, tokenInfo[tok].offset), \
@@ -475,8 +537,8 @@ int compute_colno(File file, int offset)
 void push_scope(Scope scope)
 {
         if (scopeStackCnt >= LENGTH(scopeStack))
-                PARSE_ERROR_AT(currentFile, currentOffset,
-                               "Maximum scope nesting depth reached\n");
+                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
+                                     "Maximum scope nesting depth reached\n");
         scopeStack[scopeStackCnt++] = scope;
         currentScope = scope;
 }
@@ -504,8 +566,8 @@ Token parse_next_token(void)
                 if (c == -1)
                         return -1;
                 if (char_is_invalid(c))
-                        PARSE_ERROR_AT(currentFile, currentOffset,
-                                       "Invalid byte %d\n", c);
+                        FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
+                                             "Invalid byte %d\n", c);
                 if (! char_is_whitespace(c))
                         break;
                 read_char();
@@ -625,8 +687,8 @@ Token parse_next_token(void)
                 }
         }
         else {
-                PARSE_ERROR_AT(currentFile, currentOffset,
-                               "Failed to lex token\n");
+                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
+                                     "Failed to lex token\n");
         }
 
         return ans;
@@ -647,13 +709,14 @@ Token parse_token_kind(int tkind)
 {
         Token tok = parse_next_token();
         if (tok == -1) {
-                PARSE_ERROR_AT(currentFile, currentOffset,
+                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
                                "Unexpected end of file. Expected %s token\n",
                                tokenKindString[tkind]);
         }
         int k = tokenInfo[tok].kind;
         if (k != tkind) {
-                PARSE_ERROR(tok, "Expected %s token\n", tokenKindString[tkind]);
+                FATAL_PARSE_ERROR(tok, "Expected %s token\n",
+                                  tokenKindString[tkind]);
         }
         return tok;
 }
@@ -739,7 +802,7 @@ Expr parse_expr(int minprec)
         if (token_is_unary_prefix_operator(tok, &opkind)) {
                 parse_next_token();
                 subexpr = parse_expr(42  /* TODO: unop precedence */);
-                expr = add_unop_expr(opkind, subexpr);
+                expr = add_unop_expr(opkind, tok, subexpr);
         }
         else if (tokenInfo[tok].kind == TOKTYPE_WORD) {
                 Symref ref = parse_symref();
@@ -755,14 +818,14 @@ Expr parse_expr(int minprec)
                 parse_token_kind(TOKTYPE_RIGHTPAREN);
         }
         else {
-                PARSE_ERROR(tok, "Expected expression\n");
+                FATAL_PARSE_ERROR(tok, "Expected expression\n");
         }
 
         for (;;) {
                 tok = look_next_token();
                 if (token_is_unary_postfix_operator(tok, &opkind)) {
                         parse_next_token();
-                        expr = add_unop_expr(opkind, expr);
+                        expr = add_unop_expr(opkind, tok, expr);
                 }
                 else if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
                         parse_next_token();
@@ -794,7 +857,7 @@ Expr parse_expr(int minprec)
                                 break;
                         parse_next_token();
                         subexpr = parse_expr(opprec + 1);
-                        expr = add_binop_expr(opkind, expr, subexpr);
+                        expr = add_binop_expr(opkind, tok, expr, subexpr);
                 }
                 else {
                         break;
@@ -1046,13 +1109,11 @@ void parse_global_scope(void)
                         parse_proc();
                 }
                 else {
-                        PARSE_ERROR(tok, "Unexpected word %s\n", TS(tok));
+                        FATAL_PARSE_ERROR(tok, "Unexpected word %s\n", TS(tok));
                 }
         }
 
         /* fix up symbolInfo table: add references to various entities */
-        for (Type x = 0; x < typeCnt; x++)
-                symbolInfo[typeInfo[x].sym].tType = x;
         for (Data x = 0; x < dataCnt; x++)
                 symbolInfo[dataInfo[x].sym].tData = x;
         for (Proc x = 0; x < procCnt; x++)
@@ -1075,8 +1136,6 @@ void parse_global_scope(void)
                            compare_Symbol);
                 for (Symbol i = 0; i < symbolCnt; i++)
                         newname[order[i]] = i;
-                for (Type i = 0; i < typeCnt; i++)
-                        typeInfo[i].sym = newname[typeInfo[i].sym];
                 for (Data i = 0; i < dataCnt; i++)
                         dataInfo[i].sym = newname[dataInfo[i].sym];
                 for (Array i = 0; i < arrayCnt; i++)
@@ -1157,6 +1216,164 @@ void resolve_symbols(void)
         }
 }
 
+Type check_literal_expr_type(Expr x)
+{
+        // TODO: integer / string type?
+        return -1;
+}
+
+Type check_symref_expr_type(Expr x)
+{
+        Symref ref = exprInfo[x].tSymref;
+        // XXX: symbol resolved?
+        Symbol sym = symrefInfo[ref].sym;
+        Type tp = symbolInfo[sym].tp;
+        if (tp != -1)
+                return -1;
+        switch (symbolInfo[sym].kind) {
+                case SYMBOL_TYPE:
+                        // Maybe something like the "type" type?
+                        // Or fatal() ?
+                        break;
+                case SYMBOL_DATA:
+                        tp = dataInfo[symbolInfo[sym].tData].tp;
+                        break;
+                case SYMBOL_PROC:
+                        tp = procInfo[symbolInfo[sym].tProc].tp;
+                        break;
+                case SYMBOL_LOCALDATA: //XXX is local data not data?
+                        tp = dataInfo[symbolInfo[sym].tData].tp;
+                        break;
+                default:
+                        UNHANDLED_CASE();
+        }
+        symbolInfo[sym].tp = tp;
+        return tp;
+}
+
+
+Type check_expr_type(Expr x);
+
+Type check_unop_expr_type(Expr x)
+{
+        Expr xx = exprInfo[x].tUnop.expr;
+        Type tt = check_expr_type(xx);
+        // TODO: operator valid for this type?
+        return 0;
+}
+
+Type check_binop_expr_type(Expr x)
+{
+        Expr x1 = exprInfo[x].tBinop.expr1;
+        Expr x2 = exprInfo[x].tBinop.expr2;
+        Type t1 = check_expr_type(x1);
+        Type t2 = check_expr_type(x2);
+        // TODO: operator valid for t1 and t2?
+        // TODO: infer type for x
+        return -1;
+}
+
+Type check_member_expr_type(Expr x)
+{
+        Expr xx = exprInfo[x].tMember.expr;
+        String name = exprInfo[x].tMember.name;
+        Type tt = exprInfo[xx].tMember.expr;
+        // TODO: lookup member and infer type
+        return -1;
+}
+
+Type check_subscript_expr_type(Expr x)
+{
+        Expr x1 = exprInfo[x].tSubscript.expr1;
+        Expr x2 = exprInfo[x].tSubscript.expr2;
+        Type t1 = check_expr_type(x1);
+        Type t2 = check_expr_type(x2);
+        // TODO: subscript valid?
+        // TODO: infer type
+        return -1;
+}
+
+Type check_call_expr_type(Expr x)
+{
+        //XXX total mess and incomplete and wrong
+        Expr callee = exprInfo[x].tCall.callee;
+        Type calleeTp = check_expr_type(callee);
+        if (calleeTp == -1)
+                return -1;
+        int calleeTpKind = typeInfo[calleeTp].kind;
+        if (calleeTpKind != TYPE_PROC)
+                WARN_PARSE_ERROR_EXPR(callee,
+                    "Called expression: Expected proc type but found %s\n",
+                    typeKindString[calleeTpKind]);
+        int first = exprInfo[x].tCall.firstArgIdx;
+        int last = first + exprInfo[x].tCall.nargs;
+        for (int i = first; i < last; i++) {
+                Expr argx = callArgInfo[i].argExpr;
+                check_expr_type(argx);
+                // TODO: check that argument type matches param of called proc
+        }
+        return -1;
+}
+
+Type check_expr_type(Expr x)
+{
+        if (exprInfo[x].tp == -1)
+                return -1;
+        if (exprInfo[x].tp == -2)
+                FATAL("Type error: cyclic symbol dependency\n");
+        if (exprInfo[x].tp >= 0)
+                return exprInfo[x].tp;
+        assert(exprInfo[x].tp == -3);
+        exprInfo[x].tp = -2;
+
+        Type tp = -1;
+        switch (exprInfo[x].kind) {
+        case EXPR_LITERAL:
+                tp = check_literal_expr_type(x);
+                break;
+        case EXPR_SYMREF:
+                tp = check_symref_expr_type(x);
+                break;
+        case EXPR_UNOP:
+                tp = check_unop_expr_type(x);
+                break;
+        case EXPR_BINOP:
+                tp = check_binop_expr_type(x);
+                break;
+        case EXPR_MEMBER:
+                tp = check_member_expr_type(x);
+                break;
+        case EXPR_SUBSCRIPT:
+                tp = check_subscript_expr_type(x);
+                break;
+        case EXPR_CALL:
+                tp = check_call_expr_type(x);
+                break;
+        default:
+                UNHANDLED_CASE();
+        }
+        exprInfo[x].tp = tp;
+        return tp;
+}
+
+void check_types(void)
+{
+        /* Type -3 means "TO DO" */
+        /* Type -2 means "currently resolving" */
+        /* Type -1 means "type error" */
+        for (Symbol sym = 0; sym < symbolCnt; sym++)
+                symbolInfo[sym].tp = -3;
+        for (Expr x = 0; x < exprCnt; x++)
+                exprInfo[x].tp = -3;
+        for (Expr x = 0; x < exprCnt; x++)
+                check_expr_type(x);
+        for (Expr x = 0; x < exprCnt; x++) {
+                if (exprInfo[x].tp == -1)
+                        WARN_PARSE_ERROR_EXPR(
+                                x, "Type check of expression failed");
+        }
+}
+
 int main(int argc, const char **argv)
 {
         init_strings();
@@ -1167,6 +1384,7 @@ int main(int argc, const char **argv)
         add_file(intern_cstring("test.txt"));
         parse_global_scope();
         resolve_symbols();
+        check_types();
         msg("\n\n\n");
         prettyprint();
         return 0;

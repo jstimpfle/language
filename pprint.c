@@ -232,7 +232,7 @@ void pprint_proc(Proc p)
 {
         msg("\n");
         msg("proc ");
-        pprint_typeref(procInfo[p].tref);
+        pprint_typeref(procInfo[p].retref);
         msg(" ");
         msg("%s", SS(procInfo[p].sym));
         msg("(");

@@ -23,8 +23,8 @@ proc int test(int x, int a)
     if (z + 2) {
         a = b;
     }
-    testcall(3, g(y*y), 5);
-    testcall(3, y*(y+z));
+    test(3, g(y*y), 5);
+    test(3, y*(y+z));
 
     (z++)(0, 18);
 }

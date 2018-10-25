@@ -2,7 +2,7 @@
 #define DATA_IMPL
 #include "api.h"
 
-const char *tokenKindString[] = {
+const char *const tokenKindString[] = {
 #define MAKE(x) [x] = #x
         MAKE( TOKTYPE_WORD ),
         MAKE( TOKTYPE_LEFTPAREN ),
@@ -30,6 +30,27 @@ const char *tokenKindString[] = {
         MAKE( TOKTYPE_DOUBLEEQUALS ),
 #undef MAKE
 };
+
+const char *const exprKindString[] = {
+#define MAKE(x) [x] = #x
+        MAKE( EXPR_LITERAL ),
+        MAKE( EXPR_SYMREF ),
+        MAKE( EXPR_UNOP ),
+        MAKE( EXPR_BINOP ),
+        MAKE( EXPR_MEMBER ),
+        MAKE( EXPR_SUBSCRIPT ),
+        MAKE( EXPR_CALL ),
+#undef MAKE
+};
+
+const char *const typeKindString[] = {
+#define MAKE(x) [x] = #x
+        MAKE( TYPE_BASE ),
+        MAKE( TYPE_ARRAY ),
+        MAKE( TYPE_PROC ),
+#undef MAKE
+};
+
 
 const struct ToktypeToPrefixUnop toktypeToPrefixUnop[] = {
         { TOKTYPE_TILDE,       UNOP_INVERTBITS },
@@ -102,6 +123,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
 };
 
 const struct BasetypeToBeInitialized basetypesToBeInitialized[] = {
+        { "void", -42 },
         { "int", 4 },
 };
 
