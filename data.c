@@ -5,6 +5,7 @@
 const char *const tokenKindString[] = {
 #define MAKE(x) [x] = #x
         MAKE( TOKTYPE_WORD ),
+        MAKE( TOKTYPE_INTEGER ),
         MAKE( TOKTYPE_LEFTPAREN ),
         MAKE( TOKTYPE_RIGHTPAREN ),
         MAKE( TOKTYPE_LEFTBRACE ),

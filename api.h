@@ -1,8 +1,7 @@
 /**
  * Various typedefs are used instead of plain integer indices to indicate their
- * meaning. Unfortunately, C does not provide type safety, while this would
- * probably be a net benefit (which is why we support this approach through
- * "entities" in the language we're building here).
+ * meaning. Unfortunately, C typedefs are not new types, while this would
+ * probably be a safety benefit.
  *
  * \typedef{File}: A file known to the compiler. Probably its contents will
  * be processed.
@@ -276,12 +275,6 @@ enum TypeKind {
  *
  * \struct{ProcInfo}: Result from parsing a `proc` declaration.
  */
-
-#ifdef DATA_IMPL
-#define DATA
-#else
-#define DATA extern
-#endif
 
 struct StringToBeInterned {
         int constant;  // CONSTSTR_
@@ -577,6 +570,13 @@ struct ChildStmtInfo {
         int rank;
 };
 
+
+#ifdef DATA_IMPL
+#define DATA
+#else
+#define DATA extern
+#endif
+
 extern const char *const tokenKindString[];
 extern const char *const exprKindString[];
 extern const char *const typeKindString[];
@@ -592,7 +592,6 @@ extern const int toktypeToPostfixUnopCnt;
 extern const int toktypeToBinopCnt;
 extern const int basetypesToBeInitializedCnt;
 DATA String constStr[NUM_CONSTSTRS];  // has initializer
-
 
 /**/
 
@@ -670,6 +669,10 @@ DATA struct Alloc exprInfoAlloc;
 DATA struct Alloc stmtInfoAlloc;
 DATA struct Alloc childStmtInfoAlloc;
 DATA struct Alloc callArgInfoAlloc;
+
+#ifdef DATA
+#undef DATA
+#endif
 
 
 void read_whole_file(File file);

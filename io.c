@@ -76,12 +76,11 @@ void sort_array(void *ptr, int nelems, int elemsize,
 void _msg(UNUSED const char *filename, UNUSED int line,
           const char *loglevel, const char *msg, va_list ap)
 {
-        fprintf(stderr, "%s: ", loglevel);
+        fprintf(stdout, "%s: ", loglevel);
 #ifndef NODEBUG
-        fprintf(stderr, "In %s:%d: ", filename, line);
+        fprintf(stdout, "%s:%d: ", filename, line);
 #endif
-        vfprintf(stderr, msg, ap);
-        fprintf(stderr, "\n");
+        vfprintf(stdout, msg, ap);
 }
 
 void _warn(UNUSED const char *filename, UNUSED int line,
@@ -107,7 +106,7 @@ void msg(const char *fmt, ...)
 {
         va_list ap;
         va_start(ap, fmt);
-        vfprintf(stderr, fmt, ap);
+        vfprintf(stdout, fmt, ap);
         va_end(ap);
 }
 

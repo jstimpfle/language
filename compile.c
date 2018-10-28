@@ -1310,14 +1310,15 @@ Symbol find_symbol_in_scope(String name, Scope scope)
                         }
                 }
         }
-        msg("Symbol %s MISSING\n", string_buffer(name));
+        WARN("MISSING Symbol %s\n", string_buffer(name));
         return -1;
 }
 
-void resolve_symbols(void)
+void resolve_symbol_references(void)
 {
         for (Symref ref = 0; ref < symrefCnt; ref++) {
                 String name = symrefInfo[ref].name;
+                msg("check symbol %s\n", string_buffer(name));
                 Scope refScope = symrefInfo[ref].refScope;
                 symrefInfo[ref].sym = find_symbol_in_scope(name, refScope);
         }
@@ -1325,8 +1326,9 @@ void resolve_symbols(void)
 
 Type check_literal_expr_type(Expr x)
 {
-        // XXX
-        return 0;
+        //XXX
+        exprInfo[x].tp = -1;
+        return exprInfo[x].tp;
 }
 
 Type check_symref_expr_type(Expr x)
@@ -1564,7 +1566,7 @@ void check_types(void)
         for (Expr x = 0; x < exprCnt; x++) {
                 if (exprInfo[x].tp == -1)
                         WARN_PARSE_ERROR_EXPR(
-                                x, "Type check of expression failed");
+                                x, "Type check of expression failed\n");
         }
 }
 
@@ -1577,7 +1579,7 @@ int main(int argc, const char **argv)
                         doDebug = 1;
         add_file(intern_cstring("test.txt"));
         parse_global_scope();
-        resolve_symbols();
+        resolve_symbol_references();
         resolve_type_references();
         check_types();
         msg("\n\n\n");
