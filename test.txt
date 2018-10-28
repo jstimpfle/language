@@ -1,4 +1,5 @@
 entity int Foobar;
+entity cycle cycle;
 
 data int test;
 data bla blub;

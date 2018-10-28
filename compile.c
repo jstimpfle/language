@@ -1495,6 +1495,12 @@ Type check_expr_type(Expr x)
 
 void resolve_ref_type(Type t)
 {
+        if (typeInfo[t].isComplete == -1) {
+                WARN("Type #%d: cyclic type reference\n", t);
+                return;
+        }
+        if (typeInfo[t].isComplete >= 0)
+                return;
         switch (typeInfo[t].kind) {
         case TYPE_BASE:
                 typeInfo[t].isComplete = 1;
@@ -1515,10 +1521,10 @@ void resolve_ref_type(Type t)
                 // TODO
                 break;
         case TYPE_REFERENCE: {
-                if (typeInfo[t].tRef.resolvedTp == -2)
-                        FATAL("cyclic reference types\n");
+                typeInfo[t].isComplete = -1;
+                typeInfo[t].tRef.resolvedTp = -1;
                 Symbol sym = symrefInfo[typeInfo[t].tRef.ref].sym;
-                int isComplete = -1;
+                int isComplete = 0;
                 Type resolvedTp = -1;
                 if (sym != -1 && symbolInfo[sym].kind == SYMBOL_TYPE) {
                         Type symtp = symbolInfo[sym].tType;
@@ -1539,16 +1545,16 @@ void resolve_ref_type(Type t)
 
 void resolve_type_references(void)
 {
-        /* Type -3 means "TO DO" */
-        /* Type -2 means "currently resolving" */
-        /* Type -1 means "type error" */
+        /* isComplete -2 means "TO DO" */
+        /* isComplete -1 means "currently resolving" */
         for (Type t = 0; t < typeCnt; t++)
-                typeInfo[t].isComplete = 0;
+                typeInfo[t].isComplete = -2;
         for (Type t = 0; t < typeCnt; t++)
                 if (typeInfo[t].kind == TYPE_REFERENCE)
-                        typeInfo[t].tRef.resolvedTp = -3;
+                        typeInfo[t].tRef.resolvedTp = -1;
         for (Type t = 0; t < typeCnt; t++)
-                resolve_ref_type(t);
+                if (typeInfo[t].isComplete == -2)
+                        resolve_ref_type(t);
 }
 
 void check_types(void)

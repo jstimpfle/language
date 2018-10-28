@@ -53,7 +53,7 @@ void pprint_entity(Type t)
         msg("entity ");
         pprint_type(typeInfo[t].tEntity.tp);
         msg(" ");
-        msg("%s", SS(typeInfo[t].tEntity.name));
+        msg("%s", string_buffer(typeInfo[t].tEntity.name));
         msg(";");
 }
 
