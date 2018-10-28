@@ -22,6 +22,10 @@ void pprint_newline(void)
 
 void pprint_type(Type tp)
 {
+        if (tp < 0) {
+                msg("(Bad type)");
+                return;
+        }
         switch (typeInfo[tp].kind) {
         case TYPE_BASE:
                 msg("%s", string_buffer(typeInfo[tp].tBase.name));
@@ -70,7 +74,7 @@ void pprint_array(Array a)
         msg("array ");
         pprint_type(typeInfo[t].tArray.valuetp);
         msg(" ");
-        msg("%s", SS(arrayInfo[t].sym));
+        msg("%s", SS(arrayInfo[a].sym));
         msg("[");
         pprint_type(typeInfo[t].tArray.idxtp);
         msg("]");

@@ -9,6 +9,7 @@ array FoobarInfo foobar[Foobar];
 proc int test(int x, int a)
 {
     data int y;
+    data int k;
     data foo z;
     data Foobar asdf;
     array FoobarInfo footab[Foobar];

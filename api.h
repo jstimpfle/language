@@ -379,7 +379,6 @@ struct SymrefInfo {
         Scope refScope;
         Token tok;
         Symbol sym;  // only valid after symbol resolution
-        Type tp;
 };
 
 struct BasetypeInfo {
@@ -423,7 +422,12 @@ struct TypeInfo {
                 struct ProctypeInfo tProc;
                 struct ReftypeInfo tRef;
         };
-        // TODO
+        /* Types can have references to other types, either directly (if
+         * kind == tRef) or indirectly (by being a compound of other types that
+         * have references). These references can fail to resolve, in which
+         * case the type is considered incomplete.
+         */
+        int isComplete;
 };
 
 struct DataInfo {
@@ -616,7 +620,6 @@ DATA int tokenCnt;
 DATA int typeCnt;
 DATA int paramtypeCnt;
 DATA int symbolCnt;
-DATA int entityCnt;
 DATA int dataCnt;
 DATA int arrayCnt;
 DATA int scopeCnt;
@@ -637,7 +640,6 @@ DATA struct TokenInfo *tokenInfo;
 DATA struct TypeInfo *typeInfo;
 DATA struct ParamtypeInfo *paramtypeInfo;
 DATA struct SymbolInfo *symbolInfo;
-DATA struct EntitytypeInfo *entityInfo;
 DATA struct DataInfo *dataInfo;
 DATA struct ArrayInfo *arrayInfo;
 DATA struct ScopeInfo *scopeInfo;
@@ -658,7 +660,6 @@ DATA struct Alloc tokenInfoAlloc;
 DATA struct Alloc typeInfoAlloc;
 DATA struct Alloc paramtypeInfoAlloc;
 DATA struct Alloc symbolInfoAlloc;
-DATA struct Alloc entityInfoAlloc;
 DATA struct Alloc dataInfoAlloc;
 DATA struct Alloc arrayInfoAlloc;
 DATA struct Alloc scopeInfoAlloc;

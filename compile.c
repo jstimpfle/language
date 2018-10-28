@@ -593,7 +593,7 @@ int compute_colno(File file, int offset)
                 File x_file; \
                 int x_offset; \
                 find_expr_position(x, &x_file, &x_offset); \
-                WARN_PARSE_ERROR_AT(x_file, x_offset, mesg, __VA_ARGS__); \
+                WARN_PARSE_ERROR_AT(x_file, x_offset, mesg, ##__VA_ARGS__); \
         } while (0)
 #define FATAL_PARSE_ERROR(tok, mesg, ...) \
         FATAL("At %s %d:%d: ERROR parsing %s token. " mesg, \
@@ -879,7 +879,7 @@ Data parse_data(void)
         sym = add_data_symbol(name, currentScope, data);
         dataInfo[data].sym = sym;
         parse_token_kind(TOKTYPE_SEMICOLON);
-        return sym;
+        return data;
 }
 
 Expr parse_expr(int minprec)
@@ -1336,7 +1336,9 @@ Type check_symref_expr_type(Expr x)
         Symbol sym = symrefInfo[ref].sym;
         Type tp = -1;
         if (sym == -1) {
-                WARN_PARSE_ERROR_EXPR("Can't check type: symbol unresolved\n");
+                const char *name = string_buffer(symrefInfo[ref].name);
+                WARN_PARSE_ERROR_EXPR(
+                        x, "Can't check type: symbol \"%s\" unresolved\n", name);
                 goto out;
         }
         switch (symbolInfo[sym].kind) {
@@ -1365,13 +1367,8 @@ Type check_symref_expr_type(Expr x)
         }
 out:
         msg("type of symref %s (#%d) is %d\n", SRS(ref), ref, tp);
-        symrefInfo[ref].tp = tp;
+        exprInfo[x].tp = tp;
         return tp;
-}
-
-void check_data_type(Data d)
-{
-
 }
 
 Type check_expr_type(Expr x);
@@ -1496,21 +1493,66 @@ Type check_expr_type(Expr x)
         return tp;
 }
 
-void check_types(void)
+void resolve_ref_type(Type t)
+{
+        switch (typeInfo[t].kind) {
+        case TYPE_BASE:
+                typeInfo[t].isComplete = 1;
+                break;
+        case TYPE_ENTITY:
+                resolve_ref_type(typeInfo[t].tEntity.tp);
+                typeInfo[t].isComplete =
+                        typeInfo[typeInfo[t].tEntity.tp].isComplete;
+                break;
+        case TYPE_ARRAY:
+                resolve_ref_type(typeInfo[t].tArray.idxtp);
+                resolve_ref_type(typeInfo[t].tArray.valuetp);
+                typeInfo[t].isComplete =
+                        typeInfo[typeInfo[t].tArray.idxtp].isComplete &&
+                        typeInfo[typeInfo[t].tArray.valuetp].isComplete;
+                break;
+        case TYPE_PROC:
+                // TODO
+                break;
+        case TYPE_REFERENCE: {
+                if (typeInfo[t].tRef.resolvedTp == -2)
+                        FATAL("cyclic reference types\n");
+                Symbol sym = symrefInfo[typeInfo[t].tRef.ref].sym;
+                int isComplete = -1;
+                Type resolvedTp = -1;
+                if (sym != -1 && symbolInfo[sym].kind == SYMBOL_TYPE) {
+                        Type symtp = symbolInfo[sym].tType;
+                        if (symtp != -1) {
+                                resolve_ref_type(symtp);
+                                isComplete = typeInfo[symtp].isComplete;
+                                resolvedTp = symtp;
+                        }
+                }
+                typeInfo[t].isComplete = isComplete;
+                typeInfo[t].tRef.resolvedTp = resolvedTp;
+                break;
+        }
+        default:
+                UNHANDLED_CASE();
+        }
+}
+
+void resolve_type_references(void)
 {
         /* Type -3 means "TO DO" */
         /* Type -2 means "currently resolving" */
         /* Type -1 means "type error" */
-        for (Data d = 0; d < dataCnt; d++)
-                dataInfo[d].tp = -3;
-        for (Proc p = 0; p < procCnt; p++)
-                procInfo[p].tp = -3;
-        for (Symref ref = 0; ref < symrefCnt; ref++)
-                symrefInfo[ref].tp = -3;
-        for (Expr x = 0; x < exprCnt; x++)
-                exprInfo[x].tp = -3;
-        for (Data d = 0; d < dataCnt; d++)
-                check_data_type(d);
+        for (Type t = 0; t < typeCnt; t++)
+                typeInfo[t].isComplete = 0;
+        for (Type t = 0; t < typeCnt; t++)
+                if (typeInfo[t].kind == TYPE_REFERENCE)
+                        typeInfo[t].tRef.resolvedTp = -3;
+        for (Type t = 0; t < typeCnt; t++)
+                resolve_ref_type(t);
+}
+
+void check_types(void)
+{
         for (Expr x = 0; x < exprCnt; x++)
                 check_expr_type(x);
         for (Expr x = 0; x < exprCnt; x++) {
@@ -1530,6 +1572,7 @@ int main(int argc, const char **argv)
         add_file(intern_cstring("test.txt"));
         parse_global_scope();
         resolve_symbols();
+        resolve_type_references();
         check_types();
         msg("\n\n\n");
         prettyprint();
