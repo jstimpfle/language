@@ -158,7 +158,7 @@ void pprint_compound_stmt(Stmt stmt)
         msg("{");
         add_indent();
         for (int i = stmtInfo[stmt].tCompound.firstChildStmtIdx;
-             childStmtInfo[i].parent == stmt; i++) {
+             i < childStmtCnt && childStmtInfo[i].parent == stmt; i++) {
                 pprint_stmt(childStmtInfo[i].child);
         }
         remove_indent();
