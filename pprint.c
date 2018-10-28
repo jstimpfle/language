@@ -20,25 +20,36 @@ void pprint_newline(void)
                 msg(" ");
 }
 
-void pprint_typeref(Typeref tref)
+void pprint_type(Type tp)
 {
-        //XXX: for now, this is a symref
-        Symbol sym = symrefInfo[tref].sym;
-        if (sym >= 0)
-                msg("%s", SS(sym));
-        else {
-                String name = symrefInfo[tref].name;
-                msg("(unknown type \"%s\")", string_buffer(name));
+        switch (typeInfo[tp].kind) {
+        case TYPE_BASE:
+                msg("%s", string_buffer(typeInfo[tp].tBase.name));
+                break;
+        case TYPE_ENTITY:
+                msg("%s", string_buffer(typeInfo[tp].tEntity.name));
+                break;
+        case TYPE_ARRAY:
+                msg("(array type)");
+                break;
+        case TYPE_PROC:
+                msg("(proc type)");
+                break;
+        case TYPE_REFERENCE:
+                msg("%s", SRS(typeInfo[tp].tRef.ref));
+                break;
+        default:
+                UNHANDLED_CASE();
         }
 }
 
-void pprint_entity(Entity e)
+void pprint_entity(Type t)
 {
         pprint_newline();
         msg("entity ");
-        pprint_typeref(entityInfo[e].tref);
+        pprint_type(typeInfo[t].tEntity.tp);
         msg(" ");
-        msg("%s", SS(entityInfo[e].sym));
+        msg("%s", SS(typeInfo[t].tEntity.name));
         msg(";");
 }
 
@@ -46,7 +57,7 @@ void pprint_data(Data d)
 {
         pprint_newline();
         msg("data ");
-        pprint_typeref(dataInfo[d].tref);
+        pprint_type(dataInfo[d].tp);
         msg(" ");
         msg("%s", SS(dataInfo[d].sym));
         msg(";");
@@ -54,13 +65,14 @@ void pprint_data(Data d)
 
 void pprint_array(Array a)
 {
+        Type t = arrayInfo[a].tp;
         pprint_newline();
         msg("array ");
-        pprint_typeref(arrayInfo[a].valueref);
+        pprint_type(typeInfo[t].tArray.valuetp);
         msg(" ");
-        msg("%s", SS(arrayInfo[a].sym));
+        msg("%s", SS(arrayInfo[t].sym));
         msg("[");
-        pprint_typeref(arrayInfo[a].idxref);
+        pprint_type(typeInfo[t].tArray.idxtp);
         msg("]");
         msg(";");
 }
@@ -69,7 +81,7 @@ void pprint_expr(Expr expr)
 {
         switch (exprInfo[expr].kind) {
                 case EXPR_SYMREF: {
-                        String s = symrefInfo[exprInfo[expr].tSymref].name;
+                        String s = symrefInfo[exprInfo[expr].tSymref.ref].name;
                         msg("%s", string_buffer(s));
                         break;
                 }
@@ -232,7 +244,7 @@ void pprint_proc(Proc p)
 {
         msg("\n");
         msg("proc ");
-        pprint_typeref(procInfo[p].retref);
+        pprint_type(procInfo[p].tp);
         msg(" ");
         msg("%s", SS(procInfo[p].sym));
         msg("(");
@@ -240,8 +252,8 @@ void pprint_proc(Proc p)
         for (int i = 0; i < procInfo[p].nparams; i++) {
                 if (i > 0)
                         msg(", ");
-                pprint_typeref(procParamInfo[firstParam+i].tref);
-                msg(" %s", SS(procParamInfo[firstParam+i].sym));
+                pprint_type(paramInfo[firstParam+i].tp);
+                msg(" %s", SS(paramInfo[firstParam+i].sym));
         }
         msg(")");
         pprint_newline();
@@ -251,8 +263,9 @@ void pprint_proc(Proc p)
 
 void prettyprint(void)
 {
-        for (Entity i = 0; i < entityCnt; i++)
-                pprint_entity(i);
+        for (Type i = 0; i < typeCnt; i++)
+                if (typeInfo[i].kind == TYPE_ENTITY)
+                        pprint_entity(i);
         pprint_newline();
         for (Data i = 0; i < dataCnt; i++)
                 if (scopeInfo[dataInfo[i].scope].kind == globalScope)

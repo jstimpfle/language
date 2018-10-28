@@ -47,57 +47,134 @@ Type add_base_type(String name, int size)
         Type x = typeCnt++;
         BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
         typeInfo[x].kind = TYPE_BASE;
-        typeInfo[x].tBasetype.name = name;
-        typeInfo[x].tBasetype.size = size;
+        typeInfo[x].tBase.name = name;
+        typeInfo[x].tBase.size = size;
         return x;
 }
 
-Type add_proc_type(Typeref retref)
+Type add_entity_type(String name, Type tp)
+{
+        Type x = typeCnt++;
+        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        typeInfo[x].kind = TYPE_ENTITY;
+        typeInfo[x].tEntity.name = name;
+        typeInfo[x].tEntity.tp = tp;
+        return x;
+}
+
+Type add_array_type(Type idxtp, Type valuetp)
+{
+        Type x = typeCnt++;
+        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        typeInfo[x].kind = TYPE_ARRAY;
+        typeInfo[x].tArray.idxtp = idxtp;
+        typeInfo[x].tArray.valuetp = valuetp;
+        return x;
+}
+
+Type add_proc_type(Type rettp, int nargs, int firstParamtype)
 {
         Type x = typeCnt++;
         BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
         typeInfo[x].kind = TYPE_PROC;
-        typeInfo[x].tProctype.retref = retref;
+        typeInfo[x].tProc.rettp = rettp;
+        typeInfo[x].tProc.nargs = nargs;
+        typeInfo[x].tProc.firstParamtype = firstParamtype;
         return x;
 }
 
-Symbol add_symbol(int kind, String name, Scope scope)
+Type add_ref_type(Symref ref)
+{
+        Type x = typeCnt++;
+        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        typeInfo[x].kind = TYPE_REFERENCE;
+        typeInfo[x].tRef.ref = ref;
+        typeInfo[x].tRef.resolvedTp = -1;
+        return x;
+}
+
+Type add_paramtype(Type proctp, Type argtp)
+{
+        int x = paramtypeCnt++;
+        BUF_RESERVE(paramtypeInfo, paramtypeInfoAlloc, paramtypeCnt);
+        paramtypeInfo[x].proctp = proctp;
+        paramtypeInfo[x].argtp = argtp;
+        paramtypeInfo[x].rank = x;
+        return x;
+}
+
+Symbol add_type_symbol(String name, Scope scope, Type tp)
 {
         Symbol x = symbolCnt++;
         BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
-        symbolInfo[x].kind = kind;
         symbolInfo[x].name = name;
         symbolInfo[x].scope = scope;
+        symbolInfo[x].kind = SYMBOL_TYPE;
+        symbolInfo[x].tType = tp;
         return x;
 }
 
-Entity add_entity(Typeref tref, Symbol sym)
+Symbol add_data_symbol(String name, Scope scope, Data data)
 {
-        Entity x = entityCnt++;
-        BUF_RESERVE(entityInfo, entityInfoAlloc, entityCnt);
-        entityInfo[x].tref = tref;
-        entityInfo[x].sym = sym;
+        Symbol x = symbolCnt++;
+        BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
+        symbolInfo[x].name = name;
+        symbolInfo[x].scope = scope;
+        symbolInfo[x].kind = SYMBOL_DATA;
+        symbolInfo[x].tData = data;
         return x;
 }
 
-Array add_array(Scope scope, Typeref idxref, Typeref valueref, Symbol sym)
+Symbol add_array_symbol(String name, Scope scope, Array array)
+{
+        Symbol x = symbolCnt++;
+        BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
+        symbolInfo[x].name = name;
+        symbolInfo[x].scope = scope;
+        symbolInfo[x].kind = SYMBOL_ARRAY;
+        symbolInfo[x].tArray = array;
+        return x;
+}
+
+Symbol add_proc_symbol(String name, Scope scope, Proc proc)
+{
+        Symbol x = symbolCnt++;
+        BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
+        symbolInfo[x].name = name;
+        symbolInfo[x].scope = scope;
+        symbolInfo[x].kind = SYMBOL_PROC;
+        symbolInfo[x].tProc = proc;
+        return x;
+}
+
+Symbol add_param_symbol(String name, Scope scope, Param param)
+{
+        Symbol x = symbolCnt++;
+        BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
+        symbolInfo[x].name = name;
+        symbolInfo[x].scope = scope;
+        symbolInfo[x].kind = SYMBOL_PARAM;
+        symbolInfo[x].tParam = param;
+        return x;
+}
+
+Array add_array(Scope scope, Type tp)
 {
         Array x = arrayCnt++;
         BUF_RESERVE(arrayInfo, arrayInfoAlloc, arrayCnt);
         arrayInfo[x].scope = scope;
-        arrayInfo[x].idxref = idxref;
-        arrayInfo[x].valueref = valueref;
-        arrayInfo[x].sym = sym;
+        arrayInfo[x].tp = tp;
+        arrayInfo[x].sym = -1; // later
         return x;
 }
 
-Data add_data(Scope scope, Typeref tref, Symbol sym)
+Data add_data(Scope scope, Type tp)
 {
         Data x = dataCnt++;
         BUF_RESERVE(dataInfo, dataInfoAlloc, dataCnt);
         dataInfo[x].scope = scope;
-        dataInfo[x].tref = tref;
-        dataInfo[x].sym = sym;
+        dataInfo[x].tp = tp;
+        dataInfo[x].sym = -1;  // later
         return x;
 }
 
@@ -123,12 +200,12 @@ Scope add_proc_scope(Scope parent)
         return x;
 }
 
-Proc add_proc(Typeref retref, Symbol sym, Scope scope)
+Proc add_proc(Type tp, Scope scope)
 {
         Proc x = procCnt++;
         BUF_RESERVE(procInfo, procInfoAlloc, procCnt);
-        procInfo[x].retref = retref;
-        procInfo[x].sym = sym;
+        procInfo[x].tp = tp;
+        procInfo[x].sym = -1; // later
         procInfo[x].scope = scope;
         procInfo[x].firstParam = -1;
         procInfo[x].nparams = 0;
@@ -151,7 +228,7 @@ Expr add_symref_expr(Symref ref)
         Expr x = exprCnt++;
         BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
         exprInfo[x].kind = EXPR_SYMREF;
-        exprInfo[x].tSymref = ref;
+        exprInfo[x].tSymref.ref = ref;
         return x;
 }
 
@@ -296,14 +373,15 @@ Stmt add_compound_stmt(void)
         return stmt;
 }
 
-void add_ProcParam(Proc proc, Typeref argtref, Symbol argsym)
+Param add_Param(Proc proc, Type tp)
 {
-        ProcParam x = procParamCnt++;
-        BUF_RESERVE(procParamInfo, procParamInfoAlloc, procParamCnt);
-        procParamInfo[x].proc = proc;
-        procParamInfo[x].tref = argtref;
-        procParamInfo[x].sym = argsym;
-        procParamInfo[x].rank = x;
+        Param x = paramCnt++;
+        BUF_RESERVE(paramInfo, paramInfoAlloc, paramCnt);
+        paramInfo[x].proc = proc;
+        paramInfo[x].sym = -1; // later
+        paramInfo[x].tp = tp;
+        paramInfo[x].rank = x;
+        return x;
 }
 
 void add_ChildStmt(Stmt parent, Stmt child)
@@ -338,11 +416,8 @@ void init_basetypes(void)
         for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
                 String name = intern_cstring(basetypesToBeInitialized[i].name);
                 int size = basetypesToBeInitialized[i].size;
-                add_base_type(name, size);
-        }
-        for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
-                String name = intern_cstring(basetypesToBeInitialized[i].name);
-                add_symbol(SYMBOL_TYPE, name, globalScope);
+                Type tp = add_base_type(name, size);
+                add_type_symbol(name, globalScope, tp);
         }
 }
 
@@ -356,7 +431,7 @@ void find_expr_position(Expr x, File *file, int *offset)
                         tok = exprInfo[x].tLiteral.tok;
                         break;
                 case EXPR_SYMREF:
-                        tok = symrefInfo[exprInfo[x].tSymref].tok;
+                        tok = symrefInfo[exprInfo[x].tSymref.ref].tok;
                         break;
                 case EXPR_UNOP:
                         tok = exprInfo[x].tUnop.tok;
@@ -729,11 +804,11 @@ Token look_token_kind(int tkind)
         return tok;
 }
 
-Symbol parse_symbol(int kind)
+String parse_name(void)
 {
         PARSE_LOG();
         Token tok = parse_token_kind(TOKTYPE_WORD);
-        return add_symbol(kind, tokenInfo[tok].tWord.string, currentScope);
+        return tokenInfo[tok].tWord.string;
 }
 
 Symref parse_symref(void)
@@ -743,50 +818,68 @@ Symref parse_symref(void)
         return add_symref(tok, currentScope);
 }
 
-Typeref parse_typeref(void)
+Type parse_type(void)
 {
         PARSE_LOG();
-        return parse_symref(); // XXX
+        Symref ref = parse_symref();
+        return add_ref_type(ref);
 }
 
-Entity parse_entity(void)
+Type parse_entity(void)
 {
-        Typeref tref;
+        Type tp;
+        Type etp;
+        String name;
         Symbol sym;
 
         PARSE_LOG();
-        tref = parse_typeref();
-        sym = parse_symbol(SYMBOL_TYPE);
+        tp = parse_type();
+        name = parse_name();
+        etp = add_entity_type(name, tp);
+        sym = add_type_symbol(name, currentScope, etp);
         parse_token_kind(TOKTYPE_SEMICOLON);
-        return add_entity(tref, sym);
+        return etp;
 }
 
 Array parse_array(void)
 {
-        Symbol arraysym;
-        Typeref idxref;
-        Typeref valueref;
+        Type idxtp;
+        Type valuetp;
+        Type tp;
+        Array array;
+        String name;
+        Symbol sym;
 
         PARSE_LOG();
-        valueref = parse_typeref();
-        arraysym = parse_symbol(SYMBOL_TYPE);
+        valuetp = parse_type();
+        name = parse_name();
         parse_token_kind(TOKTYPE_LEFTBRACKET);
-        idxref = parse_typeref();
+        idxtp = parse_type();
+        tp = add_array_type(idxtp, valuetp);
+        array = add_array(currentScope, tp);
+        sym = add_array_symbol(name, currentScope, array);
+        arrayInfo[array].sym = sym;
         parse_token_kind(TOKTYPE_RIGHTBRACKET);
         parse_token_kind(TOKTYPE_SEMICOLON);
-        return add_array(currentScope, idxref, valueref, arraysym);
+        add_type_symbol(name, currentScope, tp);
+        return array;
 }
 
 Data parse_data(void)
 {
-        Typeref tref;
+        Type tp;
+        String name;
         Symbol sym;
+        Data data;
 
         PARSE_LOG();
-        tref = parse_typeref();
-        sym = parse_symbol(SYMBOL_DATA);
+        tp = parse_type();
+        name = parse_name();
+        data = add_data(currentScope, tp);
+        sym = add_data_symbol(name, currentScope, data);
+        dataInfo[data].sym = sym;
         parse_token_kind(TOKTYPE_SEMICOLON);
-        return add_data(currentScope, tref, sym);
+        return sym;
 }
 
 Expr parse_expr(int minprec)
@@ -1013,31 +1106,39 @@ Stmt parse_stmt(void)
 
 void parse_proc(void)
 {
-        Typeref rettref;  /* result type */
-        Typeref paramtref;  /* in-param type */
-        Symbol paramsym;  /* in-param name */
-        Symbol psym;  /* proc name */
+        Type rettp;  /* result type */
+        String name;  /* proc name */
+        Symbol psym;  /* proc symbol */
         Scope pscope; /* proc scope */
         Proc proc;
         Token tok;
         Stmt body;
 
         PARSE_LOG();
-        rettref = parse_typeref();
-        psym = parse_symbol(SYMBOL_PROC);
+        rettp = parse_type();
+        name = parse_name();
         pscope = add_proc_scope(currentScope);
-        proc = add_proc(rettref, psym, pscope);
+        proc = add_proc(rettp, pscope);
+        psym = add_proc_symbol(name, currentScope, proc);
+        procInfo[proc].sym = psym;
         scopeInfo[pscope].tProc.proc = proc;
 
         push_scope(pscope);
         parse_token_kind(TOKTYPE_LEFTPAREN);
         for (;;) {
+                Param param;
+                String paramname;
+                Symbol paramsym;
+                Type paramtp;
+
                 tok = look_next_token();
                 if (tokenInfo[tok].kind == TOKTYPE_RIGHTPAREN)
                         break;
-                paramtref = parse_typeref();
-                paramsym = parse_symbol(SYMBOL_LOCALDATA /*TODO: new kind?*/);
-                add_ProcParam(proc, paramtref, paramsym);
+                paramtp = parse_type();
+                paramname = parse_name();
+                param = add_Param(proc, paramtp);
+                paramsym = add_param_symbol(paramname, pscope, param);
+                paramInfo[param].sym = paramsym;
                 if (look_token_kind(TOKTYPE_COMMA) == -1)
                         break;
                 parse_next_token();
@@ -1055,10 +1156,10 @@ int compare_Symbol(const void *a, const void *b)
         return symbolInfo[*x].scope - symbolInfo[*y].scope;
 }
 
-int compare_ProcParamInfo(const void *a, const void *b)
+int compare_ParamInfo(const void *a, const void *b)
 {
-        const struct ProcParamInfo *x = a;
-        const struct ProcParamInfo *y = b;
+        const struct ParamInfo *x = a;
+        const struct ParamInfo *y = b;
         if (x->proc != y->proc)
                 return x->proc - y->proc;
         return x->rank - y->rank;
@@ -1142,6 +1243,8 @@ void parse_global_scope(void)
                         arrayInfo[i].sym = newname[arrayInfo[i].sym];
                 for (Proc i = 0; i < procCnt; i++)
                         procInfo[i].sym = newname[procInfo[i].sym];
+                for (Param i = 0; i < paramCnt; i++)
+                        paramInfo[i].sym = newname[paramInfo[i].sym];
                 for (Symbol i = 0; i < symbolCnt; i++) {
                         Symbol j = newname[i];
                         while (j != i) {
@@ -1157,15 +1260,19 @@ void parse_global_scope(void)
                 BUF_EXIT(newname, newnameAlloc);
         }
 
-        sort_array(procParamInfo, procParamCnt, sizeof *procParamInfo,
-                   compare_ProcParamInfo);
+        /* sort paramInfo array and fix symbols */
+        sort_array(paramInfo, paramCnt, sizeof *paramInfo,
+                   compare_ParamInfo);
+        for (Param i = 0; i < paramCnt; i++)
+                symbolInfo[paramInfo[i].sym].tParam = i;
+
         sort_array(childStmtInfo, childStmtCnt, sizeof *childStmtInfo,
                    compare_ChildStmtInfo);
         sort_array(callArgInfo, callArgCnt, sizeof *callArgInfo,
                    compare_CallArgInfo);
 
-        for (ProcParam param = procParamCnt; param --> 0;) {
-                Proc proc = procParamInfo[param].proc;
+        for (Param param = paramCnt; param --> 0;) {
+                Proc proc = paramInfo[param].proc;
                 procInfo[proc].nparams++;
                 procInfo[proc].firstParam = param;
         }
@@ -1218,48 +1325,81 @@ void resolve_symbols(void)
 
 Type check_literal_expr_type(Expr x)
 {
-        // TODO: integer / string type?
-        return -1;
+        // XXX
+        return 0;
 }
 
 Type check_symref_expr_type(Expr x)
 {
-        Symref ref = exprInfo[x].tSymref;
+        Symref ref = exprInfo[x].tSymref.ref;
         // XXX: symbol resolved?
         Symbol sym = symrefInfo[ref].sym;
-        Type tp = symbolInfo[sym].tp;
-        if (tp != -1)
-                return -1;
+        Type tp = -1;
+        if (sym == -1) {
+                WARN_PARSE_ERROR_EXPR("Can't check type: symbol unresolved\n");
+                goto out;
+        }
         switch (symbolInfo[sym].kind) {
                 case SYMBOL_TYPE:
                         // Maybe something like the "type" type?
                         // Or fatal() ?
+                        UNHANDLED_CASE();
                         break;
                 case SYMBOL_DATA:
                         tp = dataInfo[symbolInfo[sym].tData].tp;
                         break;
+                case SYMBOL_ARRAY:
+                        tp = arrayInfo[symbolInfo[sym].tArray].tp;
+                        break;
                 case SYMBOL_PROC:
                         tp = procInfo[symbolInfo[sym].tProc].tp;
                         break;
-                case SYMBOL_LOCALDATA: //XXX is local data not data?
-                        tp = dataInfo[symbolInfo[sym].tData].tp;
+                case SYMBOL_PARAM:
+                        tp = paramInfo[symbolInfo[sym].tParam].tp;
                         break;
                 default:
+                        msg("%d %d\n", sym, symbolCnt);
+                        msg("%d\n", symbolInfo[sym].kind);
                         UNHANDLED_CASE();
+                        break;
         }
-        symbolInfo[sym].tp = tp;
+out:
+        msg("type of symref %s (#%d) is %d\n", SRS(ref), ref, tp);
+        symrefInfo[ref].tp = tp;
         return tp;
 }
 
+void check_data_type(Data d)
+{
+
+}
 
 Type check_expr_type(Expr x);
 
 Type check_unop_expr_type(Expr x)
 {
+        int op = exprInfo[x].tUnop.kind;
         Expr xx = exprInfo[x].tUnop.expr;
         Type tt = check_expr_type(xx);
-        // TODO: operator valid for this type?
-        return 0;
+        Type tp = -1;
+        if (tt != -1) {
+                switch (op) {
+                case UNOP_INVERTBITS:
+                case UNOP_NOT:
+                case UNOP_ADDRESSOF:
+                case UNOP_DEREF:
+                case UNOP_NEGATIVE:
+                case UNOP_POSITIVE:
+                case UNOP_PREDECREMENT:
+                case UNOP_PREINCREMENT:
+                case UNOP_POSTDECREMENT:
+                case UNOP_POSTINCREMENT:
+                        // TODO: operator valid for this type?
+                        tp = 0;  // XXX
+                }
+        }
+        exprInfo[x].tp = tp;
+        return tp;
 }
 
 Type check_binop_expr_type(Expr x)
@@ -1361,10 +1501,16 @@ void check_types(void)
         /* Type -3 means "TO DO" */
         /* Type -2 means "currently resolving" */
         /* Type -1 means "type error" */
-        for (Symbol sym = 0; sym < symbolCnt; sym++)
-                symbolInfo[sym].tp = -3;
+        for (Data d = 0; d < dataCnt; d++)
+                dataInfo[d].tp = -3;
+        for (Proc p = 0; p < procCnt; p++)
+                procInfo[p].tp = -3;
+        for (Symref ref = 0; ref < symrefCnt; ref++)
+                symrefInfo[ref].tp = -3;
         for (Expr x = 0; x < exprCnt; x++)
                 exprInfo[x].tp = -3;
+        for (Data d = 0; d < dataCnt; d++)
+                check_data_type(d);
         for (Expr x = 0; x < exprCnt; x++)
                 check_expr_type(x);
         for (Expr x = 0; x < exprCnt; x++) {

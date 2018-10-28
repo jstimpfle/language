@@ -1,8 +1,69 @@
-#ifdef DATA_IMPL
-#define DATA
-#else
-#define DATA extern
-#endif
+/**
+ * Various typedefs are used instead of plain integer indices to indicate their
+ * meaning. Unfortunately, C does not provide type safety, while this would
+ * probably be a net benefit (which is why we support this approach through
+ * "entities" in the language we're building here).
+ *
+ * \typedef{File}: A file known to the compiler. Probably its contents will
+ * be processed.
+ *
+ * \typedef{String}: A String. We use string for most of the string handling
+ * because of three reasons: 1) Ease of memory management, 2) Saving working
+ * memory, 3) (Probably?) more Efficient equality checks. On the other hand,
+ * the disadvantage is that we cannot easily drop a string that was interned.
+ *
+ * \typedef{Token}: A Token is a syntactical entity as seen by the compiler's
+ * language parser. For example, an identifier, such as `xyz`, an integer
+ * literal such as `9`, a string literal such as `"a string"`, or an operator
+ * such as `++`. See \ref{SymbolKind}.
+ *
+ * \typedef{Symbol}: A symbol is a name for a user-created artifact. See also
+ * \ref{SymbolKind}.
+ *
+ * \typedef{Symref}: A symref is a reference to a (hopefully, existing) user-
+ * created artifact. Syntactically the symbol is referenced by writing the name
+ * of the symbol. It's the compilers task to match up referenced with referenced
+ * symbols.
+ *
+ * \typedef{Scope}: A scope is an abstract container for symbol definitions. In
+ * the parsing phase a tree (or DAG?) of scopes is built up. Symbol lookup is
+ * done starting in a particular scope and looking for the symbol recursively in
+ * the parent scopes until a match is found. See also \ref{ScopeKind}.
+ *
+ * \typedef{Data}: The result of parsing a data declaration. See also
+ * \ref{DataInfo}.
+ *
+ * \typedef{Array}: The result of parsing an array definition. See also
+ * \ref{ArrayInfo}.
+ *
+ * \typedef{Proc}: The result of parsing a proc definition. See also
+ * \ref{ProcInfo}.
+ *
+ * \typedef{Param}: The result of parsing a procedure parameter as part of a
+ * proc definition. See also \ref{ParamInfo}
+ *
+ * \typedef{Expr}: The result of parsing an expression, as part of a statement.
+ * See also \ref{ExprInfo}.
+ *
+ * \typedef{CompoundStmt}: The result of parsing a compound statement (a number
+ * of statements enclosed in curly braces \{\}, as part of parsing a proc
+ * definition. See also \ref{CompoundStmtInfo}.
+ *
+ * \typedef{ExprStmt}: The result of parsing an expression statement, a kind of
+ * statement that commands a computation. See also \ref{ExprStmtInfo}.
+ *
+ * \typedef{IfStmt}: The result of parsing an if statement. See also
+ * \ref{IfStmtInfo}.
+ *
+ * \typedef{ForStmt}: The result of parsing a for statement. See also
+ * \ref{ForStmtInfo}.
+ *
+ * \typedef{WhileStmt}: The result of parsing a while statement. See also
+ * \ref{WhileStmtInfo}.
+ *
+ * \typedef{Stmt}: The result of parsing a statement, which can be any of the
+ * previous kinds of statements. See also \ref{StmtInfo}.
+ */
 
 typedef int File;
 typedef int String;
@@ -10,13 +71,11 @@ typedef int Token;
 typedef int Type;
 typedef int Symbol;
 typedef int Symref;
-typedef int Typeref;
 typedef int Scope;
-typedef int Entity;
 typedef int Data;
 typedef int Array;
 typedef int Proc;
-typedef int ProcParam;
+typedef int Param;
 typedef int Expr;
 typedef int CompoundStmt;
 typedef int ExprStmt;
@@ -25,7 +84,45 @@ typedef int ForStmt;
 typedef int WhileStmt;
 typedef int Stmt;
 
-enum {
+/**
+ * \enum{TokenKind}: Token kinds (lexical syntax)
+ *
+ * \enum{ConstStrKind}: Constant strings that get interned at startup as an
+ * optimization
+ *
+ * \enum{UnopKind}: Unary operators. Currently all correspond to single tokens,
+ * like ~, !, &, ++, and others.
+ *
+ * \enum{BinopKind}: Binary operators. Currently all correspond to single
+ * tokens, like =, ==, -, +, *, /, and others.
+ *
+ * \enum{ExprKind}: Expression kinds. Expressions are (typically?) contained in
+ * statements.
+ *
+ * \enum{StmtKind}: Statement kinds. Procedure bodies are made up of statements.
+ * One kind of statement is the compound statement, which contains an arbitrary
+ * number of other child statements in curly braces.
+ *
+ * \enum{ScopeKind}: Scope kinds. For now, there are global and block scopes.
+ * The latter exist inside procedures.
+ *
+ * \enum{SymbolKind}: Symbol kinds. Symbols are names for artifacts that are
+ * builtin or defined by the programmer. These artifacts can be types, data, or
+ * procedures. A symbol is a name (string) together with a scope (definition
+ * namespace), and an artifact kind and index. The kind and index identify the
+ * artifact that the symbol names.
+ *
+ * \enum{TypeKind}: Type kinds. Types are needed to compile efficient machine
+ * code. There are built-in and user-defined types. The builtin types are
+ * (mostly?) various kinds of integers and pointers (which are integers as
+ * well). The user-defined types, such as entities, arrays, or procedures, are
+ * made up from other existing types (which may themselves be user-defined, or
+ * built-in ones). Pointers to other types are implemented as types of kind
+ * TYPE_REFERENCE, and these types contain symbol references, which must resolve
+ * to SYMBOL_TYPE symbols.
+ */
+
+enum TokenKind {
         TOKTYPE_WORD,
         TOKTYPE_INTEGER,
         TOKTYPE_LEFTPAREN,
@@ -53,7 +150,7 @@ enum {
         TOKTYPE_DOUBLEEQUALS,
 };
 
-enum {
+enum ConstStrKind {
         CONSTSTR_IF,
         CONSTSTR_WHILE,
         CONSTSTR_FOR,
@@ -65,18 +162,7 @@ enum {
         NUM_CONSTSTRS,
 };
 
-enum {
-        STMT_IF,
-        STMT_FOR,
-        STMT_WHILE,
-        STMT_RETURN,
-        STMT_EXPR,
-        STMT_COMPOUND,
-        STMT_DATA,
-        STMT_ARRAY,
-};
-
-enum {
+enum UnopKind {
         UNOP_INVERTBITS,
         UNOP_NOT,
         UNOP_ADDRESSOF,
@@ -90,7 +176,7 @@ enum {
         NUM_UNOPS,
 };
 
-enum {
+enum BinopKind {
         BINOP_ASSIGN,
         BINOP_EQUALS,
         BINOP_MINUS,
@@ -103,7 +189,7 @@ enum {
         NUM_BINOPS,
 };
 
-enum {
+enum ExprKind {
         EXPR_LITERAL,
         EXPR_SYMREF,
         EXPR_UNOP,
@@ -113,23 +199,89 @@ enum {
         EXPR_CALL,
 };
 
-enum {
+enum StmtKind {
+        STMT_IF,
+        STMT_FOR,
+        STMT_WHILE,
+        STMT_RETURN,
+        STMT_EXPR,
+        STMT_COMPOUND,
+        STMT_DATA,
+        STMT_ARRAY,
+};
+
+enum ScopeKind {
         SCOPE_GLOBAL,
         SCOPE_PROC,
 };
 
-enum {
+enum SymbolKind {
         SYMBOL_TYPE,
         SYMBOL_DATA,
+        SYMBOL_ARRAY,
         SYMBOL_PROC,
-        SYMBOL_LOCALDATA,
+        SYMBOL_PARAM,
 };
 
-enum {
+enum TypeKind {
         TYPE_BASE,
+        TYPE_ENTITY,
         TYPE_ARRAY,
         TYPE_PROC,
+        TYPE_REFERENCE,
 };
+
+
+/**
+ * \struct{StringToBeInterned} Static information used at program initialization
+ * time when constant strings get interned.
+ *
+ * \struct{BasetypeToBeInitialized}: Static information used at program
+ * initialization time when base types get registered.
+ *
+ * \struct{ToktypeToPrefixUnop}: Static information used for mapping tokens to
+ * prefix operators (if possible).
+ *
+ * \struct{ToktypeToPostfixUnop}: Static information used for mapping tokens to
+ * postfix operators (if possible).
+ *
+ * \struct{ToktypeToBinop}: Static information used for mapping tokens to binary
+ * operators (if possible).
+ *
+ * \struct{UnopInfo}: Static information about the syntactic nature of unary
+ * operators. Contains the string representation of the operator, as well as
+ * whether it is a prefix or postfix operator.
+ *
+ * \struct{BinopInfo}: Static information about the syntactic nature of binary
+ * operators. Contains the string representation of the operator, as well its
+ * the precedence value for deciding associativity in the absences of
+ * parentheses.
+ *
+ * \struct{SymbolInfo}: Represents a name given to one of the various entity
+ * that the programmer can define, such as data items, array items, or types.
+ * This struct contains the name and scope of the symbol as well as a reference
+ * to the named item (by means of a kind tag and union containing an index for
+ * each possible kind).
+ *
+ * \struct{SymrefInfo}: Represents a reference to a symbol that is (hopefully)
+ * defined somewhere else in the code. The reference itself can occur at various
+ * places in the grammar, such as as expressions or type definitions.
+ *
+ * \struct{DataInfo}: Result from parsing a `data` declaration. Contains the
+ * name, scope, and type of the data item.
+ *
+ * \struct{ArrayInfo}: Result from parsing an `array` declaration. Contains the
+ * name and scope of the data item as well as the type of indices needed and
+ * the type of elements contained.
+ *
+ * \struct{ProcInfo}: Result from parsing a `proc` declaration.
+ */
+
+#ifdef DATA_IMPL
+#define DATA
+#else
+#define DATA extern
+#endif
 
 struct StringToBeInterned {
         int constant;  // CONSTSTR_
@@ -171,10 +323,10 @@ struct Alloc {
 };
 
 struct FileInfo {
-        unsigned char *buf;
-        struct Alloc bufAlloc;
         String filepath;
         int size;
+        unsigned char *buf;
+        struct Alloc bufAlloc;
 };
 
 struct StringInfo {
@@ -183,7 +335,7 @@ struct StringInfo {
 };
 
 struct StringBucketInfo {
-        int firstString;
+        String firstString;
 };
 
 struct WordTokenInfo {
@@ -209,51 +361,6 @@ struct TokenInfo {
         };
 };
 
-struct BasetypeInfo {
-        String name;
-        int size;
-};
-
-struct ArraytypeInfo {
-        Typeref idxref;
-        Typeref valueref;
-};
-
-struct ProctypeInfo {
-        Typeref retref;
-
-        // TODO: input args
-};
-
-struct TypeInfo {
-        int kind;  // TYPE_?
-        union {
-                struct BasetypeInfo tBasetype;
-                struct ArraytypeInfo tArraytype;
-                struct ProctypeInfo tProctype;
-        };
-        // TODO
-};
-
-struct EntityInfo {
-        Typeref tref;
-        Symbol sym;
-};
-
-struct DataInfo {
-        Scope scope;
-        Typeref tref;
-        Symbol sym;
-        Type tp;
-};
-
-struct ArrayInfo {
-        Scope scope;
-        Typeref idxref;
-        Typeref valueref;
-        Symbol sym;
-};
-
 struct SymbolInfo {
         String name;
         Scope scope;
@@ -261,9 +368,74 @@ struct SymbolInfo {
         union {
                 Type tType;
                 Data tData;
+                Array tArray;
                 Proc tProc;
+                Param tParam;
         };
+};
+
+struct SymrefInfo {
+        String name;
+        Scope refScope;
+        Token tok;
+        Symbol sym;  // only valid after symbol resolution
         Type tp;
+};
+
+struct BasetypeInfo {
+        String name;
+        int size;
+};
+
+struct EntitytypeInfo {
+        String name;
+        Type tp;
+};
+
+struct ArraytypeInfo {
+        Type idxtp;
+        Type valuetp;
+};
+
+struct ProctypeInfo {
+        Type rettp;
+        int nargs;
+        int firstParamtype; // speed-up
+};
+
+struct ParamtypeInfo {  // helper for ProctypeInfo
+        Type proctp;
+        Type argtp;
+        int rank;
+};
+
+struct ReftypeInfo {
+        Symref ref;
+        Type resolvedTp;
+};
+
+struct TypeInfo {
+        int kind;  // TYPE_?
+        union {
+                struct BasetypeInfo tBase;
+                struct EntitytypeInfo tEntity;
+                struct ArraytypeInfo tArray;
+                struct ProctypeInfo tProc;
+                struct ReftypeInfo tRef;
+        };
+        // TODO
+};
+
+struct DataInfo {
+        Scope scope;
+        Type tp;
+        Symbol sym;  // back-link
+};
+
+struct ArrayInfo {
+        Scope scope;
+        Type tp;
+        Symbol sym;  // back-link
 };
 
 struct ScopeInfo {
@@ -280,26 +452,22 @@ struct ScopeInfo {
 
 struct ProcInfo {
         Type tp;
-        Typeref retref;
-        int nparams;
         Symbol sym;
         Scope scope;
+        int nparams;
+        Param firstParam;  // speed-up
         Stmt body;
-        ProcParam firstParam;  // speed-up
 };
 
-struct ProcParamInfo {
+struct ParamInfo {
         Proc proc;
-        Type tref;
-        String sym;
+        Symbol sym;
+        Type tp;
         int rank;
 };
 
-struct SymrefInfo {
-        String name;
-        Scope refScope;
-        Token tok;
-        Symbol sym;  // only valid after symbol resolution
+struct SymrefExprInfo {
+        Symref ref;
 };
 
 struct LiteralExprInfo {
@@ -344,7 +512,7 @@ struct SubscriptExprInfo {
 struct ExprInfo {
         int kind;
         union {
-                Symref tSymref;
+                struct SymrefExprInfo tSymref;
                 struct LiteralExprInfo tLiteral;
                 struct CallExprInfo tCall;
                 struct UnopExprInfo tUnop;
@@ -446,13 +614,14 @@ DATA int strBucketCnt;
 DATA int fileCnt;
 DATA int tokenCnt;
 DATA int typeCnt;
+DATA int paramtypeCnt;
 DATA int symbolCnt;
 DATA int entityCnt;
 DATA int dataCnt;
 DATA int arrayCnt;
 DATA int scopeCnt;
 DATA int procCnt;
-DATA int procParamCnt;
+DATA int paramCnt;
 DATA int symrefCnt;
 DATA int exprCnt;
 DATA int stmtCnt;
@@ -466,13 +635,14 @@ DATA struct StringBucketInfo *strBucketInfo;
 DATA struct FileInfo *fileInfo;
 DATA struct TokenInfo *tokenInfo;
 DATA struct TypeInfo *typeInfo;
+DATA struct ParamtypeInfo *paramtypeInfo;
 DATA struct SymbolInfo *symbolInfo;
-DATA struct EntityInfo *entityInfo;
+DATA struct EntitytypeInfo *entityInfo;
 DATA struct DataInfo *dataInfo;
 DATA struct ArrayInfo *arrayInfo;
 DATA struct ScopeInfo *scopeInfo;
 DATA struct ProcInfo *procInfo;
-DATA struct ProcParamInfo *procParamInfo;
+DATA struct ParamInfo *paramInfo;
 DATA struct SymrefInfo *symrefInfo;
 DATA struct ExprInfo *exprInfo;
 DATA struct StmtInfo *stmtInfo;
@@ -486,13 +656,14 @@ DATA struct Alloc strBucketInfoAlloc;
 DATA struct Alloc fileInfoAlloc;
 DATA struct Alloc tokenInfoAlloc;
 DATA struct Alloc typeInfoAlloc;
+DATA struct Alloc paramtypeInfoAlloc;
 DATA struct Alloc symbolInfoAlloc;
 DATA struct Alloc entityInfoAlloc;
 DATA struct Alloc dataInfoAlloc;
 DATA struct Alloc arrayInfoAlloc;
 DATA struct Alloc scopeInfoAlloc;
 DATA struct Alloc procInfoAlloc;
-DATA struct Alloc procParamInfoAlloc;
+DATA struct Alloc paramInfoAlloc;
 DATA struct Alloc symrefInfoAlloc;
 DATA struct Alloc exprInfoAlloc;
 DATA struct Alloc stmtInfoAlloc;

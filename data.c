@@ -46,8 +46,10 @@ const char *const exprKindString[] = {
 const char *const typeKindString[] = {
 #define MAKE(x) [x] = #x
         MAKE( TYPE_BASE ),
+        MAKE( TYPE_ENTITY ),
         MAKE( TYPE_ARRAY ),
         MAKE( TYPE_PROC ),
+        MAKE( TYPE_REFERENCE ),
 #undef MAKE
 };
 
