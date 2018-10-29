@@ -1371,7 +1371,6 @@ void resolve_ref_type(Type t)
         const int unassigned = -42;
 
         int isComplete = unassigned;
-        Type resolvedTp = -1;
 
         switch (typeInfo[t].kind) {
         case TYPE_BASE:
@@ -1393,16 +1392,16 @@ void resolve_ref_type(Type t)
                 // TODO
                 break;
         case TYPE_REFERENCE: {
+                isComplete = 0;
                 typeInfo[t].isComplete = -1;
                 Symbol sym = symrefInfo[typeInfo[t].tRef.ref].sym;
-                isComplete = 0;
                 if (sym != -1 && symbolInfo[sym].kind == SYMBOL_TYPE) {
                         Type symtp = symbolInfo[sym].tType;
                         if (symtp != -1) {
                                 resolve_ref_type(symtp);
                                 isComplete = typeInfo[symtp].isComplete;
-                                resolvedTp = symtp;
                         }
+                        typeInfo[t].tRef.resolvedTp = symtp;
                 }
                 break;
         }
@@ -1411,7 +1410,6 @@ void resolve_ref_type(Type t)
         }
         assert(isComplete != unassigned);
         typeInfo[t].isComplete = isComplete;
-        typeInfo[t].tRef.resolvedTp = resolvedTp;
 }
 
 void resolve_type_references(void)
