@@ -520,36 +520,6 @@ int token_is_binary_infix_operator(Token tok, int *out_optp)
         return 0;
 }
 
-int read_char(void)
-{
-        if (haveSavedChar) {
-                haveSavedChar = 0;
-                currentOffset++;
-                return savedChar;
-        }
-        else if (currentOffset < fileInfo[currentFile].size) {
-                int pos = currentOffset++;
-                return fileInfo[currentFile].buf[pos];
-        }
-        else {
-                return -1;
-        }
-}
-
-int look_char(void)
-{
-        if (! haveSavedChar) {
-                if (currentOffset < fileInfo[currentFile].size) {
-                        haveSavedChar = 1;
-                        savedChar = fileInfo[currentFile].buf[currentOffset];
-                }
-                else {
-                        savedChar = -1;
-                }
-        }
-        return savedChar;
-}
-
 /* offset may be 1 past the end of file (i.e., equal to file size) */
 int compute_lineno(File file, int offset)
 {
@@ -616,6 +586,35 @@ int compute_colno(File file, int offset)
                 MSG_AT("PARSE", currentFile, currentOffset, \
                        "%s()\n", __func__);
 
+int look_char(void)
+{
+        if (! haveSavedChar) {
+                if (currentOffset < fileInfo[currentFile].size) {
+                        haveSavedChar = 1;
+                        int c = fileInfo[currentFile].buf[currentOffset];
+                        if (char_is_invalid(c)) {
+                                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
+                                                     "Invalid byte %d\n", c);
+                        }
+                        savedChar = c;
+                }
+                else {
+                        savedChar = -1;
+                }
+        }
+        return savedChar;
+}
+
+int read_char(void)
+{
+        int c = look_char();
+        if (c != -1) {
+                currentOffset++;
+                haveSavedChar = 0;
+        }
+        return c;
+}
+
 void push_scope(Scope scope)
 {
         if (scopeStackCnt >= LENGTH(scopeStack))
@@ -642,22 +641,43 @@ Token parse_next_token(void)
                 haveSavedToken = 0;
                 return savedToken;
         }
+retry:
 
         for (;;) {
-                c = look_char();
+                c = read_char();
                 if (c == -1)
                         return -1;
-                if (char_is_invalid(c))
-                        FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-                                             "Invalid byte %d\n", c);
-                if (! char_is_whitespace(c))
+                if (char_is_whitespace(c))
+                        continue;
+                if (c != '/')
                         break;
-                read_char();
+                /* comment? */
+                if (c == '/') {
+                        c = look_char();
+                        if (c != '*')
+                                break;
+                }
+                for (;;) {
+                        read_char();
+                        c = look_char();
+                        if (c == '*') {
+                                read_char();
+                                c = look_char();
+                                if (c == '/') {
+                                        read_char();
+                                        goto retry;
+                                }
+                        }
+                        if (c == -1) {
+                                FATAL_PARSE_ERROR_AT(
+                                        currentFile, currentOffset,
+                                        "EOF with unclosed comment\n");
+                        }
+                }
         }
 
-        off = currentOffset;
-
-        c = read_char();
+        /* good to go. Variable c contains first character to lex */
+        off = currentOffset - 1;
         if (char_is_alpha(c)) {
                 lexbufCnt = 0;
                 for (;;) {

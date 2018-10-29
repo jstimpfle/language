@@ -2,6 +2,7 @@ entity int Foobar;
 
 proc int f(Foobar x)
 {
+    /* test comment */
     array int a[F];
     return a[x];
     return a[3];

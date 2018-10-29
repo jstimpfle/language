@@ -105,7 +105,7 @@ void NORETURN _fatal(UNUSED const char *filename, UNUSED int line,
 {
         va_list ap;
         va_start(ap, fmt);
-        _msg(filename, line, "FATAL", fmt, ap);
+        _vmsg(filename, line, "FATAL", fmt, ap);
         va_end(ap);
         abort();
 }
