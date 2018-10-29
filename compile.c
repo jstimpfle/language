@@ -582,6 +582,8 @@ int compute_colno(File file, int offset)
               compute_lineno(file, offset), \
               compute_colno(file, offset), \
               ##__VA_ARGS__)
+#define MSG_AT_TOK(lvl, tok, fmt, ...) \
+        MSG_AT(lvl, currentFile, tokenInfo[tok].offset, fmt, ##__VA_ARGS__)
 #define FATAL_PARSE_ERROR_AT(file, offset, fmt, ...) \
         FATAL("At %s %d:%d: " fmt, \
               string_buffer(fileInfo[file].filepath), \
@@ -1215,7 +1217,8 @@ void parse_global_scope(void)
                         parse_proc();
                 }
                 else {
-                        FATAL_PARSE_ERROR(tok, "Unexpected word %s\n", TS(tok));
+                        FATAL_PARSE_ERROR(tok,
+                            "Unexpected word %s\n", TS(tok));
                 }
         }
 
@@ -1315,7 +1318,6 @@ Symbol find_symbol_in_scope(String name, Scope scope)
                         }
                 }
         }
-        WARN("MISSING Symbol %s\n", string_buffer(name));
         return -1;
 }
 
@@ -1324,7 +1326,13 @@ void resolve_symbol_references(void)
         for (Symref ref = 0; ref < symrefCnt; ref++) {
                 String name = symrefInfo[ref].name;
                 Scope refScope = symrefInfo[ref].refScope;
-                symrefInfo[ref].sym = find_symbol_in_scope(name, refScope);
+                Symbol sym = find_symbol_in_scope(name, refScope);
+                if (sym < 0) {
+                        MSG_AT_TOK("ERROR", symrefInfo[ref].tok,
+                                   "unresolved symbol reference %s\n",
+                                   string_buffer(name));
+                }
+                symrefInfo[ref].sym = sym;
         }
 }
 
@@ -1448,8 +1456,8 @@ Type check_symref_expr_type(Expr x)
         Type tp = -1;
         if (sym == -1) {
                 const char *name = string_buffer(symrefInfo[ref].name);
-                WARN_PARSE_ERROR_EXPR(
-                        x, "Can't check type: symbol \"%s\" unresolved\n", name);
+                WARN_PARSE_ERROR_EXPR(x,
+                      "Can't check type: symbol \"%s\" unresolved\n", name);
                 goto out;
         }
         switch (symbolInfo[sym].kind) {
