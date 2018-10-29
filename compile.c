@@ -1324,181 +1324,11 @@ void resolve_symbol_references(void)
         }
 }
 
-Type check_literal_expr_type(Expr x)
-{
-        //XXX
-        exprInfo[x].tp = -1;
-        return exprInfo[x].tp;
-}
-
-Type check_symref_expr_type(Expr x)
-{
-        Symref ref = exprInfo[x].tSymref.ref;
-        // XXX: symbol resolved?
-        Symbol sym = symrefInfo[ref].sym;
-        Type tp = -1;
-        if (sym == -1) {
-                const char *name = string_buffer(symrefInfo[ref].name);
-                WARN_PARSE_ERROR_EXPR(
-                        x, "Can't check type: symbol \"%s\" unresolved\n", name);
-                goto out;
-        }
-        switch (symbolInfo[sym].kind) {
-                case SYMBOL_TYPE:
-                        // Maybe something like the "type" type?
-                        // Or fatal() ?
-                        UNHANDLED_CASE();
-                        break;
-                case SYMBOL_DATA:
-                        tp = dataInfo[symbolInfo[sym].tData].tp;
-                        break;
-                case SYMBOL_ARRAY:
-                        tp = arrayInfo[symbolInfo[sym].tArray].tp;
-                        break;
-                case SYMBOL_PROC:
-                        tp = procInfo[symbolInfo[sym].tProc].tp;
-                        break;
-                case SYMBOL_PARAM:
-                        tp = paramInfo[symbolInfo[sym].tParam].tp;
-                        break;
-                default:
-                        msg("%d %d\n", sym, symbolCnt);
-                        msg("%d\n", symbolInfo[sym].kind);
-                        UNHANDLED_CASE();
-                        break;
-        }
-out:
-        msg("type of symref %s (#%d) is %d\n", SRS(ref), ref, tp);
-        exprInfo[x].tp = tp;
-        return tp;
-}
-
-Type check_expr_type(Expr x);
-
-Type check_unop_expr_type(Expr x)
-{
-        int op = exprInfo[x].tUnop.kind;
-        Expr xx = exprInfo[x].tUnop.expr;
-        Type tt = check_expr_type(xx);
-        Type tp = -1;
-        if (tt != -1) {
-                switch (op) {
-                case UNOP_INVERTBITS:
-                case UNOP_NOT:
-                case UNOP_ADDRESSOF:
-                case UNOP_DEREF:
-                case UNOP_NEGATIVE:
-                case UNOP_POSITIVE:
-                case UNOP_PREDECREMENT:
-                case UNOP_PREINCREMENT:
-                case UNOP_POSTDECREMENT:
-                case UNOP_POSTINCREMENT:
-                        // TODO: operator valid for this type?
-                        tp = 0;  // XXX
-                }
-        }
-        exprInfo[x].tp = tp;
-        return tp;
-}
-
-Type check_binop_expr_type(Expr x)
-{
-        Expr x1 = exprInfo[x].tBinop.expr1;
-        Expr x2 = exprInfo[x].tBinop.expr2;
-        Type t1 = check_expr_type(x1);
-        Type t2 = check_expr_type(x2);
-        // TODO: operator valid for t1 and t2?
-        // TODO: infer type for x
-        return -1;
-}
-
-Type check_member_expr_type(Expr x)
-{
-        Expr xx = exprInfo[x].tMember.expr;
-        String name = exprInfo[x].tMember.name;
-        Type tt = exprInfo[xx].tMember.expr;
-        // TODO: lookup member and infer type
-        return -1;
-}
-
-Type check_subscript_expr_type(Expr x)
-{
-        Expr x1 = exprInfo[x].tSubscript.expr1;
-        Expr x2 = exprInfo[x].tSubscript.expr2;
-        Type t1 = check_expr_type(x1);
-        Type t2 = check_expr_type(x2);
-        // TODO: subscript valid?
-        // TODO: infer type
-        return -1;
-}
-
-Type check_call_expr_type(Expr x)
-{
-        //XXX total mess and incomplete and wrong
-        Expr callee = exprInfo[x].tCall.callee;
-        Type calleeTp = check_expr_type(callee);
-        if (calleeTp == -1)
-                return -1;
-        int calleeTpKind = typeInfo[calleeTp].kind;
-        if (calleeTpKind != TYPE_PROC)
-                WARN_PARSE_ERROR_EXPR(callee,
-                    "Called expression: Expected proc type but found %s\n",
-                    typeKindString[calleeTpKind]);
-        int first = exprInfo[x].tCall.firstArgIdx;
-        int last = first + exprInfo[x].tCall.nargs;
-        for (int i = first; i < last; i++) {
-                Expr argx = callArgInfo[i].argExpr;
-                check_expr_type(argx);
-                // TODO: check that argument type matches param of called proc
-        }
-        return -1;
-}
-
-Type check_expr_type(Expr x)
-{
-        if (exprInfo[x].tp == -1)
-                return -1;
-        if (exprInfo[x].tp == -2)
-                FATAL("Type error: cyclic symbol dependency\n");
-        if (exprInfo[x].tp >= 0)
-                return exprInfo[x].tp;
-        assert(exprInfo[x].tp == -3);
-        exprInfo[x].tp = -2;
-
-        Type tp = -1;
-        switch (exprInfo[x].kind) {
-        case EXPR_LITERAL:
-                tp = check_literal_expr_type(x);
-                break;
-        case EXPR_SYMREF:
-                tp = check_symref_expr_type(x);
-                break;
-        case EXPR_UNOP:
-                tp = check_unop_expr_type(x);
-                break;
-        case EXPR_BINOP:
-                tp = check_binop_expr_type(x);
-                break;
-        case EXPR_MEMBER:
-                tp = check_member_expr_type(x);
-                break;
-        case EXPR_SUBSCRIPT:
-                tp = check_subscript_expr_type(x);
-                break;
-        case EXPR_CALL:
-                tp = check_call_expr_type(x);
-                break;
-        default:
-                UNHANDLED_CASE();
-        }
-        exprInfo[x].tp = tp;
-        return tp;
-}
-
 void resolve_ref_type(Type t)
 {
         if (typeInfo[t].isComplete == -1) {
                 WARN("Type #%d: cyclic type reference\n", t);
+                typeInfo[t].isComplete = 0;
                 return;
         }
         if (typeInfo[t].isComplete >= 0)
@@ -1520,6 +1350,7 @@ void resolve_ref_type(Type t)
                         typeInfo[typeInfo[t].tArray.valuetp].isComplete;
                 break;
         case TYPE_PROC:
+                typeInfo[t].isComplete = 0;
                 // TODO
                 break;
         case TYPE_REFERENCE: {
@@ -1557,6 +1388,226 @@ void resolve_type_references(void)
         for (Type t = 0; t < typeCnt; t++)
                 if (typeInfo[t].isComplete == -2)
                         resolve_ref_type(t);
+        for (Type t = 0; t < typeCnt; t++) {
+                assert(typeInfo[t].isComplete == 1 ||
+                       typeInfo[t].isComplete == 0);
+        }
+}
+
+int is_integral_type(Type t)
+{
+        return typeInfo[t].kind == TYPE_BASE; //XXX
+}
+
+int type_equal(Type a, Type b)
+{
+        if (!typeInfo[a].isComplete)
+                return 0;
+        if (!typeInfo[b].isComplete)
+                return 0;
+        while (typeInfo[a].kind == TYPE_REFERENCE) {
+                a = typeInfo[a].tRef.resolvedTp;
+                assert(a != -1);
+        }
+        while (typeInfo[b].kind == TYPE_REFERENCE) {
+                b = typeInfo[b].tRef.resolvedTp;
+                assert(a != -1);
+        }
+        return a == b;
+}
+
+Type check_literal_expr_type(Expr x)
+{
+        //XXX
+        Type tp = 0;
+        exprInfo[x].tp = tp;
+        return tp;
+}
+
+Type check_symref_expr_type(Expr x)
+{
+        Symref ref = exprInfo[x].tSymref.ref;
+        // XXX: symbol resolved?
+        Symbol sym = symrefInfo[ref].sym;
+        Type tp = -1;
+        if (sym == -1) {
+                const char *name = string_buffer(symrefInfo[ref].name);
+                WARN_PARSE_ERROR_EXPR(
+                        x, "Can't check type: symbol \"%s\" unresolved\n", name);
+                goto out;
+        }
+        switch (symbolInfo[sym].kind) {
+                case SYMBOL_TYPE:
+                        // Maybe something like the "type" type?
+                        // Or fatal() ?
+                        UNHANDLED_CASE();
+                        break;
+                case SYMBOL_DATA:
+                        tp = dataInfo[symbolInfo[sym].tData].tp;
+                        break;
+                case SYMBOL_ARRAY:
+                        tp = arrayInfo[symbolInfo[sym].tArray].tp;
+                        break;
+                case SYMBOL_PROC:
+                        tp = procInfo[symbolInfo[sym].tProc].tp;
+                        break;
+                case SYMBOL_PARAM:
+                        tp = paramInfo[symbolInfo[sym].tParam].tp;
+                        break;
+                default:
+                        UNHANDLED_CASE();
+                        break;
+        }
+out:
+        exprInfo[x].tp = tp;
+        return tp;
+}
+
+Type check_expr_type(Expr x);
+
+Type check_unop_expr_type(Expr x)
+{
+        int op = exprInfo[x].tUnop.kind;
+        Expr xx = exprInfo[x].tUnop.expr;
+        Type tt = check_expr_type(xx);
+        Type tp = -1;
+        if (tt != -1) {
+                switch (op) {
+                case UNOP_INVERTBITS:
+                case UNOP_NOT:
+                case UNOP_ADDRESSOF:
+                case UNOP_DEREF:
+                case UNOP_NEGATIVE:
+                case UNOP_POSITIVE:
+                case UNOP_PREDECREMENT:
+                case UNOP_PREINCREMENT:
+                case UNOP_POSTDECREMENT:
+                case UNOP_POSTINCREMENT:
+                        if (is_integral_type(tt))
+                                tp = tt;
+                        break;
+                default:
+                        UNHANDLED_CASE();
+                }
+        }
+        exprInfo[x].tp = tp;
+        return tp;
+}
+
+Type check_binop_expr_type(Expr x)
+{
+        int op = exprInfo[x].tUnop.kind;
+        Expr x1 = exprInfo[x].tBinop.expr1;
+        Expr x2 = exprInfo[x].tBinop.expr2;
+        Type t1 = check_expr_type(x1);
+        Type t2 = check_expr_type(x2);
+        Type tp = -1;
+        if (t1 != -1 && t2 != -1) {
+                switch (op) {
+                case BINOP_ASSIGN:
+                case BINOP_EQUALS:
+                case BINOP_MINUS:
+                case BINOP_PLUS:
+                case BINOP_MUL:
+                case BINOP_DIV:
+                case BINOP_BITAND:
+                case BINOP_BITOR:
+                case BINOP_BITXOR:
+                        if (is_integral_type(t1) && is_integral_type(t2)
+                            && t1 == t2)
+                                tp = t1;
+                        break;
+                default:
+                        UNHANDLED_CASE();
+                }
+        }
+        exprInfo[x].tp = tp;
+        return tp;
+}
+
+Type check_member_expr_type(Expr x)
+{
+        Expr xx = exprInfo[x].tMember.expr;
+        String name = exprInfo[x].tMember.name;
+        Type tt = exprInfo[xx].tMember.expr;
+        // TODO: lookup member and infer type
+        Type tp = -1;
+        exprInfo[x].tp = tp;
+        return tp;
+}
+
+Type check_subscript_expr_type(Expr x)
+{
+        Expr x1 = exprInfo[x].tSubscript.expr1;
+        Expr x2 = exprInfo[x].tSubscript.expr2;
+        Type t1 = check_expr_type(x1);
+        Type t2 = check_expr_type(x2);
+
+        Type tp = -1;
+        if (typeInfo[t1].kind == TYPE_ARRAY) {
+                if (type_equal(t2, typeInfo[t1].tArray.idxtp))
+                        tp = typeInfo[t1].tArray.valuetp;
+        }
+        /*
+        msg("t1=%d, t2=%d, idxtp=%d, valuetp=%d, tp=%d\n",
+            t1, t2, typeInfo[t1].tArray.idxtp, typeInfo[t1].tArray.valuetp, tp);
+            */
+        exprInfo[x].tp = tp;
+        return tp;
+}
+
+Type check_call_expr_type(Expr x)
+{
+        //XXX total mess and incomplete and wrong
+        Expr callee = exprInfo[x].tCall.callee;
+        Type calleeTp = check_expr_type(callee);
+        if (calleeTp == -1)
+                return -1;
+        int calleeTpKind = typeInfo[calleeTp].kind;
+        if (calleeTpKind != TYPE_PROC)
+                WARN_PARSE_ERROR_EXPR(callee,
+                    "Called expression: Expected proc type but found %s\n",
+                    typeKindString[calleeTpKind]);
+        int first = exprInfo[x].tCall.firstArgIdx;
+        int last = first + exprInfo[x].tCall.nargs;
+        for (int i = first; i < last; i++) {
+                Expr argx = callArgInfo[i].argExpr;
+                check_expr_type(argx);
+                // TODO: check that argument type matches param of called proc
+        }
+        return -1;
+}
+
+Type check_expr_type(Expr x)
+{
+        Type tp = -1;
+        switch (exprInfo[x].kind) {
+        case EXPR_LITERAL:
+                tp = check_literal_expr_type(x);
+                break;
+        case EXPR_SYMREF:
+                tp = check_symref_expr_type(x);
+                break;
+        case EXPR_UNOP:
+                tp = check_unop_expr_type(x);
+                break;
+        case EXPR_BINOP:
+                tp = check_binop_expr_type(x);
+                break;
+        case EXPR_MEMBER:
+                tp = check_member_expr_type(x);
+                break;
+        case EXPR_SUBSCRIPT:
+                tp = check_subscript_expr_type(x);
+                break;
+        case EXPR_CALL:
+                tp = check_call_expr_type(x);
+                break;
+        default:
+                UNHANDLED_CASE();
+        }
+        exprInfo[x].tp = tp;
+        return tp;
 }
 
 void check_types(void)
@@ -1574,10 +1625,15 @@ int main(int argc, const char **argv)
 {
         init_strings();
         init_basetypes();
+
+        const char *fileToParse = "test.txt";
         for (int i = 1; i < argc; i++)
                 if (cstr_compare(argv[i], "-debug") == 0)
                         doDebug = 1;
-        add_file(intern_cstring("test.txt"));
+                else
+                        fileToParse = argv[i];
+
+        add_file(intern_cstring(fileToParse));
         parse_global_scope();
         resolve_symbol_references();
         resolve_type_references();
