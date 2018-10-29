@@ -1,0 +1,10 @@
+entity int Foobar;
+
+proc int f(Foobar x)
+{
+    array int a[F];
+    return a[x];
+    return a[3];
+    return 3[x];
+    3;
+}

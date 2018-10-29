@@ -576,38 +576,43 @@ int compute_colno(File file, int offset)
         return column;
 }
 
-#define WARN_PARSE_ERROR_AT(file, offset, mesg, ...) \
-        WARN( "At %s %d:%d: " mesg, \
+#define MSG_AT(lvl, file, offset, fmt, ...) \
+        MSG(lvl, "At %s %d:%d: " fmt, \
               string_buffer(fileInfo[file].filepath), \
               compute_lineno(file, offset), \
               compute_colno(file, offset), \
               ##__VA_ARGS__)
-#define FATAL_PARSE_ERROR_AT(file, offset, mesg, ...) \
-        FATAL("At %s %d:%d: " mesg, \
+#define FATAL_PARSE_ERROR_AT(file, offset, fmt, ...) \
+        FATAL("At %s %d:%d: " fmt, \
               string_buffer(fileInfo[file].filepath), \
               compute_lineno(file, offset), \
               compute_colno(file, offset), \
               ##__VA_ARGS__)
-#define WARN_PARSE_ERROR_EXPR(x, mesg, ...) \
+#define WARN_PARSE_ERROR_EXPR(x, fmt, ...) \
         do { \
                 File x_file; \
                 int x_offset; \
                 find_expr_position(x, &x_file, &x_offset); \
-                WARN_PARSE_ERROR_AT(x_file, x_offset, mesg, ##__VA_ARGS__); \
+                MSG_AT("WARN", x_file, x_offset, fmt, ##__VA_ARGS__); \
         } while (0)
-#define FATAL_PARSE_ERROR(tok, mesg, ...) \
-        FATAL("At %s %d:%d: ERROR parsing %s token. " mesg, \
+#define FATAL_PARSE_ERROR(tok, fmt, ...) \
+        FATAL("At %s %d:%d: ERROR parsing %s token. " fmt, \
               string_buffer(fileInfo[tokenInfo[tok].file].filepath), \
               compute_lineno(tokenInfo[tok].file, tokenInfo[tok].offset), \
               compute_colno(tokenInfo[tok].file, tokenInfo[tok].offset), \
               tokenKindString[tokenInfo[tok].kind], \
               ##__VA_ARGS__)
+#define LOG_TYPE_ERROR_EXPR(x, fmt, ...) \
+        do { \
+                File x_file; \
+                int x_offset; \
+                find_expr_position(x, &x_file, &x_offset); \
+                MSG_AT("ERROR", x_file, x_offset, fmt, ##__VA_ARGS__); \
+        } while (0)
 #define PARSE_LOG() \
         if (doDebug) \
-                msg("AT %s() at %d:%d\n", \
-                    __func__, \
-                    compute_lineno(currentFile, currentOffset), \
-                    compute_colno(currentFile, currentOffset))
+                MSG_AT("PARSE", currentFile, currentOffset, \
+                       "%s()\n", __func__);
 
 void push_scope(Scope scope)
 {
@@ -1299,13 +1304,13 @@ void parse_global_scope(void)
 
 Symbol find_symbol_in_scope(String name, Scope scope)
 {
-        //msg("RESOLVE %s\n", string_buffer(name));
+        //MSG("RESOLVE %s\n", string_buffer(name));
         for (; scope != -1; scope = scopeInfo[scope].parentScope) {
                 Symbol first = scopeInfo[scope].firstSymbol;
                 Symbol last = first + scopeInfo[scope].numSymbols;
                 for (Symbol i = first; i < last; i++) {
                         if (symbolInfo[i].name == name) {
-                                //msg("FOUND symbol %s\n", string_buffer(name));
+                                //MSG("FOUND symbol %s\n", string_buffer(name));
                                 return i;
                         }
                 }
@@ -1318,7 +1323,6 @@ void resolve_symbol_references(void)
 {
         for (Symref ref = 0; ref < symrefCnt; ref++) {
                 String name = symrefInfo[ref].name;
-                msg("check symbol %s\n", string_buffer(name));
                 Scope refScope = symrefInfo[ref].refScope;
                 symrefInfo[ref].sym = find_symbol_in_scope(name, refScope);
         }
@@ -1326,39 +1330,44 @@ void resolve_symbol_references(void)
 
 void resolve_ref_type(Type t)
 {
+        if (typeInfo[t].isComplete >= 0) {
+                /* already processed */
+                return;
+        }
         if (typeInfo[t].isComplete == -1) {
                 WARN("Type #%d: cyclic type reference\n", t);
                 typeInfo[t].isComplete = 0;
                 return;
         }
-        if (typeInfo[t].isComplete >= 0)
-                return;
+
+        const int unassigned = -42;
+
+        int isComplete = unassigned;
+        Type resolvedTp = -1;
+
         switch (typeInfo[t].kind) {
         case TYPE_BASE:
-                typeInfo[t].isComplete = 1;
+                isComplete = 1;
                 break;
         case TYPE_ENTITY:
                 resolve_ref_type(typeInfo[t].tEntity.tp);
-                typeInfo[t].isComplete =
-                        typeInfo[typeInfo[t].tEntity.tp].isComplete;
+                isComplete = typeInfo[typeInfo[t].tEntity.tp].isComplete;
                 break;
         case TYPE_ARRAY:
                 resolve_ref_type(typeInfo[t].tArray.idxtp);
                 resolve_ref_type(typeInfo[t].tArray.valuetp);
-                typeInfo[t].isComplete =
+                isComplete =
                         typeInfo[typeInfo[t].tArray.idxtp].isComplete &&
                         typeInfo[typeInfo[t].tArray.valuetp].isComplete;
                 break;
         case TYPE_PROC:
-                typeInfo[t].isComplete = 0;
+                isComplete = 0;
                 // TODO
                 break;
         case TYPE_REFERENCE: {
                 typeInfo[t].isComplete = -1;
-                typeInfo[t].tRef.resolvedTp = -1;
                 Symbol sym = symrefInfo[typeInfo[t].tRef.ref].sym;
-                int isComplete = 0;
-                Type resolvedTp = -1;
+                isComplete = 0;
                 if (sym != -1 && symbolInfo[sym].kind == SYMBOL_TYPE) {
                         Type symtp = symbolInfo[sym].tType;
                         if (symtp != -1) {
@@ -1367,13 +1376,14 @@ void resolve_ref_type(Type t)
                                 resolvedTp = symtp;
                         }
                 }
-                typeInfo[t].isComplete = isComplete;
-                typeInfo[t].tRef.resolvedTp = resolvedTp;
                 break;
         }
         default:
                 UNHANDLED_CASE();
         }
+        assert(isComplete != unassigned);
+        typeInfo[t].isComplete = isComplete;
+        typeInfo[t].tRef.resolvedTp = resolvedTp;
 }
 
 void resolve_type_references(void)
@@ -1397,6 +1407,12 @@ void resolve_type_references(void)
 int is_integral_type(Type t)
 {
         return typeInfo[t].kind == TYPE_BASE; //XXX
+}
+
+int is_bad_type(Type t)
+{
+        assert(t >= 0);  // is this really true?
+        return ! typeInfo[t].isComplete;
 }
 
 int type_equal(Type a, Type b)
@@ -1542,14 +1558,25 @@ Type check_subscript_expr_type(Expr x)
         Expr x2 = exprInfo[x].tSubscript.expr2;
         Type t1 = check_expr_type(x1);
         Type t2 = check_expr_type(x2);
-
         Type tp = -1;
-        if (typeInfo[t1].kind == TYPE_ARRAY) {
-                if (type_equal(t2, typeInfo[t1].tArray.idxtp))
-                        tp = typeInfo[t1].tArray.valuetp;
+
+        if (is_bad_type(t1) || is_bad_type(t2)) {
+                LOG_TYPE_ERROR_EXPR(x,
+                        "Cannot typecheck subscript expression: "
+                        "bad array or index type\n");
         }
+        else if (typeInfo[t1].kind != TYPE_ARRAY)
+                LOG_TYPE_ERROR_EXPR(x,
+                            "Subscript expression invalid: "
+                            "indexed object is not array type\n");
+        else if (! type_equal(t2, typeInfo[t1].tArray.idxtp))
+                LOG_TYPE_ERROR_EXPR(x,
+                            "Incompatible type of index "
+                            "in subscript expression\n");
+        else
+                tp = typeInfo[t1].tArray.valuetp;
         /*
-        msg("t1=%d, t2=%d, idxtp=%d, valuetp=%d, tp=%d\n",
+        MSG("t1=%d, t2=%d, idxtp=%d, valuetp=%d, tp=%d\n",
             t1, t2, typeInfo[t1].tArray.idxtp, typeInfo[t1].tArray.valuetp, tp);
             */
         exprInfo[x].tp = tp;
@@ -1616,7 +1643,7 @@ void check_types(void)
                 check_expr_type(x);
         for (Expr x = 0; x < exprCnt; x++) {
                 if (exprInfo[x].tp == -1)
-                        WARN_PARSE_ERROR_EXPR(
+                        LOG_TYPE_ERROR_EXPR(
                                 x, "Type check of expression failed\n");
         }
 }
@@ -1635,10 +1662,13 @@ int main(int argc, const char **argv)
 
         add_file(intern_cstring(fileToParse));
         parse_global_scope();
+        MSG("INFO", "Resolving symbol references...\n");
         resolve_symbol_references();
+        MSG("INFO", "Resolving type references...\n");
         resolve_type_references();
+        MSG("INFO", "Checking types...\n");
         check_types();
-        msg("\n\n\n");
+        MSG("INFO", "Pretty printing input...\n\n");
         prettyprint();
         return 0;
 }

@@ -688,11 +688,13 @@ void sort_array(void *ptr, int nelems, int elemsize,
 
 
 
-void msg(const char *fmt, ...);
-void _warn(const char *filename, int line, const char *fmt, ...);
+void output(const char *fmt, ...);
+void _msg(UNUSED const char *filename, UNUSED int line,
+          const char *loglevel, const char *fmt, ...);
 void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
 
-#define WARN(fmt, ...) _warn(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define MSG(lvl, fmt, ...) _msg(__FILE__, __LINE__, lvl, fmt, ##__VA_ARGS__)
+#define WARN(fmt, ...) _msg(__FILE__, __LINE__, "WARN", fmt, ##__VA_ARGS__)
 #define FATAL(fmt, ...) _fatal(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define UNHANDLED_CASE() FATAL("Unhandled case!");
 

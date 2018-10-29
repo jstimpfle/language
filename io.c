@@ -73,22 +73,30 @@ void sort_array(void *ptr, int nelems, int elemsize,
         qsort(ptr, nelems, elemsize, cmp);
 }
 
-void _msg(UNUSED const char *filename, UNUSED int line,
-          const char *loglevel, const char *msg, va_list ap)
-{
-        fprintf(stdout, "%s: ", loglevel);
-#ifndef NODEBUG
-        fprintf(stdout, "%s:%d: ", filename, line);
-#endif
-        vfprintf(stdout, msg, ap);
-}
-
-void _warn(UNUSED const char *filename, UNUSED int line,
-           const char *fmt, ...)
+void output(const char *fmt, ...)
 {
         va_list ap;
         va_start(ap, fmt);
-        _msg(filename, line, "WARN", fmt, ap);
+        vfprintf(stdout, fmt, ap);
+        va_end(ap);
+}
+
+void _vmsg(UNUSED const char *filename, UNUSED int line,
+          const char *loglevel, const char *fmt, va_list ap)
+{
+#ifndef NODEBUG
+        fprintf(stdout, "%s:%d:\t", filename, line);
+#endif
+        fprintf(stdout, "%s: ", loglevel);
+        vfprintf(stdout, fmt, ap);
+}
+
+void _msg(UNUSED const char *filename, UNUSED int line,
+          const char *loglevel, const char *fmt, ...)
+{
+        va_list ap;
+        va_start(ap, fmt);
+        _vmsg(filename, line, loglevel, fmt, ap);
         va_end(ap);
 }
 
@@ -100,14 +108,6 @@ void NORETURN _fatal(UNUSED const char *filename, UNUSED int line,
         _msg(filename, line, "FATAL", fmt, ap);
         va_end(ap);
         abort();
-}
-
-void msg(const char *fmt, ...)
-{
-        va_list ap;
-        va_start(ap, fmt);
-        vfprintf(stdout, fmt, ap);
-        va_end(ap);
 }
 
 void _buf_init(void **ptr, struct Alloc *alloc, UNUSED int elsize,
