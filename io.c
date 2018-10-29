@@ -1,8 +1,6 @@
 #include "defs.h"
 #include "api.h"
-#ifdef _WIN32
 #include <malloc.h>
-#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
