@@ -1,6 +1,5 @@
 #include "defs.h"
 #include "api.h"
-#include <malloc.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
