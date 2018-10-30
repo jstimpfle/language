@@ -71,7 +71,12 @@ void sort_array(void *ptr, int nelems, int elemsize,
         qsort(ptr, nelems, elemsize, cmp);
 }
 
-void output(const char *fmt, ...)
+void outs(const char *s)
+{
+        fputs(s, stdout);
+}
+
+void outf(const char *fmt, ...)
 {
         va_list ap;
         va_start(ap, fmt);
@@ -79,33 +84,65 @@ void output(const char *fmt, ...)
         va_end(ap);
 }
 
-void _vmsg(UNUSED const char *filename, UNUSED int line,
-          const char *loglevel, const char *fmt, va_list ap)
+void outfv(const char *fmt, va_list ap)
 {
-#ifndef NODEBUG
-        fprintf(stdout, "%s:%d:\t", filename, line);
-#endif
-        fprintf(stdout, "%s: ", loglevel);
         vfprintf(stdout, fmt, ap);
 }
 
-void _msg(UNUSED const char *filename, UNUSED int line,
+void _msg_begin(const char *srcfilename, int srcline,
+                const char *loglevel)
+{
+        fprintf(stdout, "%s:%d:\t", srcfilename, srcline);
+        fprintf(stdout, "%s: ", loglevel);
+}
+
+void _msg_printf(const char *fmt, ...)
+{
+        va_list ap;
+        va_start(ap, fmt);
+        vfprintf(stdout, fmt, ap);
+        va_end(ap);
+}
+
+void _msg_printfv(const char *fmt, va_list ap)
+{
+        vfprintf(stdout, fmt, ap);
+}
+
+void _msg_end(void)
+{
+}
+
+void _vmsg(const char *srcfilename, int srcline,
+           const char *loglevel, const char *fmt, va_list ap)
+{
+        _msg_begin(srcfilename, srcline, loglevel);
+        _msg_printfv(fmt, ap);
+        _msg_end();
+}
+
+void _msg(const char *srcfilename, int srcline,
           const char *loglevel, const char *fmt, ...)
 {
         va_list ap;
         va_start(ap, fmt);
-        _vmsg(filename, line, loglevel, fmt, ap);
+        _vmsg(srcfilename, srcline, loglevel, fmt, ap);
         va_end(ap);
 }
 
-void NORETURN _fatal(UNUSED const char *filename, UNUSED int line,
+void _abort(void)
+{
+        abort();
+}
+
+void NORETURN _fatal(const char *srcfilename, int srcline,
                      const char *fmt, ...)
 {
         va_list ap;
         va_start(ap, fmt);
-        _vmsg(filename, line, "FATAL", fmt, ap);
+        _vmsg(srcfilename, srcline, "FATAL", fmt, ap);
         va_end(ap);
-        abort();
+        _abort();
 }
 
 void _buf_init(void **ptr, struct Alloc *alloc, UNUSED int elsize,

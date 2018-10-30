@@ -7,6 +7,7 @@
   #pragma warning(disable: 4820)  //  '4' bytes padding added after data member
 #endif
 #include <assert.h>
+#include <stdarg.h>
 
 #ifdef _MSC_VER
   #define UNUSED __pragma(warning(suppress: 4100 4101))

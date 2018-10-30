@@ -1,6 +1,140 @@
 #include "defs.h"
 #include "api.h"
 
+const char lvl_debug[] = "DEBUG";
+const char lvl_info[] = "INFO";
+const char lvl_warn[] = "WARN";
+const char lvl_error[] = "ERROR";
+const char lvl_fatal[] = "FATAL";
+
+/* offset may be 1 past the end of file (i.e., equal to file size) */
+int compute_lineno(File file, int offset)
+{
+        int i;
+        int line = 1;
+
+        for (i = 0; i < offset; i++)
+                if (fileInfo[file].buf[i] == '\n')
+                        line++;
+        return line;
+}
+
+/* offset may be 1 past the end of file (i.e., equal to file size) */
+int compute_colno(File file, int offset)
+{
+        int i;
+        int column = 1;
+
+        for (i = 0; i < offset; i++)
+                if (fileInfo[file].buf[i] == '\n')
+                        column = 1;
+                else
+                        column ++;
+        return column;
+}
+
+void find_expr_position(Expr x, File *file, int *offset)
+{
+        // TODO: should this be added as hard data to ExprInfo?
+        Token tok = -1;
+        for (;;) {
+                switch (exprInfo[x].kind) {
+                case EXPR_LITERAL:
+                        tok = exprInfo[x].tLiteral.tok;
+                        break;
+                case EXPR_SYMREF:
+                        tok = symrefInfo[exprInfo[x].tSymref.ref].tok;
+                        break;
+                case EXPR_UNOP:
+                        tok = exprInfo[x].tUnop.tok;
+                        break;
+                case EXPR_BINOP:
+                        x = exprInfo[x].tBinop.expr1;
+                        continue;
+                case EXPR_MEMBER:
+                        x = exprInfo[x].tMember.expr;
+                        continue;
+                case EXPR_SUBSCRIPT:
+                        x = exprInfo[x].tSubscript.expr1;
+                        continue;
+                case EXPR_CALL:
+                        x = exprInfo[x].tCall.callee;
+                        continue;
+                default:
+                        UNHANDLED_CASE();
+                }
+                break;
+        }
+        assert(tok != -1);
+        *file = tokenInfo[tok].file;
+        *offset = tokenInfo[tok].offset;
+}
+
+void _msg_at_v(const char *srcfilename, int srcline,
+             const char *lvl, File file, int offset,
+             const char *fmt, va_list ap)
+{
+        const char *filepath = string_buffer(fileInfo[file].filepath);
+        int line = compute_lineno(file, offset);
+        int col = compute_colno(file, offset);
+        _msg_begin(srcfilename, srcline, lvl);
+        _msg_printf("At %s %d:%d: ", filepath, line, col);
+        _msg_printfv(fmt, ap);
+        _msg_end();
+}
+
+void _msg_at(const char *srcfilename, int srcline,
+             const char *lvl, File file, int offset,
+             const char *fmt, ...)
+{
+        va_list ap;
+        va_start(ap, fmt);
+        _msg_at_v(srcfilename, srcline, lvl, file, offset, fmt, ap);
+        va_end(ap);
+}
+
+void _msg_at_tok(const char *srcfilename, int srcline,
+                 const char *lvl, Token tok,
+                 const char *fmt, ...)
+{
+        File file = tokenInfo[tok].file;
+        int offset = tokenInfo[tok].offset;
+        va_list ap;
+        va_start(ap, fmt);
+        _msg_at_v(srcfilename, srcline, lvl, file, offset, fmt, ap);
+        va_end(ap);
+}
+
+void _msg_at_expr(const char *srcfilename, int srcline,
+                 const char *lvl, Expr expr,
+                 const char *fmt, ...)
+{
+        va_list ap;
+        int file;
+        int offset;
+
+        find_expr_position(expr, &file, &offset);
+        va_start(ap, fmt);
+        _msg_at_v(srcfilename, srcline, lvl, file, offset, fmt, ap);
+        va_end(ap);
+}
+
+#define MSG_AT(...) _msg_at(__FILE__, __LINE__, __VA_ARGS__)
+#define MSG_AT_TOK(...) _msg_at_tok(__FILE__, __LINE__, __VA_ARGS__)
+#define MSG_AT_EXPR(...) _msg_at_expr(__FILE__, __LINE__, __VA_ARGS__)
+
+#define FATAL_PARSE_ERROR_AT(...) \
+        do { MSG_AT(lvl_fatal, __VA_ARGS__); ABORT(); } while (0)
+#define FATAL_PARSE_ERROR_AT_TOK(...) \
+        do { MSG_AT_TOK(lvl_fatal, __VA_ARGS__); ABORT(); } while (0)
+#define LOG_TYPE_ERROR_EXPR(...) MSG_AT_EXPR(lvl_error, __VA_ARGS__)
+#define LOG_TYPE_ERROR_EXPR(...) MSG_AT_EXPR(lvl_error, __VA_ARGS__)
+
+#define PARSE_LOG() \
+        if (doDebug) \
+                MSG_AT(lvl_debug, currentFile, currentOffset, \
+                       "%s()\n", __func__);
+
 File add_file(String filepath)
 {
         File x = fileCnt++;
@@ -418,43 +552,6 @@ void init(void)
         }
 }
 
-void find_expr_position(Expr x, File *file, int *offset)
-{
-        // TODO: should this be added as hard data to ExprInfo?
-        Token tok = -1;
-        for (;;) {
-                switch (exprInfo[x].kind) {
-                case EXPR_LITERAL:
-                        tok = exprInfo[x].tLiteral.tok;
-                        break;
-                case EXPR_SYMREF:
-                        tok = symrefInfo[exprInfo[x].tSymref.ref].tok;
-                        break;
-                case EXPR_UNOP:
-                        tok = exprInfo[x].tUnop.tok;
-                        break;
-                case EXPR_BINOP:
-                        x = exprInfo[x].tBinop.expr1;
-                        continue;
-                case EXPR_MEMBER:
-                        x = exprInfo[x].tMember.expr;
-                        continue;
-                case EXPR_SUBSCRIPT:
-                        x = exprInfo[x].tSubscript.expr1;
-                        continue;
-                case EXPR_CALL:
-                        x = exprInfo[x].tCall.callee;
-                        continue;
-                default:
-                        UNHANDLED_CASE();
-                }
-                break;
-        }
-        assert(tok != -1);
-        *file = tokenInfo[tok].file;
-        *offset = tokenInfo[tok].offset;
-}
-
 int char_is_alpha(int c)
 {
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
@@ -510,72 +607,6 @@ int token_is_binary_infix_operator(Token tok, int *out_optp)
         }
         return 0;
 }
-
-/* offset may be 1 past the end of file (i.e., equal to file size) */
-int compute_lineno(File file, int offset)
-{
-        int i;
-        int line = 1;
-
-        for (i = 0; i < offset; i++)
-                if (fileInfo[file].buf[i] == '\n')
-                        line++;
-        return line;
-}
-
-/* offset may be 1 past the end of file (i.e., equal to file size) */
-int compute_colno(File file, int offset)
-{
-        int i;
-        int column = 1;
-
-        for (i = 0; i < offset; i++)
-                if (fileInfo[file].buf[i] == '\n')
-                        column = 1;
-                else
-                        column ++;
-        return column;
-}
-
-#define MSG_AT(lvl, file, offset, fmt, ...) \
-        MSG(lvl, "At %s %d:%d: " fmt, \
-              string_buffer(fileInfo[file].filepath), \
-              compute_lineno(file, offset), \
-              compute_colno(file, offset), \
-              ##__VA_ARGS__)
-#define MSG_AT_TOK(lvl, tok, fmt, ...) \
-        MSG_AT(lvl, currentFile, tokenInfo[tok].offset, fmt, ##__VA_ARGS__)
-#define FATAL_PARSE_ERROR_AT(file, offset, fmt, ...) \
-        FATAL("At %s %d:%d: " fmt, \
-              string_buffer(fileInfo[file].filepath), \
-              compute_lineno(file, offset), \
-              compute_colno(file, offset), \
-              ##__VA_ARGS__)
-#define WARN_PARSE_ERROR_EXPR(x, fmt, ...) \
-        do { \
-                File x_file; \
-                int x_offset; \
-                find_expr_position(x, &x_file, &x_offset); \
-                MSG_AT("WARN", x_file, x_offset, fmt, ##__VA_ARGS__); \
-        } while (0)
-#define FATAL_PARSE_ERROR(tok, fmt, ...) \
-        FATAL("At %s %d:%d: ERROR parsing %s token. " fmt, \
-              string_buffer(fileInfo[tokenInfo[tok].file].filepath), \
-              compute_lineno(tokenInfo[tok].file, tokenInfo[tok].offset), \
-              compute_colno(tokenInfo[tok].file, tokenInfo[tok].offset), \
-              tokenKindString[tokenInfo[tok].kind], \
-              ##__VA_ARGS__)
-#define LOG_TYPE_ERROR_EXPR(x, fmt, ...) \
-        do { \
-                File x_file; \
-                int x_offset; \
-                find_expr_position(x, &x_file, &x_offset); \
-                MSG_AT("ERROR", x_file, x_offset, fmt, ##__VA_ARGS__); \
-        } while (0)
-#define PARSE_LOG() \
-        if (doDebug) \
-                MSG_AT("PARSE", currentFile, currentOffset, \
-                       "%s()\n", __func__);
 
 int look_char(void)
 {
@@ -800,8 +831,8 @@ Token parse_token_kind(int tkind)
         }
         int k = tokenInfo[tok].kind;
         if (k != tkind) {
-                FATAL_PARSE_ERROR(tok, "Expected %s token\n",
-                                  tokenKindString[tkind]);
+                FATAL_PARSE_ERROR_AT_TOK(tok, "Expected %s token\n",
+                                      tokenKindString[tkind]);
         }
         return tok;
 }
@@ -921,7 +952,7 @@ Expr parse_expr(int minprec)
                 parse_token_kind(TOKTYPE_RIGHTPAREN);
         }
         else {
-                FATAL_PARSE_ERROR(tok, "Expected expression\n");
+                FATAL_PARSE_ERROR_AT_TOK(tok, "Expected expression\n");
         }
 
         for (;;) {
@@ -1220,7 +1251,7 @@ void parse_global_scope(void)
                         parse_proc();
                 }
                 else {
-                        FATAL_PARSE_ERROR(tok,
+                        FATAL_PARSE_ERROR_AT_TOK(tok,
                             "Unexpected word %s\n", TS(tok));
                 }
         }
@@ -1457,7 +1488,7 @@ Type check_symref_expr_type(Expr x)
         Type tp = -1;
         if (sym == -1) {
                 const char *name = string_buffer(symrefInfo[ref].name);
-                WARN_PARSE_ERROR_EXPR(x,
+                LOG_TYPE_ERROR_EXPR(x,
                       "Can't check type: symbol \"%s\" unresolved\n", name);
                 goto out;
         }
@@ -1552,9 +1583,11 @@ Type check_binop_expr_type(Expr x)
 
 Type check_member_expr_type(Expr x)
 {
+        /*
         Expr xx = exprInfo[x].tMember.expr;
         String name = exprInfo[x].tMember.name;
         Type tt = exprInfo[xx].tMember.expr;
+        */
         // TODO: lookup member and infer type
         Type tp = -1;
         exprInfo[x].tp = tp;
@@ -1601,7 +1634,7 @@ Type check_call_expr_type(Expr x)
                 return -1;
         int calleeTpKind = typeInfo[calleeTp].kind;
         if (calleeTpKind != TYPE_PROC)
-                WARN_PARSE_ERROR_EXPR(callee,
+                LOG_TYPE_ERROR_EXPR(callee,
                     "Called expression: Expected proc type but found %s\n",
                     typeKindString[calleeTpKind]);
         int first = exprInfo[x].tCall.firstArgIdx;

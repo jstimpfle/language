@@ -13,91 +13,85 @@ void remove_indent(void)
         indentSize -= 4;
 }
 
-void pprint(const char *buf)
+void pp_newline(void)
 {
-        output("%s", buf);
-}
-#define pprintf output
-
-void pprint_newline(void)
-{
-        pprint("\n");
+        outs("\n");
         for (int i = 0; i < indentSize; i++)
-                pprint(" ");
+                outs(" ");
 }
 
-void pprint_type(Type tp)
+void pp_type(Type tp)
 {
         if (tp < 0) {
-                pprint("(Bad type)");
+                outs("(Bad type)");
                 return;
         }
         switch (typeInfo[tp].kind) {
         case TYPE_BASE:
-                pprint(string_buffer(typeInfo[tp].tBase.name));
+                outs(string_buffer(typeInfo[tp].tBase.name));
                 break;
         case TYPE_ENTITY:
-                pprint(string_buffer(typeInfo[tp].tEntity.name));
+                outs(string_buffer(typeInfo[tp].tEntity.name));
                 break;
         case TYPE_ARRAY:
-                pprint("(array type)");
+                outs("(array type)");
                 break;
         case TYPE_PROC:
-                pprint("(proc type)");
+                outs("(proc type)");
                 break;
         case TYPE_REFERENCE:
-                pprint(SRS(typeInfo[tp].tRef.ref));
+                outs(SRS(typeInfo[tp].tRef.ref));
                 break;
         default:
                 UNHANDLED_CASE();
         }
 }
 
-void pprint_entity(Type t)
+void pp_entity(Type t)
 {
-        pprint_newline();
-        pprint("entity ");
-        pprint_type(typeInfo[t].tEntity.tp);
-        pprint(" ");
-        pprint(string_buffer(typeInfo[t].tEntity.name));
-        pprint(";");
+        pp_newline();
+        outs("entity ");
+        pp_type(typeInfo[t].tEntity.tp);
+        outs(" ");
+        outs(string_buffer(typeInfo[t].tEntity.name));
+        outs(";");
 }
 
-void pprint_data(Data d)
+void pp_data(Data d)
 {
-        pprint_newline();
-        pprint("data ");
-        pprint_type(dataInfo[d].tp);
-        pprint(" ");
-        pprint(SS(dataInfo[d].sym));
-        pprint(";");
+        pp_newline();
+        outs("data ");
+        pp_type(dataInfo[d].tp);
+        outs(" ");
+        outs(SS(dataInfo[d].sym));
+        outs(";");
 }
 
-void pprint_array(Array a)
+void pp_array(Array a)
 {
         Type t = arrayInfo[a].tp;
-        pprint_newline();
-        pprint("array ");
-        pprint_type(typeInfo[t].tArray.valuetp);
-        pprint(" ");
-        pprint(SS(arrayInfo[a].sym));
-        pprint("[");
-        pprint_type(typeInfo[t].tArray.idxtp);
-        pprint("]");
-        pprint(";");
+        pp_newline();
+        outs("array ");
+        pp_type(typeInfo[t].tArray.valuetp);
+        outs(" ");
+        outs(SS(arrayInfo[a].sym));
+        outs("[");
+        pp_type(typeInfo[t].tArray.idxtp);
+        outs("]");
+        outs(";");
 }
 
-void pprint_expr(Expr expr)
+void pp_expr(Expr expr)
 {
         switch (exprInfo[expr].kind) {
                 case EXPR_SYMREF: {
                         String s = symrefInfo[exprInfo[expr].tSymref.ref].name;
-                        pprint(string_buffer(s));
+                        outs(string_buffer(s));
                         break;
                 }
                 case EXPR_LITERAL: {
                         Token tok = exprInfo[expr].tLiteral.tok;
-                        pprintf("%lld", tokenInfo[tok].tInteger);
+                        outf("%lld", tokenInfo[tok].tInteger);
                         break;
                 }
                 case EXPR_UNOP: {
@@ -105,46 +99,46 @@ void pprint_expr(Expr expr)
                         int isprefix = unopInfo[unop].isprefix;
                         const char *str = unopInfo[unop].str;
                         if (isprefix)
-                                pprint(str);
-                        pprint_expr(exprInfo[expr].tUnop.expr);
+                                outs(str);
+                        pp_expr(exprInfo[expr].tUnop.expr);
                         if (!isprefix)
-                                pprint(str);
+                                outs(str);
                         break;
                 }
                 case EXPR_BINOP: {
-                        pprint_expr(exprInfo[expr].tBinop.expr1);
+                        pp_expr(exprInfo[expr].tBinop.expr1);
                         int binop = exprInfo[expr].tBinop.kind;
-                        pprint(" ");
-                        pprint(binopInfo[binop].str);
-                        pprint(" ");
-                        pprint_expr(exprInfo[expr].tBinop.expr2);
+                        outs(" ");
+                        outs(binopInfo[binop].str);
+                        outs(" ");
+                        pp_expr(exprInfo[expr].tBinop.expr2);
                         break;
                 }
                 case EXPR_MEMBER: {
-                        pprint_expr(exprInfo[expr].tMember.expr);
-                        pprint(".");
-                        pprint(string_buffer(exprInfo[expr].tMember.name));
+                        pp_expr(exprInfo[expr].tMember.expr);
+                        outs(".");
+                        outs(string_buffer(exprInfo[expr].tMember.name));
                         break;
                 }
                 case EXPR_SUBSCRIPT: {
-                        pprint_expr(exprInfo[expr].tSubscript.expr1);
-                        pprint("[");
-                        pprint_expr(exprInfo[expr].tSubscript.expr2);
-                        pprint("]");
+                        pp_expr(exprInfo[expr].tSubscript.expr1);
+                        outs("[");
+                        pp_expr(exprInfo[expr].tSubscript.expr2);
+                        outs("]");
                         break;
                 }
                 case EXPR_CALL: {
                         Expr callee = exprInfo[expr].tCall.callee;
                         int first = exprInfo[expr].tCall.firstArgIdx;
                         int last = first + exprInfo[expr].tCall.nargs;
-                        pprint_expr(callee);
-                        pprint("(");
+                        pp_expr(callee);
+                        outs("(");
                         for (int i = first; i < last; i++) {
                                 if (i > first)
-                                        pprint(", ");
-                                pprint_expr(callArgInfo[i].argExpr);
+                                        outs(", ");
+                                pp_expr(callArgInfo[i].argExpr);
                         }
-                        pprint(")");
+                        outs(")");
                         break;
                 }
                 default:
@@ -152,143 +146,143 @@ void pprint_expr(Expr expr)
         }
 }
 
-void pprint_expr_stmt(Stmt stmt)
+void pp_expr_stmt(Stmt stmt)
 {
-        pprint_newline();
-        pprint_expr(stmtInfo[stmt].tExpr.expr);
-        pprint(";");
+        pp_newline();
+        pp_expr(stmtInfo[stmt].tExpr.expr);
+        outs(";");
 }
 
-void pprint_stmt(Stmt stmt);
+void pp_stmt(Stmt stmt);
 
-void pprint_compound_stmt(Stmt stmt)
+void pp_compound_stmt(Stmt stmt)
 {
-        pprint("{");
+        outs("{");
         add_indent();
         for (int i = stmtInfo[stmt].tCompound.firstChildStmtIdx;
              i < childStmtCnt && childStmtInfo[i].parent == stmt; i++) {
-                pprint_stmt(childStmtInfo[i].child);
+                pp_stmt(childStmtInfo[i].child);
         }
         remove_indent();
-        pprint_newline();
-        pprint("}");
+        pp_newline();
+        outs("}");
 }
 
-void pprint_data_stmt(Stmt stmt)
+void pp_data_stmt(Stmt stmt)
 {
-        pprint_data(stmtInfo[stmt].tData);
+        pp_data(stmtInfo[stmt].tData);
 }
 
-void pprint_array_stmt(Stmt stmt)
+void pp_array_stmt(Stmt stmt)
 {
-        pprint_array(stmtInfo[stmt].tArray);
+        pp_array(stmtInfo[stmt].tArray);
 }
 
-void pprint_stmt(Stmt stmt)
+void pp_stmt(Stmt stmt)
 {
         switch (stmtInfo[stmt].kind) {
         case STMT_IF: {
                 Stmt child = stmtInfo[stmt].tIf.childStmt;
                 int isCompound = stmtInfo[child].kind == STMT_COMPOUND;
-                pprint_newline();
-                pprint("if (");
-                pprint_expr(stmtInfo[stmt].tIf.condExpr);
-                pprint(")");
+                pp_newline();
+                outs("if (");
+                pp_expr(stmtInfo[stmt].tIf.condExpr);
+                outs(")");
                 if (isCompound) {
-                        pprint(" ");
-                        pprint_stmt(child);
+                        outs(" ");
+                        pp_stmt(child);
                 }
                 else {
                         add_indent();
-                        pprint_stmt(child);
+                        pp_stmt(child);
                         remove_indent();
                 }
                 break;
         }
         case STMT_FOR:
-                pprint("for (");
-                pprint_stmt(stmtInfo[stmt].tFor.initStmt);
-                pprint("; ");
-                pprint_expr(stmtInfo[stmt].tFor.condExpr);
-                pprint("; ");
-                pprint_expr_stmt(stmtInfo[stmt].tFor.stepStmt);
-                pprint(")");
+                outs("for (");
+                pp_stmt(stmtInfo[stmt].tFor.initStmt);
+                outs("; ");
+                pp_expr(stmtInfo[stmt].tFor.condExpr);
+                outs("; ");
+                pp_expr_stmt(stmtInfo[stmt].tFor.stepStmt);
+                outs(")");
                 add_indent();
-                pprint_newline();
-                pprint_stmt(stmtInfo[stmt].tFor.childStmt);
+                pp_newline();
+                pp_stmt(stmtInfo[stmt].tFor.childStmt);
                 remove_indent();
-                pprint_newline();
+                pp_newline();
                 break;
         case STMT_WHILE:
-                pprint("if (");
-                pprint_expr(stmtInfo[stmt].tWhile.condExpr);
-                pprint(")");
+                outs("if (");
+                pp_expr(stmtInfo[stmt].tWhile.condExpr);
+                outs(")");
                 add_indent();
-                pprint_newline();
-                pprint_stmt(stmtInfo[stmt].tWhile.childStmt);
+                pp_newline();
+                pp_stmt(stmtInfo[stmt].tWhile.childStmt);
                 remove_indent();
-                pprint_newline();
+                pp_newline();
                 break;
         case STMT_RETURN:
-                pprint_newline();
-                pprint("return ");
-                pprint_expr(stmtInfo[stmt].tReturn.expr);
-                pprint(";");
+                pp_newline();
+                outs("return ");
+                pp_expr(stmtInfo[stmt].tReturn.expr);
+                outs(";");
                 break;
         case STMT_EXPR:
-                pprint_expr_stmt(stmt);
+                pp_expr_stmt(stmt);
                 break;
         case STMT_COMPOUND:
-                pprint_compound_stmt(stmt);
+                pp_compound_stmt(stmt);
                 break;
         case STMT_DATA:
-                pprint_data_stmt(stmt);
+                pp_data_stmt(stmt);
                 break;
         case STMT_ARRAY:
-                pprint_array_stmt(stmt);
+                pp_array_stmt(stmt);
                 break;
         default:
                 assert(0 && "Unhandled!\n");
         }
 }
 
-void pprint_proc(Proc p)
+void pp_proc(Proc p)
 {
-        pprint("\n");
-        pprint("proc ");
-        pprint_type(procInfo[p].tp);
-        pprint(" ");
-        pprint(SS(procInfo[p].sym));
-        pprint("(");
+        outs("\n");
+        outs("proc ");
+        pp_type(procInfo[p].tp);
+        outs(" ");
+        outs(SS(procInfo[p].sym));
+        outs("(");
         int firstParam = procInfo[p].firstParam;
         for (int i = 0; i < procInfo[p].nparams; i++) {
                 if (i > 0)
-                        pprint(", ");
-                pprint_type(paramInfo[firstParam+i].tp);
-                pprint(" ");
-                pprint(SS(paramInfo[firstParam+i].sym));
+                        outs(", ");
+                pp_type(paramInfo[firstParam+i].tp);
+                outs(" ");
+                outs(SS(paramInfo[firstParam+i].sym));
         }
-        pprint(")");
-        pprint_newline();
-        pprint_compound_stmt(procInfo[p].body);
-        pprint("\n");
+        outs(")");
+        pp_newline();
+        pp_compound_stmt(procInfo[p].body);
+        outs("\n");
 }
 
 void prettyprint(void)
 {
         for (Type i = 0; i < typeCnt; i++)
                 if (typeInfo[i].kind == TYPE_ENTITY)
-                        pprint_entity(i);
-        pprint_newline();
+                        pp_entity(i);
+        pp_newline();
         for (Data i = 0; i < dataCnt; i++)
                 if (scopeInfo[dataInfo[i].scope].kind == globalScope)
-                        pprint_data(i);
-        pprint_newline();
+                        pp_data(i);
+        pp_newline();
         for (Array i = 0; i < arrayCnt; i++)
                 if (scopeInfo[arrayInfo[i].scope].kind == globalScope)
-                        pprint_array(i);
-        pprint_newline();
+                        pp_array(i);
+        pp_newline();
         for (Proc i = 0; i < procCnt; i++)
-                pprint_proc(i);
-        pprint_newline();
+                pp_proc(i);
+        pp_newline();
 }

@@ -691,14 +691,23 @@ void sort_array(void *ptr, int nelems, int elemsize,
 
 
 
-void output(const char *fmt, ...);
-void _msg(UNUSED const char *filename, UNUSED int line,
+void outs(const char *s);
+void outf(const char *fmt, ...);
+void outfv(const char *fmt, va_list ap);
+void _msg(const char *filename, int line,
           const char *loglevel, const char *fmt, ...);
+void _msg_begin(const char *srcfilename, int srcline,
+                const char *loglevel);
+void _msg_printf(const char *fmt, ...);
+void _msg_printfv(const char *fmt, va_list ap);
+void _msg_end(void);
+void NORETURN _abort(void);
 void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
 
 #define MSG(lvl, fmt, ...) _msg(__FILE__, __LINE__, lvl, fmt, ##__VA_ARGS__)
 #define WARN(fmt, ...) _msg(__FILE__, __LINE__, "WARN", fmt, ##__VA_ARGS__)
 #define FATAL(fmt, ...) _fatal(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define ABORT() _abort()
 #define UNHANDLED_CASE() FATAL("Unhandled case!");
 
 
