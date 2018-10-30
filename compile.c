@@ -402,17 +402,14 @@ void add_CallArg(Expr callExpr, Expr argExpr)
         callArgInfo[x].rank = x;
 }
 
-void init_strings(void)
+void init(void)
 {
         for (int i = 0; i < LENGTH(stringsToBeInterned); i++) {
                 int idx = stringsToBeInterned[i].constant;
                 const char *str = stringsToBeInterned[i].string;
                 constStr[idx] = intern_cstring(str);
         }
-}
 
-void init_basetypes(void)
-{
         for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
                 String name = intern_cstring(basetypesToBeInitialized[i].name);
                 int size = basetypesToBeInitialized[i].size;
@@ -1676,8 +1673,7 @@ void check_types(void)
 
 int main(int argc, const char **argv)
 {
-        init_strings();
-        init_basetypes();
+        init();
 
         const char *fileToParse = "test.txt";
         for (int i = 1; i < argc; i++)
@@ -1687,6 +1683,7 @@ int main(int argc, const char **argv)
                         fileToParse = argv[i];
 
         add_file(intern_cstring(fileToParse));
+        MSG("INFO", "Parsing file %s\n", fileToParse);
         parse_global_scope();
         MSG("INFO", "Resolving symbol references...\n");
         resolve_symbol_references();

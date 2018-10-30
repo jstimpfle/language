@@ -6,22 +6,23 @@
  * \typedef{File}: A file known to the compiler. Probably its contents will
  * be processed.
  *
- * \typedef{String}: A String. We use string for most of the string handling
- * because of three reasons: 1) Ease of memory management, 2) Saving working
- * memory, 3) (Probably?) more Efficient equality checks. On the other hand,
- * the disadvantage is that we cannot easily drop a string that was interned.
+ * \typedef{String}: An interned string. We use string interning for most of the
+ * string handling because of three reasons: 1) Ease of memory management, 2)
+ * Saving working memory, 3) (Probably?) more Efficient equality checks. On the
+ * other hand, the disadvantage is that we cannot easily drop a string that was
+ * interned.
  *
  * \typedef{Token}: A Token is a syntactical entity as seen by the compiler's
- * language parser. For example, an identifier, such as `xyz`, an integer
- * literal such as `9`, a string literal such as `"a string"`, or an operator
- * such as `++`. See \ref{SymbolKind}.
+ * language parser. For example, an identifier such as `xyz`, an integer literal
+ * such as `9`, a string literal such as `"a string"`, or an operator such as
+ * `++`. See \ref{SymbolKind}.
  *
  * \typedef{Symbol}: A symbol is a name for a user-created artifact. See also
  * \ref{SymbolKind}.
  *
  * \typedef{Symref}: A symref is a reference to a (hopefully, existing) user-
  * created artifact. Syntactically the symbol is referenced by writing the name
- * of the symbol. It's the compilers task to match up referenced with referenced
+ * of the symbol. It's the compilers task to match up references with referenced
  * symbols.
  *
  * \typedef{Scope}: A scope is an abstract container for symbol definitions. In
@@ -670,9 +671,7 @@ DATA struct Alloc stmtInfoAlloc;
 DATA struct Alloc childStmtInfoAlloc;
 DATA struct Alloc callArgInfoAlloc;
 
-#ifdef DATA
 #undef DATA
-#endif
 
 
 void read_whole_file(File file);
@@ -754,11 +753,6 @@ static inline const char *SRS(Symref ref)
 static inline const char *TS(Token tok)
 {
         return string_buffer(tokenInfo[tok].tWord.string);
-}
-
-static inline const char *TKS(Token tok)
-{
-        return tokenKindString[tokenInfo[tok].kind];
 }
 
 String intern_string(const void *buf, int len);
