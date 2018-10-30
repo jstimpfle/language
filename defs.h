@@ -17,8 +17,3 @@
   #define NORETURN __attribute__((noreturn))
   #define UNREACHABLE() __builtin_unreachable()
 #endif
-#define NOTIMPLEMENTED() fatal("In %s:%d: %s(): not implemented!", \
-                               __FILE__, __LINE__, __func__)
-#define CLEAR(x) mem_fill(&(x), 0, sizeof (x))
-#define LENGTH(a) ((int) (sizeof (a) / sizeof (a)[0]))
-#define SORT(a, n, cmp) sort_array(a, n, sizeof *(a), cmp)

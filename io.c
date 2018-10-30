@@ -10,12 +10,11 @@ void read_whole_file(File file)
         FILE *f;
         size_t nread;
         const int chunksize = 4096;
-        String fpath;
+        String fpath = fileInfo[file].filepath;
 
-        fpath = fileInfo[file].filepath;
         f = fopen(string_buffer(fpath), "rb");
         if (f == NULL)
-                FATAL("Failed to open file %s", fpath);
+                FATAL("Failed to open file %s\n", string_buffer(fpath));
 
         BUF_INIT(fileInfo[file].buf, fileInfo[file].bufAlloc);
         fileInfo[file].size = 0;
@@ -25,14 +24,14 @@ void read_whole_file(File file)
                             fileInfo[file].size + chunksize);
                 nread = fread(fileInfo[file].buf + fileInfo[file].size,
                               1, chunksize, f);
-                fileInfo[file].size += (int) nread;
+                fileInfo[file].size += (int) nread; // XXX: check for overflow
         }
         if (ferror(f))
-                FATAL("I/O error while reading from %s\n", fpath);
+                FATAL("I/O error while reading from %s\n", string_buffer(fpath));
         fclose(f);
         BUF_RESERVE(fileInfo[file].buf,
                     fileInfo[file].bufAlloc,
-                    fileInfo[file].size + 1);
+                    fileInfo[file].size + 1); // XXX: check for overflow
         fileInfo[file].buf[fileInfo[file].size] = '\0';
 }
 

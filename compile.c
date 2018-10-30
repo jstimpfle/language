@@ -10,14 +10,14 @@ File add_file(String filepath)
         return x;
 }
 
-Token add_word_token(File file, int offset, const char *string, int length)
+Token add_word_token(File file, int offset, String string)
 {
         Token x = tokenCnt++;
         BUF_RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
         tokenInfo[x].file = file;
         tokenInfo[x].offset = offset;
         tokenInfo[x].kind = TOKTYPE_WORD;
-        tokenInfo[x].tWord.string = intern_string(string, length);
+        tokenInfo[x].tWord.string = string;
         return x;
 }
 
@@ -475,12 +475,6 @@ int char_is_invalid(int c)
         return c < 32 && ! char_is_whitespace(c);
 }
 
-int token_is_word(Token tok, String string)
-{
-        return tokenInfo[tok].kind == TOKTYPE_WORD &&
-                tokenInfo[tok].tWord.string == string;
-}
-
 int token_is_unary_prefix_operator(Token tok, int *out_optype)
 {
         int tp = tokenInfo[tok].kind;
@@ -686,7 +680,8 @@ retry:
                                 break;
                         read_char();
                 }
-                ans = add_word_token(currentFile, off, lexbuf, lexbufCnt);
+                ans = add_word_token(currentFile, off,
+                                     intern_string(lexbuf, lexbufCnt));
         }
         else if (char_is_digit(c)) {
                 long long x = c - '0';

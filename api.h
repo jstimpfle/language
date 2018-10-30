@@ -684,6 +684,10 @@ void *mem_realloc(void *ptr, int size);
 void sort_array(void *ptr, int nelems, int elemsize,
                 int (*compare)(const void*, const void*));
 
+#define LENGTH(a) ((int) (sizeof (a) / sizeof (a)[0]))
+#define CLEAR(x) mem_fill(&(x), 0, sizeof (x))
+#define SORT(a, n, cmp) sort_array(a, n, sizeof *(a), cmp)
+
 
 
 
@@ -728,7 +732,6 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                              __FILE__, __LINE__); \
                 (buf)[_appendpos] = el; \
         } while (0)
-
 
 static inline const char *string_buffer(String s)
 {
