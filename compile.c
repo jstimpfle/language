@@ -632,39 +632,30 @@ Token parse_next_token(void)
                 haveSavedToken = 0;
                 return savedToken;
         }
-retry:
 
+        /* skip comments and whitespace */
         for (;;) {
                 c = read_char();
                 if (c == -1)
                         return -1;
-                if (char_is_whitespace(c))
-                        continue;
-                if (c != '/')
-                        break;
-                /* comment? */
-                if (c == '/') {
-                        c = look_char();
-                        if (c != '*')
-                                break;
-                }
-                for (;;) {
+                if (c == '/' && look_char() == '*') {
                         read_char();
-                        c = look_char();
-                        if (c == '*') {
-                                read_char();
-                                c = look_char();
-                                if (c == '/') {
+                        for (;;) {
+                                c = read_char();
+                                if (c == -1) {
+                                        FATAL_PARSE_ERROR_AT(
+                                                currentFile, currentOffset,
+                                                "EOF with unclosed comment\n");
+                                }
+                                if (c == '*' && look_char() == '/') {
                                         read_char();
-                                        goto retry;
+                                        break;
                                 }
                         }
-                        if (c == -1) {
-                                FATAL_PARSE_ERROR_AT(
-                                        currentFile, currentOffset,
-                                        "EOF with unclosed comment\n");
-                        }
+                        continue;
                 }
+                if (! char_is_whitespace(c))
+                        break;
         }
 
         /* good to go. Variable c contains first character to lex */
