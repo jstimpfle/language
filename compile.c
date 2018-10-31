@@ -206,6 +206,15 @@ Type add_array_type(Type idxtp, Type valuetp)
         return x;
 }
 
+Type add_pointer_type(Type tp)
+{
+        Type x = typeCnt++;
+        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        typeInfo[x].kind = TYPE_POINTER;
+        typeInfo[x].tPointer.tp = tp;
+        return x;
+}
+
 Type add_proc_type(Type rettp, int nargs, int firstParamtype)
 {
         Type x = typeCnt++;
@@ -863,7 +872,13 @@ Type parse_type(void)
 {
         PARSE_LOG();
         Symref ref = parse_symref();
-        return add_ref_type(ref);
+        Type tp = add_ref_type(ref);
+        Token tok = look_next_token();
+        if (tokenInfo[tok].kind == TOKTYPE_ASTERISK) {
+                parse_next_token();
+                tp = add_pointer_type(tp);
+        }
+        return tp;
 }
 
 Type parse_entity(void)
@@ -1400,6 +1415,10 @@ void resolve_ref_type(Type t)
                 isComplete =
                         typeInfo[typeInfo[t].tArray.idxtp].isComplete &&
                         typeInfo[typeInfo[t].tArray.valuetp].isComplete;
+                break;
+        case TYPE_POINTER:
+                resolve_ref_type(typeInfo[t].tPointer.tp);
+                isComplete = typeInfo[typeInfo[t].tPointer.tp].isComplete;
                 break;
         case TYPE_PROC:
                 isComplete = 0;

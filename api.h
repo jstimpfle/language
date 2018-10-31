@@ -227,8 +227,9 @@ enum TypeKind {
         TYPE_BASE,
         TYPE_ENTITY,
         TYPE_ARRAY,
+        TYPE_POINTER,
         TYPE_PROC,
-        TYPE_REFERENCE,
+        TYPE_REFERENCE, // reference another type by name
 };
 
 
@@ -390,6 +391,10 @@ struct ArraytypeInfo {
         Type valuetp;
 };
 
+struct PointertypeInfo {
+        Type tp;
+};
+
 struct ProctypeInfo {
         Type rettp;
         int nargs;
@@ -413,6 +418,7 @@ struct TypeInfo {
                 struct BasetypeInfo tBase;
                 struct EntitytypeInfo tEntity;
                 struct ArraytypeInfo tArray;
+                struct PointertypeInfo tPointer;
                 struct ProctypeInfo tProc;
                 struct ReftypeInfo tRef;
         };

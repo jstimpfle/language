@@ -10,7 +10,7 @@ array FoobarInfo foobar[Foobar];
 proc int test(int x, int a)
 {
     data int y;
-    data int k;
+    data int *k;
     data foo z;
     data Foobar asdf;
     array FoobarInfo footab[Foobar];
@@ -33,7 +33,7 @@ proc int test(int x, int a)
 
 proc int test2(int x, int a)
 {
-        return x * a;
+    return x * a;
 }
 
 data int lastvar;

@@ -36,6 +36,10 @@ void pp_type(Type tp)
         case TYPE_ARRAY:
                 outs("(array type)");
                 break;
+        case TYPE_POINTER:
+                pp_type(typeInfo[tp].tPointer.tp);
+                outs("*");
+                break;
         case TYPE_PROC:
                 outs("(proc type)");
                 break;
@@ -142,7 +146,7 @@ void pp_expr(Expr expr)
                         break;
                 }
                 default:
-                        assert(0 && "Unhandled!\n");
+                        UNHANDLED_CASE();
         }
 }
 

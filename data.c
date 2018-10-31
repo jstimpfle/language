@@ -49,6 +49,7 @@ const char *const typeKindString[] = {
         MAKE( TYPE_BASE ),
         MAKE( TYPE_ENTITY ),
         MAKE( TYPE_ARRAY ),
+        MAKE( TYPE_POINTER ),
         MAKE( TYPE_PROC ),
         MAKE( TYPE_REFERENCE ),
 #undef MAKE
