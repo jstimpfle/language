@@ -545,7 +545,7 @@ void add_CallArg(Expr callExpr, Expr argExpr)
         callArgInfo[x].rank = x;
 }
 
-void init(void)
+void compiler_init(void)
 {
         for (int i = 0; i < LENGTH(stringsToBeInterned); i++) {
                 int idx = stringsToBeInterned[i].constant;
@@ -559,6 +559,31 @@ void init(void)
                 Type tp = add_base_type(name, size);
                 add_type_symbol(name, globalScope, tp);
         }
+}
+
+void compiler_exit(void)
+{
+        for (File i = 0; i < fileCnt; i++)
+                BUF_EXIT(fileInfo[i].buf, fileInfo[i].bufAlloc);
+        BUF_EXIT(lexbuf, lexbufAlloc);
+        BUF_EXIT(strbuf, strbufAlloc);
+        BUF_EXIT(stringInfo, stringInfoAlloc);
+        BUF_EXIT(strBucketInfo, strBucketInfoAlloc);
+        BUF_EXIT(fileInfo, fileInfoAlloc);
+        BUF_EXIT(tokenInfo, tokenInfoAlloc);
+        BUF_EXIT(typeInfo, typeInfoAlloc);
+        BUF_EXIT(paramtypeInfo, paramtypeInfoAlloc);
+        BUF_EXIT(symbolInfo, symbolInfoAlloc);
+        BUF_EXIT(dataInfo, dataInfoAlloc);
+        BUF_EXIT(arrayInfo, arrayInfoAlloc);
+        BUF_EXIT(scopeInfo, scopeInfoAlloc);
+        BUF_EXIT(procInfo, procInfoAlloc);
+        BUF_EXIT(paramInfo, paramInfoAlloc);
+        BUF_EXIT(symrefInfo, symrefInfoAlloc);
+        BUF_EXIT(exprInfo, exprInfoAlloc);
+        BUF_EXIT(stmtInfo, stmtInfoAlloc);
+        BUF_EXIT(childStmtInfo, childStmtInfoAlloc);
+        BUF_EXIT(callArgInfo, callArgInfoAlloc);
 }
 
 int char_is_alpha(int c)
@@ -1711,7 +1736,7 @@ void check_types(void)
 
 int main(int argc, const char **argv)
 {
-        init();
+        compiler_init();
 
         const char *fileToParse = "test.txt";
         for (int i = 1; i < argc; i++)
@@ -1731,5 +1756,6 @@ int main(int argc, const char **argv)
         check_types();
         MSG("INFO", "Pretty printing input...\n\n");
         prettyprint();
+        compiler_exit();
         return 0;
 }
