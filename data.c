@@ -135,3 +135,27 @@ const int toktypeToPrefixUnopCnt = LENGTH(toktypeToPrefixUnop);
 const int toktypeToPostfixUnopCnt = LENGTH(toktypeToPostfixUnop);
 const int toktypeToBinopCnt = LENGTH(toktypeToBinop);
 const int basetypesToBeInitializedCnt = LENGTH(basetypesToBeInitialized);
+
+const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
+#define MAKE(b) [BUFFER_##b] = { (void **) &b, sizeof *b }
+        MAKE( lexbuf ),
+        MAKE( strbuf ),
+        MAKE( stringInfo ),
+        MAKE( strBucketInfo ),
+        MAKE( fileInfo ),
+        MAKE( tokenInfo ),
+        MAKE( typeInfo ),
+        MAKE( paramtypeInfo ),
+        MAKE( symbolInfo ),
+        MAKE( dataInfo ),
+        MAKE( arrayInfo ),
+        MAKE( scopeInfo ),
+        MAKE( procInfo ),
+        MAKE( paramInfo ),
+        MAKE( symrefInfo ),
+        MAKE( exprInfo ),
+        MAKE( stmtInfo ),
+        MAKE( childStmtInfo ),
+        MAKE( callArgInfo ),
+#undef MAKE
+};

@@ -138,7 +138,7 @@ void _msg_at_expr(const char *srcfilename, int srcline,
 File add_file(String filepath)
 {
         File x = fileCnt++;
-        BUF_RESERVE(fileInfo, fileInfoAlloc, fileCnt);
+        RESIZE_GLOBAL_BUFFER(fileInfo, fileCnt);
         fileInfo[x].filepath = filepath;
         read_whole_file(x);
         return x;
@@ -147,7 +147,7 @@ File add_file(String filepath)
 Token add_word_token(File file, int offset, String string)
 {
         Token x = tokenCnt++;
-        BUF_RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
+        RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
         tokenInfo[x].file = file;
         tokenInfo[x].offset = offset;
         tokenInfo[x].kind = TOKTYPE_WORD;
@@ -158,7 +158,7 @@ Token add_word_token(File file, int offset, String string)
 Token add_integer_token(File file, int offset, long long value)
 {
         Token x = tokenCnt++;
-        BUF_RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
+        RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
         tokenInfo[x].file = file;
         tokenInfo[x].offset = offset;
         tokenInfo[x].kind = TOKTYPE_INTEGER;
@@ -169,7 +169,7 @@ Token add_integer_token(File file, int offset, long long value)
 Token add_bare_token(File file, int offset, int kind)
 {
         Token x = tokenCnt++;
-        BUF_RESERVE(tokenInfo, tokenInfoAlloc, tokenCnt);
+        RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
         tokenInfo[x].file = file;
         tokenInfo[x].offset = offset;
         tokenInfo[x].kind = kind;
@@ -179,7 +179,7 @@ Token add_bare_token(File file, int offset, int kind)
 Type add_base_type(String name, int size)
 {
         Type x = typeCnt++;
-        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[x].kind = TYPE_BASE;
         typeInfo[x].tBase.name = name;
         typeInfo[x].tBase.size = size;
@@ -189,7 +189,7 @@ Type add_base_type(String name, int size)
 Type add_entity_type(String name, Type tp)
 {
         Type x = typeCnt++;
-        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[x].kind = TYPE_ENTITY;
         typeInfo[x].tEntity.name = name;
         typeInfo[x].tEntity.tp = tp;
@@ -199,7 +199,7 @@ Type add_entity_type(String name, Type tp)
 Type add_array_type(Type idxtp, Type valuetp)
 {
         Type x = typeCnt++;
-        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[x].kind = TYPE_ARRAY;
         typeInfo[x].tArray.idxtp = idxtp;
         typeInfo[x].tArray.valuetp = valuetp;
@@ -209,7 +209,7 @@ Type add_array_type(Type idxtp, Type valuetp)
 Type add_pointer_type(Type tp)
 {
         Type x = typeCnt++;
-        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[x].kind = TYPE_POINTER;
         typeInfo[x].tPointer.tp = tp;
         return x;
@@ -218,7 +218,7 @@ Type add_pointer_type(Type tp)
 Type add_proc_type(Type rettp, int nargs, int firstParamtype)
 {
         Type x = typeCnt++;
-        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[x].kind = TYPE_PROC;
         typeInfo[x].tProc.rettp = rettp;
         typeInfo[x].tProc.nargs = nargs;
@@ -229,7 +229,7 @@ Type add_proc_type(Type rettp, int nargs, int firstParamtype)
 Type add_ref_type(Symref ref)
 {
         Type x = typeCnt++;
-        BUF_RESERVE(typeInfo, typeInfoAlloc, typeCnt);
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[x].kind = TYPE_REFERENCE;
         typeInfo[x].tRef.ref = ref;
         typeInfo[x].tRef.resolvedTp = -1;
@@ -239,7 +239,7 @@ Type add_ref_type(Symref ref)
 Type add_paramtype(Type proctp, Type argtp)
 {
         int x = paramtypeCnt++;
-        BUF_RESERVE(paramtypeInfo, paramtypeInfoAlloc, paramtypeCnt);
+        RESIZE_GLOBAL_BUFFER(paramtypeInfo, paramtypeCnt);
         paramtypeInfo[x].proctp = proctp;
         paramtypeInfo[x].argtp = argtp;
         paramtypeInfo[x].rank = x;
@@ -249,7 +249,7 @@ Type add_paramtype(Type proctp, Type argtp)
 Symbol add_type_symbol(String name, Scope scope, Type tp)
 {
         Symbol x = symbolCnt++;
-        BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         symbolInfo[x].name = name;
         symbolInfo[x].scope = scope;
         symbolInfo[x].kind = SYMBOL_TYPE;
@@ -260,7 +260,7 @@ Symbol add_type_symbol(String name, Scope scope, Type tp)
 Symbol add_data_symbol(String name, Scope scope, Data data)
 {
         Symbol x = symbolCnt++;
-        BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         symbolInfo[x].name = name;
         symbolInfo[x].scope = scope;
         symbolInfo[x].kind = SYMBOL_DATA;
@@ -271,7 +271,7 @@ Symbol add_data_symbol(String name, Scope scope, Data data)
 Symbol add_array_symbol(String name, Scope scope, Array array)
 {
         Symbol x = symbolCnt++;
-        BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         symbolInfo[x].name = name;
         symbolInfo[x].scope = scope;
         symbolInfo[x].kind = SYMBOL_ARRAY;
@@ -282,7 +282,7 @@ Symbol add_array_symbol(String name, Scope scope, Array array)
 Symbol add_proc_symbol(String name, Scope scope, Proc proc)
 {
         Symbol x = symbolCnt++;
-        BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         symbolInfo[x].name = name;
         symbolInfo[x].scope = scope;
         symbolInfo[x].kind = SYMBOL_PROC;
@@ -293,7 +293,7 @@ Symbol add_proc_symbol(String name, Scope scope, Proc proc)
 Symbol add_param_symbol(String name, Scope scope, Param param)
 {
         Symbol x = symbolCnt++;
-        BUF_RESERVE(symbolInfo, symbolInfoAlloc, symbolCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         symbolInfo[x].name = name;
         symbolInfo[x].scope = scope;
         symbolInfo[x].kind = SYMBOL_PARAM;
@@ -304,7 +304,7 @@ Symbol add_param_symbol(String name, Scope scope, Param param)
 Array add_array(Scope scope, Type tp)
 {
         Array x = arrayCnt++;
-        BUF_RESERVE(arrayInfo, arrayInfoAlloc, arrayCnt);
+        RESIZE_GLOBAL_BUFFER(arrayInfo, arrayCnt);
         arrayInfo[x].scope = scope;
         arrayInfo[x].tp = tp;
         arrayInfo[x].sym = -1; // later
@@ -314,7 +314,7 @@ Array add_array(Scope scope, Type tp)
 Data add_data(Scope scope, Type tp)
 {
         Data x = dataCnt++;
-        BUF_RESERVE(dataInfo, dataInfoAlloc, dataCnt);
+        RESIZE_GLOBAL_BUFFER(dataInfo, dataCnt);
         dataInfo[x].scope = scope;
         dataInfo[x].tp = tp;
         dataInfo[x].sym = -1;  // later
@@ -324,7 +324,7 @@ Data add_data(Scope scope, Type tp)
 Scope add_global_scope(void)
 {
         Scope x = scopeCnt++;
-        BUF_RESERVE(scopeInfo, scopeInfoAlloc, scopeCnt);
+        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
         scopeInfo[x].parentScope = -1;
         scopeInfo[x].firstSymbol = -1;
         scopeInfo[x].numSymbols = 0;
@@ -335,7 +335,7 @@ Scope add_global_scope(void)
 Scope add_proc_scope(Scope parent)
 {
         Scope x = scopeCnt++;
-        BUF_RESERVE(scopeInfo, scopeInfoAlloc, scopeCnt);
+        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
         scopeInfo[x].parentScope = parent;
         scopeInfo[x].firstSymbol = -1;
         scopeInfo[x].numSymbols = 0;
@@ -346,7 +346,7 @@ Scope add_proc_scope(Scope parent)
 Proc add_proc(Type tp, Scope scope)
 {
         Proc x = procCnt++;
-        BUF_RESERVE(procInfo, procInfoAlloc, procCnt);
+        RESIZE_GLOBAL_BUFFER(procInfo, procCnt);
         procInfo[x].tp = tp;
         procInfo[x].sym = -1; // later
         procInfo[x].scope = scope;
@@ -359,7 +359,7 @@ Proc add_proc(Type tp, Scope scope)
 Symref add_symref(Token tok, Scope refScope)
 {
         Symref ref = symrefCnt++;
-        BUF_RESERVE(symrefInfo, symrefInfoAlloc, symrefCnt);
+        RESIZE_GLOBAL_BUFFER(symrefInfo, symrefCnt);
         symrefInfo[ref].name = tokenInfo[tok].tWord.string;
         symrefInfo[ref].refScope = refScope;
         symrefInfo[ref].tok = tok;
@@ -369,7 +369,7 @@ Symref add_symref(Token tok, Scope refScope)
 Expr add_symref_expr(Symref ref)
 {
         Expr x = exprCnt++;
-        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
         exprInfo[x].kind = EXPR_SYMREF;
         exprInfo[x].tSymref.ref = ref;
         return x;
@@ -378,7 +378,7 @@ Expr add_symref_expr(Symref ref)
 Expr add_literal_expr(Token tok)
 {
         Expr x = exprCnt++;
-        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
         exprInfo[x].kind = EXPR_LITERAL;
         exprInfo[x].tLiteral.tok = tok;
         return x;
@@ -387,7 +387,7 @@ Expr add_literal_expr(Token tok)
 Expr add_call_expr(Expr callee)
 {
         Expr x = exprCnt++;
-        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
         exprInfo[x].kind = EXPR_CALL;
         exprInfo[x].tCall.callee = callee;
         exprInfo[x].tCall.firstArgIdx = -1;
@@ -398,7 +398,7 @@ Expr add_call_expr(Expr callee)
 Expr add_unop_expr(int opkind, Token tok, Expr expr)
 {
         Expr x = exprCnt++;
-        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
         exprInfo[x].kind = EXPR_UNOP;
         exprInfo[x].tUnop.kind = opkind;
         exprInfo[x].tUnop.tok = tok;
@@ -409,7 +409,7 @@ Expr add_unop_expr(int opkind, Token tok, Expr expr)
 Expr add_binop_expr(int opkind, Token tok, Expr expr1, Expr expr2)
 {
         Expr x = exprCnt++;
-        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
         exprInfo[x].kind = EXPR_BINOP;
         exprInfo[x].tBinop.kind = opkind;
         exprInfo[x].tBinop.tok = tok;
@@ -421,7 +421,7 @@ Expr add_binop_expr(int opkind, Token tok, Expr expr1, Expr expr2)
 Expr add_member_expr(Expr expr, String name)
 {
         Expr x = exprCnt++;
-        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
         exprInfo[x].kind = EXPR_MEMBER;
         exprInfo[x].tMember.expr = expr;
         exprInfo[x].tMember.name = name;
@@ -431,7 +431,7 @@ Expr add_member_expr(Expr expr, String name)
 Expr add_subscript_expr(Expr expr1, Expr expr2)
 {
         Expr x = exprCnt++;
-        BUF_RESERVE(exprInfo, exprInfoAlloc, exprCnt);
+        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
         exprInfo[x].kind = EXPR_SUBSCRIPT;
         exprInfo[x].tSubscript.expr1 = expr1;
         exprInfo[x].tSubscript.expr2 = expr2;
@@ -441,7 +441,7 @@ Expr add_subscript_expr(Expr expr1, Expr expr2)
 Stmt add_data_stmt(Data data)
 {
         Stmt stmt = stmtCnt++;
-        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_DATA;
         stmtInfo[stmt].tData = data;
         return stmt;
@@ -450,7 +450,7 @@ Stmt add_data_stmt(Data data)
 Stmt add_array_stmt(Array array)
 {
         Stmt stmt = stmtCnt++;
-        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_ARRAY;
         stmtInfo[stmt].tArray = array;
         return stmt;
@@ -459,7 +459,7 @@ Stmt add_array_stmt(Array array)
 Stmt add_if_stmt(Expr condExpr, Stmt childStmt)
 {
         Stmt stmt = stmtCnt++;
-        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_IF;
         stmtInfo[stmt].tIf.condExpr = condExpr;
         stmtInfo[stmt].tIf.childStmt = childStmt;
@@ -469,7 +469,7 @@ Stmt add_if_stmt(Expr condExpr, Stmt childStmt)
 Stmt add_while_stmt(Expr condExpr, Stmt childStmt)
 {
         Stmt stmt = stmtCnt++;
-        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_WHILE;
         stmtInfo[stmt].tWhile.condExpr = condExpr;
         stmtInfo[stmt].tWhile.childStmt = childStmt;
@@ -479,7 +479,7 @@ Stmt add_while_stmt(Expr condExpr, Stmt childStmt)
 Stmt add_return_stmt(Expr expr)
 {
         Stmt stmt = stmtCnt++;
-        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_RETURN;
         stmtInfo[stmt].tReturn.expr = expr;
         return stmt;
@@ -488,7 +488,7 @@ Stmt add_return_stmt(Expr expr)
 Stmt add_for_stmt(Stmt initStmt, Expr condExpr, Stmt stepStmt, Stmt childStmt)
 {
         Stmt stmt = stmtCnt++;
-        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_FOR;
         stmtInfo[stmt].tFor.initStmt = initStmt;
         stmtInfo[stmt].tFor.condExpr = condExpr;
@@ -500,7 +500,7 @@ Stmt add_for_stmt(Stmt initStmt, Expr condExpr, Stmt stepStmt, Stmt childStmt)
 Stmt add_expr_stmt(Expr expr)
 {
         Stmt stmt = stmtCnt++;
-        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_EXPR;
         stmtInfo[stmt].tExpr.expr = expr;
         return stmt;
@@ -509,7 +509,7 @@ Stmt add_expr_stmt(Expr expr)
 Stmt add_compound_stmt(void)
 {
         Stmt stmt = stmtCnt++;
-        BUF_RESERVE(stmtInfo, stmtInfoAlloc, stmtCnt);
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_COMPOUND;
         stmtInfo[stmt].tCompound.numStatements = 0;
         stmtInfo[stmt].tCompound.firstChildStmtIdx = -1;
@@ -519,7 +519,7 @@ Stmt add_compound_stmt(void)
 Param add_Param(Proc proc, Type tp)
 {
         Param x = paramCnt++;
-        BUF_RESERVE(paramInfo, paramInfoAlloc, paramCnt);
+        RESIZE_GLOBAL_BUFFER(paramInfo, paramCnt);
         paramInfo[x].proc = proc;
         paramInfo[x].sym = -1; // later
         paramInfo[x].tp = tp;
@@ -530,7 +530,7 @@ Param add_Param(Proc proc, Type tp)
 void add_ChildStmt(Stmt parent, Stmt child)
 {
         int x = childStmtCnt++;
-        BUF_RESERVE(childStmtInfo, childStmtInfoAlloc, childStmtCnt);
+        RESIZE_GLOBAL_BUFFER(childStmtInfo, childStmtCnt);
         childStmtInfo[x].parent = parent;
         childStmtInfo[x].child = child;
         childStmtInfo[x].rank = x;
@@ -539,13 +539,13 @@ void add_ChildStmt(Stmt parent, Stmt child)
 void add_CallArg(Expr callExpr, Expr argExpr)
 {
         int x = callArgCnt++;
-        BUF_RESERVE(callArgInfo, callArgInfoAlloc, callArgCnt);
+        RESIZE_GLOBAL_BUFFER(callArgInfo, callArgCnt);
         callArgInfo[x].callExpr = callExpr;
         callArgInfo[x].argExpr = argExpr;
         callArgInfo[x].rank = x;
 }
 
-void compiler_init(void)
+void initialize_pseudo_constant_data(void)
 {
         for (int i = 0; i < LENGTH(stringsToBeInterned); i++) {
                 int idx = stringsToBeInterned[i].constant;
@@ -559,31 +559,6 @@ void compiler_init(void)
                 Type tp = add_base_type(name, size);
                 add_type_symbol(name, globalScope, tp);
         }
-}
-
-void compiler_exit(void)
-{
-        for (File i = 0; i < fileCnt; i++)
-                BUF_EXIT(fileInfo[i].buf, fileInfo[i].bufAlloc);
-        BUF_EXIT(lexbuf, lexbufAlloc);
-        BUF_EXIT(strbuf, strbufAlloc);
-        BUF_EXIT(stringInfo, stringInfoAlloc);
-        BUF_EXIT(strBucketInfo, strBucketInfoAlloc);
-        BUF_EXIT(fileInfo, fileInfoAlloc);
-        BUF_EXIT(tokenInfo, tokenInfoAlloc);
-        BUF_EXIT(typeInfo, typeInfoAlloc);
-        BUF_EXIT(paramtypeInfo, paramtypeInfoAlloc);
-        BUF_EXIT(symbolInfo, symbolInfoAlloc);
-        BUF_EXIT(dataInfo, dataInfoAlloc);
-        BUF_EXIT(arrayInfo, arrayInfoAlloc);
-        BUF_EXIT(scopeInfo, scopeInfoAlloc);
-        BUF_EXIT(procInfo, procInfoAlloc);
-        BUF_EXIT(paramInfo, paramInfoAlloc);
-        BUF_EXIT(symrefInfo, symrefInfoAlloc);
-        BUF_EXIT(exprInfo, exprInfoAlloc);
-        BUF_EXIT(stmtInfo, stmtInfoAlloc);
-        BUF_EXIT(childStmtInfo, childStmtInfoAlloc);
-        BUF_EXIT(callArgInfo, callArgInfoAlloc);
 }
 
 int char_is_alpha(int c)
@@ -729,7 +704,7 @@ Token parse_next_token(void)
                 lexbufCnt = 0;
                 for (;;) {
                         int idx = lexbufCnt++;
-                        BUF_RESERVE(lexbuf, lexbufAlloc, lexbufCnt);
+                        RESIZE_GLOBAL_BUFFER(lexbuf, lexbufCnt);
                         lexbuf[idx] = (char) c;
                         c = look_char();
                         if (! char_is_alpha(c) && ! char_is_digit(c))
@@ -1309,10 +1284,10 @@ void parse_global_scope(void)
                 Symbol *newname;
                 struct Alloc orderAlloc;
                 struct Alloc newnameAlloc;
-                BUF_INIT(order, orderAlloc);
-                BUF_INIT(newname, newnameAlloc);
-                BUF_RESERVE(order, orderAlloc, symbolCnt);
-                BUF_RESERVE(newname, newnameAlloc, symbolCnt);
+                BUF_INIT(&order, &orderAlloc);
+                BUF_INIT(&newname, &newnameAlloc);
+                BUF_RESERVE(&order, &orderAlloc, symbolCnt);
+                BUF_RESERVE(&newname, &newnameAlloc, symbolCnt);
                 for (Symbol i = 0; i < symbolCnt; i++)
                         order[i] = i;
                 sort_array(order, symbolCnt, sizeof *order,
@@ -1338,8 +1313,8 @@ void parse_global_scope(void)
                                 j = next;
                         }
                 }
-                BUF_EXIT(order, orderAlloc);
-                BUF_EXIT(newname, newnameAlloc);
+                BUF_EXIT(&order, &orderAlloc);
+                BUF_EXIT(&newname, &newnameAlloc);
         }
 
         /* sort paramInfo array and fix symbols */
@@ -1734,17 +1709,27 @@ void check_types(void)
         }
 }
 
+void free_buffers(void)
+{
+        for (File i = 0; i < fileCnt; i++)
+                BUF_EXIT(&fileInfo[i].buf, &fileInfo[i].bufAlloc);
+        for (int i = 0; i < NUM_BUFFERS; i++)
+                BUF_EXIT(globalBufferInfo[i].ptr, &globalBufferAlloc[i]);
+}
+
 int main(int argc, const char **argv)
 {
-        compiler_init();
+        const char *fileToParse;
 
-        const char *fileToParse = "test.txt";
-        for (int i = 1; i < argc; i++)
+        fileToParse = "test.txt";
+        for (int i = 1; i < argc; i++) {
                 if (cstr_compare(argv[i], "-debug") == 0)
                         doDebug = 1;
                 else
                         fileToParse = argv[i];
+        }
 
+        initialize_pseudo_constant_data();
         add_file(intern_cstring(fileToParse));
         MSG("INFO", "Parsing file %s\n", fileToParse);
         parse_global_scope();
@@ -1756,6 +1741,6 @@ int main(int argc, const char **argv)
         check_types();
         MSG("INFO", "Pretty printing input...\n\n");
         prettyprint();
-        compiler_exit();
+        free_buffers();
         return 0;
 }

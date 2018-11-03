@@ -5,14 +5,14 @@ String add_string(const char *buf, int len)
 {
         int pos = strbufCnt;
         strbufCnt += len + 1;
-        BUF_RESERVE(strbuf, strbufAlloc, strbufCnt);
+        RESIZE_GLOBAL_BUFFER(strbuf, strbufCnt);
         mem_copy(&strbuf[pos], buf, len);
         strbuf[pos + len] = '\0';
 
         String s = stringCnt;
         stringCnt += 1;
         // Allocate one more to support string_length()
-        BUF_RESERVE(stringInfo, stringInfoAlloc, stringCnt + 1);
+        RESIZE_GLOBAL_BUFFER(stringInfo, stringCnt + 1);
         stringInfo[s].pos = pos;
         stringInfo[s+1].pos = pos + len + 1;
 
@@ -64,7 +64,7 @@ String intern_string(const void *buf, int len)
                 while (2 * strBucketCnt < 3 * stringCnt)
                         strBucketCnt *= 2;
 
-                BUF_RESERVE(strBucketInfo, strBucketInfoAlloc, strBucketCnt);
+                RESIZE_GLOBAL_BUFFER(strBucketInfo, strBucketCnt);
                 for (i = 0; i < strBucketCnt; i++)
                         strBucketInfo[i].firstString = -1;
 

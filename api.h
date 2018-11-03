@@ -122,6 +122,29 @@ typedef int Stmt;
  * to SYMBOL_TYPE symbols.
  */
 
+enum {
+        BUFFER_lexbuf,
+        BUFFER_strbuf,
+        BUFFER_stringInfo,
+        BUFFER_strBucketInfo,
+        BUFFER_fileInfo,
+        BUFFER_tokenInfo,
+        BUFFER_typeInfo,
+        BUFFER_paramtypeInfo,
+        BUFFER_symbolInfo,
+        BUFFER_dataInfo,
+        BUFFER_arrayInfo,
+        BUFFER_scopeInfo,
+        BUFFER_procInfo,
+        BUFFER_paramInfo,
+        BUFFER_symrefInfo,
+        BUFFER_exprInfo,
+        BUFFER_stmtInfo,
+        BUFFER_childStmtInfo,
+        BUFFER_callArgInfo,
+        NUM_BUFFERS,
+};
+
 enum TokenKind {
         TOKTYPE_WORD,
         TOKTYPE_INTEGER,
@@ -315,6 +338,11 @@ struct BinopInfo {
 
 struct Alloc {
         int cap;
+};
+
+struct GlobalBufferInfo {
+        void **ptr;
+        int elemsize;
 };
 
 struct FileInfo {
@@ -598,6 +626,8 @@ extern const int toktypeToPrefixUnopCnt;
 extern const int toktypeToPostfixUnopCnt;
 extern const int toktypeToBinopCnt;
 extern const int basetypesToBeInitializedCnt;
+extern const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS];
+DATA struct Alloc globalBufferAlloc[NUM_BUFFERS];
 DATA String constStr[NUM_CONSTSTRS];  // has initializer
 
 /**/
@@ -657,26 +687,6 @@ DATA struct StmtInfo *stmtInfo;
 DATA struct ChildStmtInfo *childStmtInfo;
 DATA struct CallArgInfo *callArgInfo;
 
-DATA struct Alloc lexbufAlloc;
-DATA struct Alloc strbufAlloc;
-DATA struct Alloc stringInfoAlloc;
-DATA struct Alloc strBucketInfoAlloc;
-DATA struct Alloc fileInfoAlloc;
-DATA struct Alloc tokenInfoAlloc;
-DATA struct Alloc typeInfoAlloc;
-DATA struct Alloc paramtypeInfoAlloc;
-DATA struct Alloc symbolInfoAlloc;
-DATA struct Alloc dataInfoAlloc;
-DATA struct Alloc arrayInfoAlloc;
-DATA struct Alloc scopeInfoAlloc;
-DATA struct Alloc procInfoAlloc;
-DATA struct Alloc paramInfoAlloc;
-DATA struct Alloc symrefInfoAlloc;
-DATA struct Alloc exprInfoAlloc;
-DATA struct Alloc stmtInfoAlloc;
-DATA struct Alloc childStmtInfoAlloc;
-DATA struct Alloc callArgInfoAlloc;
-
 #undef DATA
 
 
@@ -726,27 +736,25 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                   int clear, const char *UNUSED file, int UNUSED line);
 
 #define BUF_INIT(buf, alloc) \
-        _buf_init((void**)&(buf), &(alloc), sizeof *(buf), __FILE__, __LINE__);
+        _buf_init((void**)(buf), (alloc), sizeof *(buf), __FILE__, __LINE__);
 
 #define BUF_EXIT(buf, alloc) \
-        _buf_exit((void**)&(buf), &(alloc), sizeof *(buf), __FILE__, __LINE__);
+        _buf_exit((void**)(buf), (alloc), sizeof *(buf), __FILE__, __LINE__);
 
 #define BUF_RESERVE(buf, alloc, cnt) \
-        _buf_reserve((void**)&(buf), &(alloc), (cnt), sizeof *(buf), 0, \
+        _buf_reserve((void**)(buf), (alloc), (cnt), sizeof *(buf), 0, \
                      __FILE__, __LINE__);
 
 #define BUF_RESERVE_Z(buf, alloc, cnt) \
-        _buf_reserve((void**)&(buf), &(alloc), (cnt), sizeof *(buf), 1, \
+        _buf_reserve((void**)(buf), (alloc), (cnt), sizeof *(buf), 1, \
                      __FILE__, __LINE__);
 
-#define BUF_APPEND(buf, alloc, cnt, el) \
-        do { \
-                void *ptr = (buf); \
-                int _appendpos = (cnt)++; \
-                _buf_reserve(&ptr, &(alloc), _appendpos+1, sizeof *(buf), 0, \
-                             __FILE__, __LINE__); \
-                (buf)[_appendpos] = el; \
-        } while (0)
+void _resize_global_buffer(int buf, int nelems, int clear);
+void _resize_global_buffer_dbg(int buf, int nelems, int clear,
+                               const char *filename, int line);
+#define RESIZE_GLOBAL_BUFFER(bufname, nelems) \
+        _resize_global_buffer(BUFFER_##bufname, (nelems), 0)
+
 
 static inline const char *string_buffer(String s)
 {

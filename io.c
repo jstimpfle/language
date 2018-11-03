@@ -16,11 +16,11 @@ void read_whole_file(File file)
         if (f == NULL)
                 FATAL("Failed to open file %s\n", string_buffer(fpath));
 
-        BUF_INIT(fileInfo[file].buf, fileInfo[file].bufAlloc);
+        BUF_INIT(&fileInfo[file].buf, &fileInfo[file].bufAlloc);
         fileInfo[file].size = 0;
         while (!feof(f) && !ferror(f)) {
-                BUF_RESERVE(fileInfo[file].buf,
-                            fileInfo[file].bufAlloc,
+                BUF_RESERVE(&fileInfo[file].buf,
+                            &fileInfo[file].bufAlloc,
                             fileInfo[file].size + chunksize);
                 nread = fread(fileInfo[file].buf + fileInfo[file].size,
                               1, chunksize, f);
@@ -29,8 +29,8 @@ void read_whole_file(File file)
         if (ferror(f))
                 FATAL("I/O error while reading from %s\n", string_buffer(fpath));
         fclose(f);
-        BUF_RESERVE(fileInfo[file].buf,
-                    fileInfo[file].bufAlloc,
+        BUF_RESERVE(&fileInfo[file].buf,
+                    &fileInfo[file].bufAlloc,
                     fileInfo[file].size + 1); // XXX: check for overflow
         fileInfo[file].buf[fileInfo[file].size] = '\0';
 }
@@ -178,4 +178,18 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                 *ptr = p;
                 alloc->cap = cnt;
         }
+}
+
+void _resize_global_buffer(int buf, int nelems, int clear)
+{
+        _buf_reserve(globalBufferInfo[buf].ptr, &globalBufferAlloc[buf],
+                     nelems, globalBufferInfo[buf].elemsize, clear, "(N/A)", 0);
+}
+
+void _resize_global_buffer_dbg(int buf, int nelems, int clear,
+                               const char *filename, int line)
+{
+        _buf_reserve(globalBufferInfo[buf].ptr, &globalBufferAlloc[buf],
+                     nelems, globalBufferInfo[buf].elemsize,
+                     clear, filename, line);
 }
