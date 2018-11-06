@@ -1,3 +1,8 @@
+#ifdef API_H_INCLUDED
+  #error Header api.h included twice!!!
+#endif
+#define API_H_INCLUDED 1
+
 /**
  * Various typedefs are used instead of plain integer indices to indicate their
  * meaning. Unfortunately, C typedefs are not new types, while this would
@@ -786,3 +791,4 @@ String intern_cstring(const char *str);
 
 
 void prettyprint(void);
+void irprint(void);

@@ -1741,6 +1741,9 @@ int main(int argc, const char **argv)
         check_types();
         MSG("INFO", "Pretty printing input...\n\n");
         prettyprint();
+        outs("Test IR pretty printer...\n");
+        irprint();
+        outs("Freeing allocated buffers...\n");
         free_buffers();
         return 0;
 }
