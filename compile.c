@@ -1762,7 +1762,7 @@ void compile_to_IR(void)
         // XXX TODO: (which is not true yet!)
         for (Expr x = 0; x < exprCnt; x++) {
                 switch (exprInfo[x].kind) {
-                case EXPR_LITERAL:
+                case EXPR_LITERAL: {
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[y].proc = exprToProc[x];
@@ -1770,6 +1770,54 @@ void compile_to_IR(void)
                         irStmtInfo[y].tLoadConstant.constval = 57; //XXX
                         irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
                         break;
+                }
+                case EXPR_BINOP: {
+                        Expr e1 = exprInfo[x].tBinop.expr1;
+                        Expr e2 = exprInfo[x].tBinop.expr2;
+                        IrCallArg arg1 = irCallArgCnt++;
+                        IrCallArg arg2 = irCallArgCnt++;
+                        IrCallResult ret = irCallResultCnt++;
+                        IrStmt y = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irCallArgInfo, irCallArgCnt);
+                        RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irCallArgInfo[arg1].src = exprToIrReg[e1];
+                        irCallArgInfo[arg2].src = exprToIrReg[e2];
+                        irCallArgInfo[arg1].callStmt = y;
+                        irCallArgInfo[arg2].callStmt = y;
+                        irCallResultInfo[ret].callStmt = y;
+                        irCallResultInfo[ret].tgt = exprToIrReg[x];
+                        irStmtInfo[y].proc = exprToProc[x];
+                        // XXX: We "call" the add operation. This is very inefficient.
+                        irStmtInfo[y].kind = IRSTMT_CALL;
+                        irStmtInfo[y].tCall.callee = 0;  //XXX TODO: need register holding address of add operation
+                        irStmtInfo[y].tCall.firstIrCallArg = -1;
+                        irStmtInfo[y].tCall.firstIrCallResult = -1;
+                        break;
+                }
+                case EXPR_SYMREF: {
+                        Symref ref = exprInfo[x].tSymref.ref;
+                        Symbol sym = symrefInfo[ref].sym;
+                        assert(sym >= 0);
+                        IrReg addr = irRegCnt++;
+                        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+                        IrStmt s0 = irStmtCnt++;
+                        IrStmt s1 = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irRegInfo[addr].irproc = exprToProc[x];
+                        irRegInfo[addr].name = intern_cstring("(Holds symbol address)"); //XXX
+                        irRegInfo[addr].sym = sym; //XXX
+                        irRegInfo[addr].tp = -1; //XXX
+                        irStmtInfo[s0].proc = exprToProc[x];
+                        irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
+                        irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
+                        irStmtInfo[s0].tLoadSymbolAddr.tgtreg = addr;
+                        irStmtInfo[s1].proc = exprToProc[x];
+                        irStmtInfo[s1].kind = IRSTMT_LOAD;
+                        irStmtInfo[s1].tLoad.srcaddrreg = addr;
+                        irStmtInfo[s1].tLoad.tgtreg = exprToIrReg[x];
+                        break;
+                }
                 default:
                         // UNHANDLED_CASE();
                         break;

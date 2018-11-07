@@ -13,12 +13,14 @@ void irp_symbol(Symbol sym)
 
 void irp_reg(IrReg v)
 {
+        if (irRegInfo[v].sym >= 0)
+                outf("%s ", SS(irRegInfo[v].sym));
         outf("%s", string_buffer(irRegInfo[v].name));
 }
 
 void irp_proc(IrProc p)
 {
-        outf("PROC %d %s\n", p, string_buffer(irProcInfo[p].name));
+        outf("PROC #%d \"%s\":\n", p, string_buffer(irProcInfo[p].name));
         for (IrStmt i = irProcInfo[p].firstIrStmt;
              i < irStmtCnt && irStmtInfo[i].proc == p;
              i++) {
