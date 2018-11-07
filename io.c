@@ -74,19 +74,23 @@ void sort_array(void *ptr, int nelems, int elemsize,
 void outs(const char *s)
 {
         fputs(s, stdout);
+        //XXX remove this later
+        fflush(stdout);
 }
 
 void outf(const char *fmt, ...)
 {
         va_list ap;
         va_start(ap, fmt);
-        vfprintf(stdout, fmt, ap);
+        outfv(fmt, ap);
         va_end(ap);
 }
 
 void outfv(const char *fmt, va_list ap)
 {
         vfprintf(stdout, fmt, ap);
+        //XXX remove this later
+        fflush(stdout);
 }
 
 void _msg_begin(const char *srcfilename, int srcline,
@@ -111,6 +115,7 @@ void _msg_printfv(const char *fmt, va_list ap)
 
 void _msg_end(void)
 {
+        fflush(stdout);
 }
 
 void _vmsg(const char *srcfilename, int srcline,

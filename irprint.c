@@ -1,44 +1,5 @@
 #include "defs.h"
 #include "api.h"
-#include "ir.h"
-
-struct IrRegInfo irregs[] = {
-#define MAKE(n) { -1, n, -1 }
-        MAKE("x"),
-        MAKE("y"),
-        MAKE("z"),
-        MAKE("a"),
-        MAKE("b"),
-        MAKE("c"),
-        MAKE("f"),
-#undef MAKE
-};
-
-struct IrStmtInfo irs[] = {
-#define MAKELOADCONSTANT(x,y)   { -1, IRSTMT_LOADCONSTANT, .tLoadConstant = {(x),(y)}}
-#define MAKELOADSYMBOLADDR(x,y) { -1, IRSTMT_LOADSYMBOLADDR, .tLoadSymbolAddr = {(x),(y)}}
-#define MAKELOAD(x, y)          { -1, IRSTMT_LOAD, .tLoad = {(x),(y)}}
-#define MAKESTORE(x, y)         { -1, IRSTMT_STORE, .tStore = {(x),(y)}}
-#define MAKECALL(x)             { -1, IRSTMT_CALL, .tCall = {(x),-1,-1}}
-#define MAKECONDGOTO(x, y)      { -1, IRSTMT_CONDGOTO, .tCondGoto = {(x),(y)}}
-#define MAKEGOTO(x)             { -1, IRSTMT_GOTO, .tGoto = {(x)}}
-        MAKELOADCONSTANT(42, 0),
-        MAKELOADCONSTANT(42, 1),
-        MAKELOADSYMBOLADDR( (Symbol) 3, (IrReg) 1 ),
-        MAKELOADSYMBOLADDR( (Symbol) 4, (IrReg) 2 ),
-        MAKELOADSYMBOLADDR( (Symbol) 1, (IrReg) 6 ),
-        MAKECALL( 6 ),
-        MAKECONDGOTO( (IrReg) 0, 13 ),
-        MAKEGOTO( 14 ),
-        MAKESTORE( (IrReg) 2, (IrReg) 3 ),
-};
-#undef MAKELOADCONSTANT
-#undef MAKELOADSYMBOLADDR
-#undef MAKELOAD
-#undef MAKESTORE
-#undef MAKECALL
-#undef MAKECONDGOTO
-#undef MAKEGOTO
 
 void irp_constant(long long x)
 {
@@ -52,55 +13,72 @@ void irp_symbol(Symbol sym)
 
 void irp_reg(IrReg v)
 {
-        outf("%s", irregs[v].name);
+        outf("%s", string_buffer(irRegInfo[v].name));
 }
 
-void irprint(void)
+void irp_proc(IrProc p)
 {
-        outs("\n");
-        for (IrStmt i = 0; i < LENGTH(irs); i++) {
-                switch (irs[i].kind) {
+        outf("PROC %d %s\n", p, string_buffer(irProcInfo[p].name));
+        for (IrStmt i = irProcInfo[p].firstIrStmt;
+             i < irStmtCnt && irStmtInfo[i].proc == p;
+             i++) {
+                DEBUG("Now printing statement %d\n", i);
+                switch (irStmtInfo[i].kind) {
                 case IRSTMT_LOADCONSTANT:
                         outs("LOADCONSTANT ");
-                        irp_constant(irs[i].tLoadConstant.constval);
+                        irp_constant(irStmtInfo[i].tLoadConstant.constval);
                         outs(", ");
-                        irp_reg(irs[i].tLoadConstant.tgtreg);
+                        irp_reg(irStmtInfo[i].tLoadConstant.tgtreg);
                         break;
                 case IRSTMT_LOADSYMBOLADDR:
                         outs("LOADSYMBOLADDR ");
-                        irp_symbol(irs[i].tLoadSymbolAddr.sym);
+                        irp_symbol(irStmtInfo[i].tLoadSymbolAddr.sym);
                         outs(", ");
-                        irp_reg(irs[i].tLoadSymbolAddr.tgtreg);
+                        irp_reg(irStmtInfo[i].tLoadSymbolAddr.tgtreg);
                         break;
                 case IRSTMT_LOAD:
                         outs("LOAD ");
-                        irp_reg(irs[i].tLoad.srcaddrreg);
+                        irp_reg(irStmtInfo[i].tLoad.srcaddrreg);
                         outs(", ");
-                        irp_reg(irs[i].tLoad.tgtreg);
+                        irp_reg(irStmtInfo[i].tLoad.tgtreg);
                         break;
                 case IRSTMT_STORE:
                         outs("STORE ");
-                        irp_reg(irs[i].tStore.srcreg);
+                        irp_reg(irStmtInfo[i].tStore.srcreg);
                         outs(", ");
-                        irp_reg(irs[i].tStore.tgtaddrreg);
+                        irp_reg(irStmtInfo[i].tStore.tgtaddrreg);
                         break;
                 case IRSTMT_CALL:
                         outs("CALL ");
-                        irp_reg(irs[i].tCall.callee);
+                        irp_reg(irStmtInfo[i].tCall.callee);
                         outs("(...)");
                         break;
                 case IRSTMT_CONDGOTO:
                         outs("CONDGOTO ");
-                        irp_reg(irs[i].tCondGoto.condreg);
+                        irp_reg(irStmtInfo[i].tCondGoto.condreg);
                         outs(", ");
-                        outf("%d", irs[i].tCondGoto.tgtstmt);
+                        outf("%d", irStmtInfo[i].tCondGoto.tgtstmt);
                         break;
                 case IRSTMT_GOTO:
                         outs("GOTO ");
-                        outf("%d", irs[i].tGoto.tgtstmt);
+                        outf("%d", irStmtInfo[i].tGoto.tgtstmt);
                         break;
                 }
                 outs("\n");
         }
         outs("\n");
+}
+
+void irprint(void)
+{
+        outs("\n");
+        DEBUG("Fixing indices\n");
+        for (IrStmt i = irStmtCnt; i-- > 0;) {
+                Proc proc = irStmtInfo[i].proc;
+                DEBUG("Proc is %d\n", proc);
+                irProcInfo[proc].firstIrStmt = i;
+        }
+        DEBUG("Printing procs\n");
+        for (IrProc p = 0; p < irProcCnt; p++)
+                irp_proc(p);
 }

@@ -133,7 +133,8 @@ void _msg_at_expr(const char *srcfilename, int srcline,
 #define PARSE_LOG() \
         if (doDebug) \
                 MSG_AT(lvl_debug, currentFile, currentOffset, \
-                       "%s()\n", __func__);
+                       "%s()\n", __func__)
+
 
 File add_file(String filepath)
 {
@@ -1709,6 +1710,73 @@ void check_types(void)
         }
 }
 
+void compile_to_IR(void)
+{
+        DEBUG("For each expression find its proc.\n");
+        DEBUG("(TODO: think about adding this data already when parsing?\n");
+        RESIZE_GLOBAL_BUFFER(exprToProc, exprCnt);
+        for (Expr x = 0; x < exprCnt; x++) {
+                exprToProc[x] = (Proc)0;  //XXX
+        }
+
+        DEBUG("For each Proc make an IrProc\n");
+        RESIZE_GLOBAL_BUFFER(procToIrProc, procCnt);
+        for (Proc x = 0; x < procCnt; x++) {
+                IrProc ip = irProcCnt++;
+                procToIrProc[x] = ip;
+                RESIZE_GLOBAL_BUFFER(irProcInfo, irProcCnt);
+                irProcInfo[ip].name = symbolInfo[procInfo[x].sym].name;
+                irProcInfo[ip].firstIrStmt = 0;
+        }
+
+        DEBUG("For each local variable make an IrReg to hold it\n");
+        for (Data x = 0; x < dataCnt; x++) {
+                Scope s = dataInfo[x].scope;
+                if (scopeInfo[s].kind == SCOPE_PROC) {
+                        Proc p = scopeInfo[s].tProc.proc;
+                        IrProc ip = procToIrProc[p];
+                        IrReg r = irRegCnt++;
+                        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+                        irRegInfo[r].irproc = ip;
+                        irRegInfo[r].name = symbolInfo[dataInfo[x].sym].name;
+                        irRegInfo[r].sym = dataInfo[x].sym;
+                        irRegInfo[r].tp = dataInfo[x].tp;
+                }
+        }
+
+        DEBUG("For each expression make an IrReg to hold the result\n");
+        RESIZE_GLOBAL_BUFFER(exprToIrReg, exprCnt);
+        for (Expr x = 0; x < exprCnt; x++) {
+                Proc p = exprToProc[x];
+                IrReg r = irRegCnt++;
+                exprToIrReg[x] = r;
+                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+                irRegInfo[r].irproc = procToIrProc[p];
+                irRegInfo[r].name = intern_cstring("(temp value)") /*XXX*/;
+                irRegInfo[r].sym = -1; // registers from Expr's are unnamed
+                irRegInfo[r].tp = exprInfo[x].tp; // for now
+        }
+
+        DEBUG("For each expression add appropriate IrStmts\n");
+        // This relies on the fact that Expressions must be in DFS order
+        // XXX TODO: (which is not true yet!)
+        for (Expr x = 0; x < exprCnt; x++) {
+                switch (exprInfo[x].kind) {
+                case EXPR_LITERAL:
+                        IrStmt y = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[y].proc = exprToProc[x];
+                        irStmtInfo[y].kind = IRSTMT_LOADCONSTANT;
+                        irStmtInfo[y].tLoadConstant.constval = 57; //XXX
+                        irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
+                        break;
+                default:
+                        // UNHANDLED_CASE();
+                        break;
+                }
+        }
+}
+
 void free_buffers(void)
 {
         for (File i = 0; i < fileCnt; i++)
@@ -1731,19 +1799,21 @@ int main(int argc, const char **argv)
 
         initialize_pseudo_constant_data();
         add_file(intern_cstring(fileToParse));
-        MSG("INFO", "Parsing file %s\n", fileToParse);
+        MSG(lvl_info, "Parsing file %s\n", fileToParse);
         parse_global_scope();
-        MSG("INFO", "Resolving symbol references...\n");
+        MSG(lvl_info, "Resolving symbol references...\n");
         resolve_symbol_references();
-        MSG("INFO", "Resolving type references...\n");
+        MSG(lvl_info, "Resolving type references...\n");
         resolve_type_references();
-        MSG("INFO", "Checking types...\n");
+        MSG(lvl_info, "Checking types...\n");
         check_types();
-        MSG("INFO", "Pretty printing input...\n\n");
+        MSG(lvl_info, "Pretty printing input...\n\n");
         prettyprint();
-        outs("Test IR pretty printer...\n");
+        MSG(lvl_info, "Compiling to IR...\n");
+        compile_to_IR();
+        MSG(lvl_info, "Test IR pretty printer...\n");
         irprint();
-        outs("Freeing allocated buffers...\n");
+        MSG(lvl_info, "Freeing allocated buffers...\n");
         free_buffers();
         return 0;
 }

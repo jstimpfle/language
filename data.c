@@ -138,10 +138,12 @@ const int basetypesToBeInitializedCnt = LENGTH(basetypesToBeInitialized);
 
 const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
 #define MAKE(b) [BUFFER_##b] = { (void **) &b, sizeof *b }
-        MAKE( lexbuf ),
-        MAKE( strbuf ),
+        /* str.h */
         MAKE( stringInfo ),
         MAKE( strBucketInfo ),
+        /* compile.c */
+        MAKE( lexbuf ),
+        MAKE( strbuf ),
         MAKE( fileInfo ),
         MAKE( tokenInfo ),
         MAKE( typeInfo ),
@@ -157,5 +159,17 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         MAKE( stmtInfo ),
         MAKE( childStmtInfo ),
         MAKE( callArgInfo ),
+        MAKE( procToIrProc ),
+        MAKE( exprToProc ),
+        MAKE( exprToIrReg ),
+        /* ir.h */
+        MAKE( irSymbolInfo ),
+        MAKE( irRegInfo ),
+        MAKE( irStmtInfo ),
+        MAKE( irCallArgInfo ),
+        MAKE( irCallResultInfo ),
+        MAKE( irProcInfo ),
+        MAKE( irLabelInfo ),
+        /* */
 #undef MAKE
 };

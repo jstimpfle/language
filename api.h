@@ -89,6 +89,14 @@ typedef int ForStmt;
 typedef int WhileStmt;
 typedef int Stmt;
 
+typedef int IrSymbol;
+typedef int IrReg;
+typedef int IrProc;
+typedef int IrCallArg;
+typedef int IrCallResult;
+typedef int IrStmt;
+typedef int IrLabel;
+
 /**
  * \enum{TokenKind}: Token kinds (lexical syntax)
  *
@@ -128,10 +136,12 @@ typedef int Stmt;
  */
 
 enum {
-        BUFFER_lexbuf,
-        BUFFER_strbuf,
+        /* str.h */
         BUFFER_stringInfo,
         BUFFER_strBucketInfo,
+        /* parsing */
+        BUFFER_lexbuf,
+        BUFFER_strbuf,
         BUFFER_fileInfo,
         BUFFER_tokenInfo,
         BUFFER_typeInfo,
@@ -147,6 +157,19 @@ enum {
         BUFFER_stmtInfo,
         BUFFER_childStmtInfo,
         BUFFER_callArgInfo,
+        /* AST -> IR */
+        BUFFER_procToIrProc,
+        BUFFER_exprToProc,
+        BUFFER_exprToIrReg,
+        /* IR */
+        BUFFER_irSymbolInfo,
+        BUFFER_irRegInfo,
+        BUFFER_irStmtInfo,
+        BUFFER_irCallArgInfo,
+        BUFFER_irCallResultInfo,
+        BUFFER_irProcInfo,
+        BUFFER_irLabelInfo,
+        /* */
         NUM_BUFFERS,
 };
 
@@ -258,6 +281,16 @@ enum TypeKind {
         TYPE_POINTER,
         TYPE_PROC,
         TYPE_REFERENCE, // reference another type by name
+};
+
+enum {
+        IRSTMT_LOADCONSTANT,
+        IRSTMT_LOADSYMBOLADDR,
+        IRSTMT_LOAD,
+        IRSTMT_STORE,
+        IRSTMT_CALL,
+        IRSTMT_CONDGOTO,
+        IRSTMT_GOTO,
 };
 
 
@@ -611,6 +644,93 @@ struct ChildStmtInfo {
 };
 
 
+
+struct IrSymbolInfo {
+        String name;
+};
+
+struct IrCallArgInfo {
+        IrStmt callStmt;
+        IrReg src;
+};
+
+struct IrCallResultInfo {
+        IrStmt callStmt;
+        IrReg tgt;
+};
+
+struct IrRegInfo {
+        IrProc irproc;
+
+        /* TODO: think about IrReg names and their relation
+        to the Symbols on the language level */
+        String name;
+        Symbol sym;
+
+        Type tp; //XXX
+};
+
+struct IrLoadConstantStmtInfo {
+        long long constval;
+        IrReg tgtreg;
+};
+
+struct IrLoadSymbolAddrStmtInfo {
+        Symbol sym;
+        IrReg tgtreg;
+};
+
+struct IrLoadStmtInfo {
+        IrReg srcaddrreg;
+        IrReg tgtreg;
+};
+
+struct IrStoreStmtInfo {
+        IrReg srcreg;
+        IrReg tgtaddrreg;
+};
+
+struct IrCallStmtInfo {
+        IrReg callee;
+        IrCallArg firstIrCallArg;  // speed-up
+        IrCallResult firstIrCallResult;  // speed-up
+};
+
+struct IrCondGotoStmtInfo {
+        IrReg condreg;
+        IrStmt tgtstmt;
+};
+
+struct IrGotoStmtInfo {
+        IrStmt tgtstmt;
+};
+
+struct IrStmtInfo {
+        IrProc proc;
+        int kind;  // IRSTMT_
+        union {
+                struct IrLoadConstantStmtInfo tLoadConstant;
+                struct IrLoadSymbolAddrStmtInfo tLoadSymbolAddr;
+                struct IrLoadStmtInfo tLoad;
+                struct IrStoreStmtInfo tStore;
+                struct IrCallStmtInfo tCall;
+                struct IrCondGotoStmtInfo tCondGoto;
+                struct IrGotoStmtInfo tGoto;
+        };
+};
+
+struct IrLabelInfo {
+        IrStmt stmt;
+        String name;
+};
+
+struct IrProcInfo {
+        String name;  // TODO name vs symbol vs language Symbol?
+        IrStmt firstIrStmt; // speed-up
+};
+
+
+
 #ifdef DATA_IMPL
 #define DATA
 #else
@@ -692,6 +812,27 @@ DATA struct StmtInfo *stmtInfo;
 DATA struct ChildStmtInfo *childStmtInfo;
 DATA struct CallArgInfo *callArgInfo;
 
+DATA IrProc *procToIrProc;
+DATA Proc *exprToProc;
+DATA IrReg *exprToIrReg;
+
+
+DATA int irSymbolCnt;
+DATA int irRegCnt;
+DATA int irStmtCnt;
+DATA int irCallArgCnt;
+DATA int irCallResultCnt;
+DATA int irProcCnt;
+DATA int irLabelCnt;
+
+DATA struct IrSymbolInfo *irSymbolInfo;
+DATA struct IrRegInfo *irRegInfo;
+DATA struct IrStmtInfo *irStmtInfo;
+DATA struct IrCallArgInfo *irCallArgInfo;
+DATA struct IrCallResultInfo *irCallResultInfo;
+DATA struct IrProcInfo *irProcInfo;
+DATA struct IrLabelInfo *irLabelInfo;
+
 #undef DATA
 
 
@@ -726,6 +867,9 @@ void NORETURN _abort(void);
 void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
 
 #define MSG(lvl, fmt, ...) _msg(__FILE__, __LINE__, lvl, fmt, ##__VA_ARGS__)
+#define DEBUG(...) \
+        if (doDebug) \
+                _msg(__FILE__, __LINE__, "DEBUG", __VA_ARGS__)
 #define WARN(fmt, ...) _msg(__FILE__, __LINE__, "WARN", fmt, ##__VA_ARGS__)
 #define FATAL(fmt, ...) _fatal(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define ABORT() _abort()
