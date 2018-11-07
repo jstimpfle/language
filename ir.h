@@ -8,14 +8,14 @@ typedef int IrCall;
 typedef int IrCallArg;
 typedef int IrCallResult;
 typedef int IrStmt;
+typedef int IrLabel;
 
 enum {
         IRSTMT_LOADCONSTANT,
         IRSTMT_LOADSYMBOLADDR,
         IRSTMT_LOAD,
         IRSTMT_STORE,
-        IRSTMT_BUILTIN,
-        IRSTMT_INTERNAL,
+        IRSTMT_CALL,
         IRSTMT_CONDGOTO,
         IRSTMT_GOTO,
 };
@@ -73,8 +73,8 @@ struct IrGotoStmtInfo {
 };
 
 struct IrStmtInfo {
-        int kind;  // IRSTMT_
         IrProc proc;
+        int kind;  // IRSTMT_
         union {
                 struct IrLoadConstantStmtInfo tLoadConstant;
                 struct IrLoadSymbolAddrStmtInfo tLoadSymbolAddr;
@@ -84,6 +84,11 @@ struct IrStmtInfo {
                 struct IrCondGotoStmtInfo tCondGoto;
                 struct IrGotoStmtInfo tGoto;
         };
+};
+
+struct IrLabelInfo {
+        IrProc proc;
+        String name;
 };
 
 struct IrProc {

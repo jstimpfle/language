@@ -10,21 +10,27 @@ struct IrVarInfo irvars[] = {
         MAKE("a"),
         MAKE("b"),
         MAKE("c"),
+        MAKE("f"),
 #undef MAKE
 };
 
 struct IrStmtInfo irs[] = {
-#define MAKELOADCONSTANT(x,y)   { IRSTMT_LOADCONSTANT, -1, .tLoadConstant = {(x),(y)}}
-#define MAKELOADSYMBOLADDR(x,y) { IRSTMT_LOADSYMBOLADDR, -1, .tLoadSymbolAddr = {(x),(y)}}
-#define MAKELOAD(x, y)          { IRSTMT_LOAD, -1, .tLoad = {(x),(y)}}
-#define MAKESTORE(x, y)         { IRSTMT_STORE, -1, .tStore = {(x),(y)}}
-#define MAKECALL(x)             { IRSTMT_CALL, -1, .tCall = {(x),-1,-1}}
-#define MAKECONDGOTO(x, y)      { IRSTMT_CONDGOTO, -1, .tCondGoto = {(x),-1,-1}}
-#define MAKEGOTO(x)             { IRSTMT_GOTO, -1, .tGoto = {(x)}}
+#define MAKELOADCONSTANT(x,y)   { -1, IRSTMT_LOADCONSTANT, .tLoadConstant = {(x),(y)}}
+#define MAKELOADSYMBOLADDR(x,y) { -1, IRSTMT_LOADSYMBOLADDR, .tLoadSymbolAddr = {(x),(y)}}
+#define MAKELOAD(x, y)          { -1, IRSTMT_LOAD, .tLoad = {(x),(y)}}
+#define MAKESTORE(x, y)         { -1, IRSTMT_STORE, .tStore = {(x),(y)}}
+#define MAKECALL(x)             { -1, IRSTMT_CALL, .tCall = {(x),-1,-1}}
+#define MAKECONDGOTO(x, y)      { -1, IRSTMT_CONDGOTO, .tCondGoto = {(x),(y)}}
+#define MAKEGOTO(x)             { -1, IRSTMT_GOTO, .tGoto = {(x)}}
         MAKELOADCONSTANT(42, 0),
         MAKELOADCONSTANT(42, 1),
-        MAKELOADSYMBOLADDR( (Symbol) 3, (IrVar) 2 ),
+        MAKELOADSYMBOLADDR( (Symbol) 3, (IrVar) 1 ),
         MAKELOADSYMBOLADDR( (Symbol) 4, (IrVar) 2 ),
+        MAKELOADSYMBOLADDR( (Symbol) 1, (IrVar) 6 ),
+        MAKECALL( 6 ),
+        MAKECONDGOTO( (IrVar) 0, 13 ),
+        MAKEGOTO( 14 ),
+        MAKESTORE( (IrVar) 2, (IrVar) 3 ),
 };
 #undef MAKELOADCONSTANT
 #undef MAKELOADSYMBOLADDR
@@ -61,10 +67,37 @@ void irprint(void)
                         irp_var(irs[i].tLoadConstant.tgtvar);
                         break;
                 case IRSTMT_LOADSYMBOLADDR:
-                        outf("LOADSYMBOLADDR ");
+                        outs("LOADSYMBOLADDR ");
                         irp_symbol(irs[i].tLoadSymbolAddr.sym);
                         outs(", ");
-                        irp_var(irs[i].tLoadConstant.tgtvar);
+                        irp_var(irs[i].tLoadSymbolAddr.tgtvar);
+                        break;
+                case IRSTMT_LOAD:
+                        outs("LOAD ");
+                        irp_var(irs[i].tLoad.srcaddrvar);
+                        outs(", ");
+                        irp_var(irs[i].tLoad.tgtvar);
+                        break;
+                case IRSTMT_STORE:
+                        outs("STORE ");
+                        irp_var(irs[i].tStore.srcvar);
+                        outs(", ");
+                        irp_var(irs[i].tStore.tgtaddrvar);
+                        break;
+                case IRSTMT_CALL:
+                        outs("CALL ");
+                        irp_var(irs[i].tCall.callee);
+                        outs("(...)");
+                        break;
+                case IRSTMT_CONDGOTO:
+                        outs("CONDGOTO ");
+                        irp_var(irs[i].tCondGoto.condvar);
+                        outs(", ");
+                        outf("%d", irs[i].tCondGoto.tgtstmt);
+                        break;
+                case IRSTMT_GOTO:
+                        outs("GOTO ");
+                        outf("%d", irs[i].tGoto.tgtstmt);
                         break;
                 }
                 outs("\n");
