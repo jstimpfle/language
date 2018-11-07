@@ -2,7 +2,7 @@
 #error "api.h" must be included first
 #endif
 
-typedef int IrVar;
+typedef int IrReg;
 typedef int IrProc;
 typedef int IrCall;
 typedef int IrCallArg;
@@ -22,15 +22,15 @@ enum {
 
 struct IrCallArgInfo {
         IrCall call;
-        IrVar src;
+        IrReg src;
 };
 
 struct IrCallResultInfo {
         IrCall call;
-        IrVar tgt;
+        IrReg tgt;
 };
 
-struct IrVarInfo {
+struct IrRegInfo {
         IrProc irproc;
         //String name;
         const char *name; //temporarily
@@ -39,32 +39,32 @@ struct IrVarInfo {
 
 struct IrLoadConstantStmtInfo {
         long long constval;
-        IrVar tgtvar;
+        IrReg tgtreg;
 };
 
 struct IrLoadSymbolAddrStmtInfo {
         Symbol sym;
-        IrVar tgtvar;
+        IrReg tgtreg;
 };
 
 struct IrLoadStmtInfo {
-        IrVar srcaddrvar;
-        IrVar tgtvar;
+        IrReg srcaddrreg;
+        IrReg tgtreg;
 };
 
 struct IrStoreStmtInfo {
-        IrVar srcvar;
-        IrVar tgtaddrvar;
+        IrReg srcreg;
+        IrReg tgtaddrreg;
 };
 
 struct IrCallStmtInfo {
-        IrVar callee;
+        IrReg callee;
         IrCallArg firstArg;  // speed-up
         IrCallResult firstResult;  // speed-up
 };
 
 struct IrCondGotoStmtInfo {
-        IrVar condvar;
+        IrReg condreg;
         IrStmt tgtstmt;
 };
 
