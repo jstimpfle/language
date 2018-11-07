@@ -75,7 +75,7 @@ void outs(const char *s)
 {
         fputs(s, stdout);
         //XXX remove this later
-        fflush(stdout);
+        //fflush(stdout);
 }
 
 void outf(const char *fmt, ...)
@@ -90,7 +90,7 @@ void outfv(const char *fmt, va_list ap)
 {
         vfprintf(stdout, fmt, ap);
         //XXX remove this later
-        fflush(stdout);
+        //fflush(stdout);
 }
 
 void _msg_begin(const char *srcfilename, int srcline,

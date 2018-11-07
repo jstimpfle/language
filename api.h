@@ -651,12 +651,12 @@ struct IrSymbolInfo {
 
 struct IrCallArgInfo {
         IrStmt callStmt;
-        IrReg src;
+        IrReg srcreg;
 };
 
 struct IrCallResultInfo {
         IrStmt callStmt;
-        IrReg tgt;
+        IrReg tgtreg;
 };
 
 struct IrRegInfo {

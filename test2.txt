@@ -8,5 +8,9 @@ proc int f(Foobar x)
     return a[x];
     return a[3];
     return 3[x];
-    3;
+    g(3, 5*4);
+}
+
+proc int g()
+{
 }

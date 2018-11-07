@@ -14,8 +14,9 @@ void irp_symbol(Symbol sym)
 void irp_reg(IrReg v)
 {
         if (irRegInfo[v].sym >= 0)
-                outf("%s ", SS(irRegInfo[v].sym));
-        outf("%s", string_buffer(irRegInfo[v].name));
+                outf("%s", SS(irRegInfo[v].sym));
+        else
+                outf("%%%d", v);
 }
 
 void irp_proc(IrProc p)
@@ -24,7 +25,7 @@ void irp_proc(IrProc p)
         for (IrStmt i = irProcInfo[p].firstIrStmt;
              i < irStmtCnt && irStmtInfo[i].proc == p;
              i++) {
-                DEBUG("Now printing statement %d\n", i);
+                outf("%5d   ", i);
                 switch (irStmtInfo[i].kind) {
                 case IRSTMT_LOADCONSTANT:
                         outs("LOADCONSTANT ");
@@ -50,11 +51,40 @@ void irp_proc(IrProc p)
                         outs(", ");
                         irp_reg(irStmtInfo[i].tStore.tgtaddrreg);
                         break;
-                case IRSTMT_CALL:
+                case IRSTMT_CALL: {
                         outs("CALL ");
                         irp_reg(irStmtInfo[i].tCall.callee);
-                        outs("(...)");
+                        outs("(");
+                        int firstCallArg = irStmtInfo[i].tCall.firstIrCallArg;
+                        int arg = firstCallArg;
+                        for (;;) {
+                                irp_reg(irCallArgInfo[arg].srcreg);
+                                arg++;
+                                if (arg == irCallArgCnt)
+                                        break;
+                                if (irCallArgInfo[arg].callStmt != i)
+                                        break;
+                                outs(", ");
+                        }
+                        outs(")");
+                        outs(" -> ");
+                        outs("(");
+                        int ret = irStmtInfo[i].tCall.firstIrCallResult;
+                        for (;;) {
+                                /*DEBUG("\nret=%d tgtreg=%d, irCallResultCnt=%d\n",
+                                        ret, irCallResultInfo[ret].tgtreg, irCallResultCnt);
+                                        */
+                                irp_reg(irCallResultInfo[ret].tgtreg);
+                                ret++;
+                                if (ret == irCallResultCnt)
+                                        break;
+                                if (irCallResultInfo[ret].callStmt != i)
+                                        break;
+                                outs(", ");
+                        }
+                        outs(")");
                         break;
+                }
                 case IRSTMT_CONDGOTO:
                         outs("CONDGOTO ");
                         irp_reg(irStmtInfo[i].tCondGoto.condreg);
@@ -77,10 +107,10 @@ void irprint(void)
         DEBUG("Fixing indices\n");
         for (IrStmt i = irStmtCnt; i-- > 0;) {
                 Proc proc = irStmtInfo[i].proc;
-                DEBUG("Proc is %d\n", proc);
                 irProcInfo[proc].firstIrStmt = i;
         }
         DEBUG("Printing procs\n");
+        outs("\n");
         for (IrProc p = 0; p < irProcCnt; p++)
                 irp_proc(p);
 }

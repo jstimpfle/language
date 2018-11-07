@@ -1710,6 +1710,148 @@ void check_types(void)
         }
 }
 
+void compile_expr(Expr x)
+{
+        switch (exprInfo[x].kind) {
+        case EXPR_LITERAL: {
+                IrStmt y = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irStmtInfo[y].proc = exprToProc[x];
+                irStmtInfo[y].kind = IRSTMT_LOADCONSTANT;
+                irStmtInfo[y].tLoadConstant.constval = tokenInfo[exprInfo[x].tLiteral.tok].tInteger.value; //XXX
+                irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
+                break;
+        }
+        case EXPR_BINOP: {
+                Expr e1 = exprInfo[x].tBinop.expr1;
+                Expr e2 = exprInfo[x].tBinop.expr2;
+                compile_expr(e1);
+                compile_expr(e2);
+                IrCallArg arg1 = irCallArgCnt++;
+                IrCallArg arg2 = irCallArgCnt++;
+                IrCallResult ret = irCallResultCnt++;
+                IrStmt y = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irCallArgInfo, irCallArgCnt);
+                RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irCallArgInfo[arg1].srcreg = exprToIrReg[e1];
+                irCallArgInfo[arg2].srcreg = exprToIrReg[e2];
+                irCallArgInfo[arg1].callStmt = y;
+                irCallArgInfo[arg2].callStmt = y;
+                irCallResultInfo[ret].callStmt = y;
+                irCallResultInfo[ret].tgtreg = exprToIrReg[x];
+                irStmtInfo[y].proc = exprToProc[x];
+                // XXX: We "call" the binop operation. This is very inefficient.
+                irStmtInfo[y].kind = IRSTMT_CALL;
+                irStmtInfo[y].tCall.callee = 0;  //XXX TODO: need register holding address of binop operation
+                irStmtInfo[y].tCall.firstIrCallArg = arg1;
+                irStmtInfo[y].tCall.firstIrCallResult = ret;
+                break;
+        }
+        case EXPR_SYMREF: {
+                Symref ref = exprInfo[x].tSymref.ref;
+                Symbol sym = symrefInfo[ref].sym;
+                assert(sym >= 0);
+                IrReg addr = irRegCnt++;
+                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+                IrStmt s0 = irStmtCnt++;
+                IrStmt s1 = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irRegInfo[addr].irproc = exprToProc[x];
+                irRegInfo[addr].name = intern_cstring("(addr)"); //XXX
+                irRegInfo[addr].sym = sym; //XXX
+                irRegInfo[addr].tp = -1; //XXX
+                irStmtInfo[s0].proc = exprToProc[x];
+                irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
+                irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
+                irStmtInfo[s0].tLoadSymbolAddr.tgtreg = addr;
+                irStmtInfo[s1].proc = exprToProc[x];
+                irStmtInfo[s1].kind = IRSTMT_LOAD;
+                irStmtInfo[s1].tLoad.srcaddrreg = addr;
+                irStmtInfo[s1].tLoad.tgtreg = exprToIrReg[x];
+                break;
+        }
+        case EXPR_CALL: {
+                /*
+                 * Evaluate function arguments
+                 */
+                int firstCallArg = exprInfo[x].tCall.firstArgIdx;
+                int lastCallArg = firstCallArg + exprInfo[x].tCall.nargs;
+                for (int i = firstCallArg; i < lastCallArg; i++)
+                        compile_expr(callArgInfo[i].argExpr);
+                /*
+                 * Evaluate function to call
+                 */
+                Expr calleeExpr = exprInfo[x].tCall.callee;
+                compile_expr(calleeExpr);
+                /*
+                 * Emit calling code
+                 */
+                IrStmt y = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irStmtInfo[y].proc = exprToProc[x];
+                irStmtInfo[y].kind = IRSTMT_CALL;
+                irStmtInfo[y].tCall.callee = exprToIrReg[calleeExpr];
+                irStmtInfo[y].tCall.firstIrCallArg = irCallArgCnt; // XXX: Achtung!
+                irStmtInfo[y].tCall.firstIrCallResult = irCallResultCnt; // XXX: Achtung!
+                /*
+                 * Fix up routing information for arguments
+                 */
+                int firstIrCallArg = irCallArgCnt;
+                for (int i = firstCallArg; i < lastCallArg; i++) {
+                        Expr argExpr = callArgInfo[i].argExpr;
+                        IrCallArg arg = irCallArgCnt++;
+                        RESIZE_GLOBAL_BUFFER(irCallArgInfo, irCallArgCnt);
+                        irCallArgInfo[arg].callStmt = y;
+                        irCallArgInfo[arg].srcreg = exprToIrReg[argExpr];
+                }
+                /*
+                 * Fix up routing information for result
+                 */
+                IrCallResult ret = irCallResultCnt++;
+                RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
+                irCallResultInfo[ret].callStmt = y;
+                irCallResultInfo[ret].tgtreg = exprToIrReg[x];
+                break;
+        }
+        default:
+                // UNHANDLED_CASE();
+                break;
+        }
+}
+
+void compile_stmt(IrProc irp, Stmt stmt)
+{
+        switch (stmtInfo[stmt].kind) {
+        case STMT_EXPR:
+                compile_expr(stmtInfo[stmt].tExpr.expr);
+                break;
+        case STMT_COMPOUND: {
+                Stmt first = stmtInfo[stmt].tCompound.firstChildStmtIdx;
+                Stmt last = first + stmtInfo[stmt].tCompound.numStatements;
+                for (int cld = first; cld < last; cld++)
+                        compile_stmt(irp, childStmtInfo[cld].child);
+                break;
+        }
+        case STMT_IF: {
+                Expr condExpr = stmtInfo[stmt].tIf.condExpr;
+                Stmt cldStmt = stmtInfo[stmt].tIf.childStmt;
+                compile_expr(condExpr);
+                IrStmt irs = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irStmtInfo[irs].proc = irp;
+                irStmtInfo[irs].kind = IRSTMT_CONDGOTO;
+                irStmtInfo[irs].tCondGoto.condreg = exprToIrReg[condExpr];
+                irStmtInfo[irs].tCondGoto.tgtstmt = -1; //XXX
+                compile_stmt(irp, cldStmt);
+                irStmtInfo[irs].tCondGoto.tgtstmt = irStmtCnt; //XXX :( :( :(
+        }
+        default:
+                //UNHANDLED_CASE();
+                break;
+        }
+}
+
 void compile_to_IR(void)
 {
         DEBUG("For each expression find its proc.\n");
@@ -1752,76 +1894,17 @@ void compile_to_IR(void)
                 exprToIrReg[x] = r;
                 RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
                 irRegInfo[r].irproc = procToIrProc[p];
-                irRegInfo[r].name = intern_cstring("(temp value)") /*XXX*/;
+                irRegInfo[r].name = intern_cstring("(tmp)") /*XXX*/;
                 irRegInfo[r].sym = -1; // registers from Expr's are unnamed
                 irRegInfo[r].tp = exprInfo[x].tp; // for now
         }
 
-        DEBUG("For each expression add appropriate IrStmts\n");
-        // This relies on the fact that Expressions must be in DFS order
-        // XXX TODO: (which is not true yet!)
-        for (Expr x = 0; x < exprCnt; x++) {
-                switch (exprInfo[x].kind) {
-                case EXPR_LITERAL: {
-                        IrStmt y = irStmtCnt++;
-                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irStmtInfo[y].proc = exprToProc[x];
-                        irStmtInfo[y].kind = IRSTMT_LOADCONSTANT;
-                        irStmtInfo[y].tLoadConstant.constval = 57; //XXX
-                        irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
-                        break;
-                }
-                case EXPR_BINOP: {
-                        Expr e1 = exprInfo[x].tBinop.expr1;
-                        Expr e2 = exprInfo[x].tBinop.expr2;
-                        IrCallArg arg1 = irCallArgCnt++;
-                        IrCallArg arg2 = irCallArgCnt++;
-                        IrCallResult ret = irCallResultCnt++;
-                        IrStmt y = irStmtCnt++;
-                        RESIZE_GLOBAL_BUFFER(irCallArgInfo, irCallArgCnt);
-                        RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
-                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irCallArgInfo[arg1].src = exprToIrReg[e1];
-                        irCallArgInfo[arg2].src = exprToIrReg[e2];
-                        irCallArgInfo[arg1].callStmt = y;
-                        irCallArgInfo[arg2].callStmt = y;
-                        irCallResultInfo[ret].callStmt = y;
-                        irCallResultInfo[ret].tgt = exprToIrReg[x];
-                        irStmtInfo[y].proc = exprToProc[x];
-                        // XXX: We "call" the add operation. This is very inefficient.
-                        irStmtInfo[y].kind = IRSTMT_CALL;
-                        irStmtInfo[y].tCall.callee = 0;  //XXX TODO: need register holding address of add operation
-                        irStmtInfo[y].tCall.firstIrCallArg = -1;
-                        irStmtInfo[y].tCall.firstIrCallResult = -1;
-                        break;
-                }
-                case EXPR_SYMREF: {
-                        Symref ref = exprInfo[x].tSymref.ref;
-                        Symbol sym = symrefInfo[ref].sym;
-                        assert(sym >= 0);
-                        IrReg addr = irRegCnt++;
-                        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
-                        IrStmt s0 = irStmtCnt++;
-                        IrStmt s1 = irStmtCnt++;
-                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irRegInfo[addr].irproc = exprToProc[x];
-                        irRegInfo[addr].name = intern_cstring("(Holds symbol address)"); //XXX
-                        irRegInfo[addr].sym = sym; //XXX
-                        irRegInfo[addr].tp = -1; //XXX
-                        irStmtInfo[s0].proc = exprToProc[x];
-                        irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
-                        irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
-                        irStmtInfo[s0].tLoadSymbolAddr.tgtreg = addr;
-                        irStmtInfo[s1].proc = exprToProc[x];
-                        irStmtInfo[s1].kind = IRSTMT_LOAD;
-                        irStmtInfo[s1].tLoad.srcaddrreg = addr;
-                        irStmtInfo[s1].tLoad.tgtreg = exprToIrReg[x];
-                        break;
-                }
-                default:
-                        // UNHANDLED_CASE();
-                        break;
-                }
+        DEBUG("For each proc add appropriate IrStmts\n");
+        for (Proc p = 0; p < procCnt; p++) {
+                DEBUG("Compile proc #%d %s\n", p, SS(procInfo[p].sym));
+                IrProc irp = procToIrProc[p];
+                irProcInfo[irp].name = symbolInfo[procInfo[p].sym].name;
+                compile_stmt(irp, procInfo[p].body);
         }
 }
 

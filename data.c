@@ -141,7 +141,7 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         /* str.h */
         MAKE( stringInfo ),
         MAKE( strBucketInfo ),
-        /* compile.c */
+        /* parsing */
         MAKE( lexbuf ),
         MAKE( strbuf ),
         MAKE( fileInfo ),
@@ -159,10 +159,11 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         MAKE( stmtInfo ),
         MAKE( childStmtInfo ),
         MAKE( callArgInfo ),
+        /* AST -> IR */
         MAKE( procToIrProc ),
         MAKE( exprToProc ),
         MAKE( exprToIrReg ),
-        /* ir.h */
+        /* IR */
         MAKE( irSymbolInfo ),
         MAKE( irRegInfo ),
         MAKE( irStmtInfo ),
@@ -170,6 +171,5 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         MAKE( irCallResultInfo ),
         MAKE( irProcInfo ),
         MAKE( irLabelInfo ),
-        /* */
 #undef MAKE
 };
