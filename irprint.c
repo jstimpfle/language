@@ -55,8 +55,7 @@ void irp_proc(IrProc p)
                         outs("CALL ");
                         irp_reg(irStmtInfo[i].tCall.callee);
                         outs("(");
-                        int firstCallArg = irStmtInfo[i].tCall.firstIrCallArg;
-                        int arg = firstCallArg;
+                        int arg = irStmtInfo[i].tCall.firstIrCallArg;
                         for (;;) {
                                 irp_reg(irCallArgInfo[arg].srcreg);
                                 arg++;
@@ -85,16 +84,36 @@ void irp_proc(IrProc p)
                         outs(")");
                         break;
                 }
-                case IRSTMT_CONDGOTO:
+                case IRSTMT_CONDGOTO: {
                         outs("CONDGOTO ");
                         irp_reg(irStmtInfo[i].tCondGoto.condreg);
                         outs(", ");
                         outf("%d", irStmtInfo[i].tCondGoto.tgtstmt);
                         break;
-                case IRSTMT_GOTO:
+                }
+                case IRSTMT_GOTO: {
                         outs("GOTO ");
                         outf("%d", irStmtInfo[i].tGoto.tgtstmt);
                         break;
+                }
+                case IRSTMT_RETURN: {
+                        outs("RETURN ");
+                        outs("(");
+                        int res = irStmtInfo[i].tReturn.firstResult;
+                        for (;;) {
+                                irp_reg(irReturnResultInfo[res].resultReg);
+                                res++;
+                                if (res == irReturnResultCnt)
+                                        break;
+                                if (irReturnResultInfo[res].returnStmt != i)
+                                        break;
+                                outs(", ");
+                        }
+                        outs(")");
+                        break;
+                }
+                default:
+                        UNHANDLED_CASE();
                 }
                 outs("\n");
         }

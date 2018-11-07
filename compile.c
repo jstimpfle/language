@@ -1797,7 +1797,6 @@ void compile_expr(Expr x)
                 /*
                  * Fix up routing information for arguments
                  */
-                int firstIrCallArg = irCallArgCnt;
                 for (int i = firstCallArg; i < lastCallArg; i++) {
                         Expr argExpr = callArgInfo[i].argExpr;
                         IrCallArg arg = irCallArgCnt++;
@@ -1842,9 +1841,24 @@ void compile_stmt(IrProc irp, Stmt stmt)
                 irStmtInfo[irs].proc = irp;
                 irStmtInfo[irs].kind = IRSTMT_CONDGOTO;
                 irStmtInfo[irs].tCondGoto.condreg = exprToIrReg[condExpr];
-                irStmtInfo[irs].tCondGoto.tgtstmt = -1; //XXX
+                irStmtInfo[irs].tCondGoto.tgtstmt = -1;
                 compile_stmt(irp, cldStmt);
-                irStmtInfo[irs].tCondGoto.tgtstmt = irStmtCnt; //XXX :( :( :(
+                irStmtInfo[irs].tCondGoto.tgtstmt = irStmtCnt;
+        }
+        case STMT_RETURN: {
+                Expr resultExpr = stmtInfo[stmt].tReturn.expr;
+                compile_expr(resultExpr);
+                IrStmt irs = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irStmtInfo[irs].proc = irp;
+                irStmtInfo[irs].kind = IRSTMT_RETURN;
+                irStmtInfo[irs].tReturn.firstResult = irReturnResultCnt;
+                /**/
+                IrReturnResult ret = irReturnResultCnt++;
+                RESIZE_GLOBAL_BUFFER(irReturnResultInfo, irReturnResultCnt);
+                irReturnResultInfo[ret].returnStmt = irs;
+                irReturnResultInfo[ret].resultReg = exprToIrReg[resultExpr];
+                break;
         }
         default:
                 //UNHANDLED_CASE();

@@ -94,6 +94,7 @@ typedef int IrReg;
 typedef int IrProc;
 typedef int IrCallArg;
 typedef int IrCallResult;
+typedef int IrReturnResult;
 typedef int IrStmt;
 typedef int IrLabel;
 
@@ -167,6 +168,7 @@ enum {
         BUFFER_irStmtInfo,
         BUFFER_irCallArgInfo,
         BUFFER_irCallResultInfo,
+        BUFFER_irReturnResultInfo,
         BUFFER_irProcInfo,
         BUFFER_irLabelInfo,
         /* */
@@ -291,6 +293,7 @@ enum {
         IRSTMT_CALL,
         IRSTMT_CONDGOTO,
         IRSTMT_GOTO,
+        IRSTMT_RETURN,
 };
 
 
@@ -659,6 +662,11 @@ struct IrCallResultInfo {
         IrReg tgtreg;
 };
 
+struct IrReturnResultInfo {
+        IrStmt returnStmt;
+        IrReg resultReg;
+};
+
 struct IrRegInfo {
         IrProc irproc;
 
@@ -705,6 +713,10 @@ struct IrGotoStmtInfo {
         IrStmt tgtstmt;
 };
 
+struct IrReturnStmtInfo {
+        IrReturnResult firstResult;
+};
+
 struct IrStmtInfo {
         IrProc proc;
         int kind;  // IRSTMT_
@@ -716,6 +728,7 @@ struct IrStmtInfo {
                 struct IrCallStmtInfo tCall;
                 struct IrCondGotoStmtInfo tCondGoto;
                 struct IrGotoStmtInfo tGoto;
+                struct IrReturnStmtInfo tReturn;
         };
 };
 
@@ -822,6 +835,7 @@ DATA int irRegCnt;
 DATA int irStmtCnt;
 DATA int irCallArgCnt;
 DATA int irCallResultCnt;
+DATA int irReturnResultCnt;
 DATA int irProcCnt;
 DATA int irLabelCnt;
 
@@ -830,6 +844,7 @@ DATA struct IrRegInfo *irRegInfo;
 DATA struct IrStmtInfo *irStmtInfo;
 DATA struct IrCallArgInfo *irCallArgInfo;
 DATA struct IrCallResultInfo *irCallResultInfo;
+DATA struct IrReturnResultInfo *irReturnResultInfo;
 DATA struct IrProcInfo *irProcInfo;
 DATA struct IrLabelInfo *irLabelInfo;
 
