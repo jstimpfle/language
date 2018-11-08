@@ -86,26 +86,6 @@ void initialize_pseudo_constant_data(void)
         }
 }
 
-int char_is_alpha(int c)
-{
-        return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
-}
-
-int char_is_digit(int c)
-{
-        return '0' <= c && c <= '9';
-}
-
-int char_is_whitespace(int c)
-{
-        return c == ' ' || c == '\n';
-}
-
-int char_is_invalid(int c)
-{
-        return c < 32 && ! char_is_whitespace(c);
-}
-
 int token_is_unary_prefix_operator(Token tok, int *out_optype)
 {
         int tp = tokenInfo[tok].kind;
@@ -148,10 +128,9 @@ int look_char(void)
                 if (currentOffset < fileInfo[currentFile].size) {
                         haveSavedChar = 1;
                         int c = fileInfo[currentFile].buf[currentOffset];
-                        if (char_is_invalid(c)) {
+                        if (c < 32 && c != ' ' && c != '\n')
                                 FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
                                                      "Invalid byte %d\n", c);
-                        }
                         savedChar = c;
                 }
                 else {
@@ -219,31 +198,33 @@ Token parse_next_token(void)
                         }
                         continue;
                 }
-                if (! char_is_whitespace(c))
+                if (c != ' ' && c != '\n')
                         break;
         }
 
         /* good to go. Variable c contains first character to lex */
         off = currentOffset - 1;
-        if (char_is_alpha(c)) {
+        if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')) {
                 lexbufCnt = 0;
                 for (;;) {
                         int idx = lexbufCnt++;
                         RESIZE_GLOBAL_BUFFER(lexbuf, lexbufCnt);
                         lexbuf[idx] = (char) c;
                         c = look_char();
-                        if (! char_is_alpha(c) && ! char_is_digit(c))
+                        if (!('a' <= c && c <= 'z') &&
+                            !('A' <= c && c <= 'Z') &&
+                            !('0' <= c && c <= '9'))
                                 break;
                         read_char();
                 }
                 ans = add_word_token(currentFile, off,
                                      intern_string(lexbuf, lexbufCnt));
         }
-        else if (char_is_digit(c)) {
+        else if ('0' <= c && c <= '9') {
                 long long x = c - '0';
                 for (;;) {
                         c = look_char();
-                        if (! char_is_digit(c))
+                        if (!('0' <= c && c <= '9'))
                                 break;
                         read_char();
                         x = 10 * x + c - '0';
@@ -428,7 +409,7 @@ Type parse_entity(void)
         String name = parse_name();
         parse_token_kind(TOKTYPE_SEMICOLON);
         Type etp = typeCnt++;
-        Symbol sym = add_type_symbol(name, currentScope, etp);
+        add_type_symbol(name, currentScope, etp);
 
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[etp].kind = TYPE_ENTITY;
@@ -699,7 +680,6 @@ Stmt parse_while_stmt(void)
         Stmt childStmt = parse_expr_or_compound_stmt();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        outs("HERE!\n");
         stmtInfo[stmt].kind = STMT_WHILE;
         stmtInfo[stmt].tWhile.condExpr = condExpr;
         stmtInfo[stmt].tWhile.childStmt = childStmt;
