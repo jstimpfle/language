@@ -2,6 +2,12 @@
 #define DATA_IMPL
 #include "api.h"
 
+const char lvl_debug[] = "DEBUG";
+const char lvl_info[] = "INFO";
+const char lvl_warn[] = "WARN";
+const char lvl_error[] = "ERROR";
+const char lvl_fatal[] = "FATAL";
+
 const char *const tokenKindString[] = {
 #define MAKE(x) [x] = #x
         MAKE( TOKTYPE_WORD ),

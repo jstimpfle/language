@@ -754,6 +754,11 @@ struct IrProcInfo {
 #define DATA extern
 #endif
 
+extern const char lvl_debug[];
+extern const char lvl_info[];
+extern const char lvl_warn[];
+extern const char lvl_error[];
+extern const char lvl_fatal[];
 extern const char *const tokenKindString[];
 extern const char *const exprKindString[];
 extern const char *const typeKindString[];
@@ -861,7 +866,6 @@ void mem_copy(void *dst, const void *src, int size);
 int mem_compare(const void *m1, const void *m2, int size);
 int cstr_length(const char *s);
 int cstr_compare(const char *s1, const char *m2);
-void *mem_realloc(void *ptr, int size);
 void sort_array(void *ptr, int nelems, int elemsize,
                 int (*compare)(const void*, const void*));
 
@@ -870,7 +874,9 @@ void sort_array(void *ptr, int nelems, int elemsize,
 #define SORT(a, n, cmp) sort_array(a, n, sizeof *(a), cmp)
 
 
-
+/*
+ * io.c
+ */
 
 void outs(const char *s);
 void outf(const char *fmt, ...);
@@ -895,6 +901,44 @@ void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
 #define UNHANDLED_CASE() FATAL("Unhandled case!\n");
 
 
+/*
+* messages.c
+*/
+
+void _msg_at_v(const char *srcfilename, int srcline,
+        const char *lvl, File file, int offset,
+        const char *fmt, va_list ap);
+
+void _msg_at(const char *srcfilename, int srcline,
+        const char *lvl, File file, int offset,
+        const char *fmt, ...);
+
+void _msg_at_tok(const char *srcfilename, int srcline,
+        const char *lvl, Token tok,
+        const char *fmt, ...);
+
+void _msg_at_expr(const char *srcfilename, int srcline,
+        const char *lvl, Expr expr,
+        const char *fmt, ...);
+
+#define MSG_AT(...) _msg_at(__FILE__, __LINE__, __VA_ARGS__)
+#define MSG_AT_TOK(...) _msg_at_tok(__FILE__, __LINE__, __VA_ARGS__)
+#define MSG_AT_EXPR(...) _msg_at_expr(__FILE__, __LINE__, __VA_ARGS__)
+
+#define FATAL_PARSE_ERROR_AT(...) \
+        do { MSG_AT(lvl_fatal, __VA_ARGS__); ABORT(); } while (0)
+#define FATAL_PARSE_ERROR_AT_TOK(...) \
+        do { MSG_AT_TOK(lvl_fatal, __VA_ARGS__); ABORT(); } while (0)
+#define LOG_TYPE_ERROR_EXPR(...) MSG_AT_EXPR(lvl_error, __VA_ARGS__)
+#define LOG_TYPE_ERROR_EXPR(...) MSG_AT_EXPR(lvl_error, __VA_ARGS__)
+
+#define PARSE_LOG() \
+        if (doDebug) \
+                MSG_AT(lvl_debug, currentFile, currentOffset, \
+                       "%s()\n", __func__)
+
+
+/* memory.c */
 
 void _buf_init(void **ptr, struct Alloc *alloc, int elsize,
                const char *UNUSED file, int UNUSED line);
@@ -923,6 +967,10 @@ void _resize_global_buffer_dbg(int buf, int nelems, int clear,
 #define RESIZE_GLOBAL_BUFFER(bufname, nelems) \
         _resize_global_buffer(BUFFER_##bufname, (nelems), 0)
 
+
+/*
+ * str.c
+ */
 
 static inline const char *string_buffer(String s)
 {
@@ -953,5 +1001,26 @@ String intern_string(const void *buf, int len);
 String intern_cstring(const char *str);
 
 
+/*
+ * parse.c
+ */
+void initialize_pseudo_constant_data(void);
+void parse_global_scope(void);
+
+/*
+ * pprint.c
+ */
 void prettyprint(void);
+
+/*
+ * compile.c
+ */
+void resolve_symbol_references(void);
+void resolve_type_references(void);
+void check_types(void);
+void compile_to_IR(void);
+
+/*
+ * irprint.c
+ */
 void irprint(void);
