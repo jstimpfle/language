@@ -204,6 +204,7 @@ void pp_stmt(Stmt stmt)
                 break;
         }
         case STMT_FOR:
+                pp_newline();
                 outs("for (");
                 pp_stmt(stmtInfo[stmt].tFor.initStmt);
                 outs("; ");
@@ -218,14 +219,13 @@ void pp_stmt(Stmt stmt)
                 pp_newline();
                 break;
         case STMT_WHILE:
-                outs("if (");
+                pp_newline();
+                outs("while (");
                 pp_expr(stmtInfo[stmt].tWhile.condExpr);
                 outs(")");
                 add_indent();
-                pp_newline();
                 pp_stmt(stmtInfo[stmt].tWhile.childStmt);
                 remove_indent();
-                pp_newline();
                 break;
         case STMT_RETURN:
                 pp_newline();

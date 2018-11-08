@@ -33,66 +33,6 @@ Token add_bare_token(File file, int offset, int kind)
         return x;
 }
 
-Type add_base_type(String name, int size)
-{
-        Type x = typeCnt++;
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[x].kind = TYPE_BASE;
-        typeInfo[x].tBase.name = name;
-        typeInfo[x].tBase.size = size;
-        return x;
-}
-
-Type add_entity_type(String name, Type tp)
-{
-        Type x = typeCnt++;
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[x].kind = TYPE_ENTITY;
-        typeInfo[x].tEntity.name = name;
-        typeInfo[x].tEntity.tp = tp;
-        return x;
-}
-
-Type add_pointer_type(Type tp)
-{
-        Type x = typeCnt++;
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[x].kind = TYPE_POINTER;
-        typeInfo[x].tPointer.tp = tp;
-        return x;
-}
-
-Type add_proc_type(Type rettp, int nargs, int firstParamtype)
-{
-        Type x = typeCnt++;
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[x].kind = TYPE_PROC;
-        typeInfo[x].tProc.rettp = rettp;
-        typeInfo[x].tProc.nargs = nargs;
-        typeInfo[x].tProc.firstParamtype = firstParamtype;
-        return x;
-}
-
-Type add_ref_type(Symref ref)
-{
-        Type x = typeCnt++;
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[x].kind = TYPE_REFERENCE;
-        typeInfo[x].tRef.ref = ref;
-        typeInfo[x].tRef.resolvedTp = -1;
-        return x;
-}
-
-Type add_paramtype(Type proctp, Type argtp)
-{
-        int x = paramtypeCnt++;
-        RESIZE_GLOBAL_BUFFER(paramtypeInfo, paramtypeCnt);
-        paramtypeInfo[x].proctp = proctp;
-        paramtypeInfo[x].argtp = argtp;
-        paramtypeInfo[x].rank = x;
-        return x;
-}
-
 Symbol add_type_symbol(String name, Scope scope, Type tp)
 {
         Symbol x = symbolCnt++;
@@ -101,17 +41,6 @@ Symbol add_type_symbol(String name, Scope scope, Type tp)
         symbolInfo[x].scope = scope;
         symbolInfo[x].kind = SYMBOL_TYPE;
         symbolInfo[x].tType = tp;
-        return x;
-}
-
-Symbol add_param_symbol(String name, Scope scope, Param param)
-{
-        Symbol x = symbolCnt++;
-        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        symbolInfo[x].name = name;
-        symbolInfo[x].scope = scope;
-        symbolInfo[x].kind = SYMBOL_PARAM;
-        symbolInfo[x].tParam = param;
         return x;
 }
 
@@ -126,45 +55,6 @@ Scope add_global_scope(void)
         return x;
 }
 
-Symref add_symref(Token tok, Scope refScope)
-{
-        Symref ref = symrefCnt++;
-        RESIZE_GLOBAL_BUFFER(symrefInfo, symrefCnt);
-        symrefInfo[ref].name = tokenInfo[tok].tWord.string;
-        symrefInfo[ref].refScope = refScope;
-        symrefInfo[ref].tok = tok;
-        return ref;
-}
-
-Expr add_symref_expr(Symref ref)
-{
-        Expr x = exprCnt++;
-        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
-        exprInfo[x].kind = EXPR_SYMREF;
-        exprInfo[x].tSymref.ref = ref;
-        return x;
-}
-
-Expr add_literal_expr(Token tok)
-{
-        Expr x = exprCnt++;
-        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
-        exprInfo[x].kind = EXPR_LITERAL;
-        exprInfo[x].tLiteral.tok = tok;
-        return x;
-}
-
-Expr add_call_expr(Expr callee)
-{
-        Expr x = exprCnt++;
-        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
-        exprInfo[x].kind = EXPR_CALL;
-        exprInfo[x].tCall.callee = callee;
-        exprInfo[x].tCall.firstArgIdx = -1;
-        exprInfo[x].tCall.nargs = 0;
-        return x;
-}
-
 Expr add_unop_expr(int opkind, Token tok, Expr expr)
 {
         Expr x = exprCnt++;
@@ -174,67 +64,6 @@ Expr add_unop_expr(int opkind, Token tok, Expr expr)
         exprInfo[x].tUnop.tok = tok;
         exprInfo[x].tUnop.expr = expr;
         return x;
-}
-
-Expr add_binop_expr(int opkind, Token tok, Expr expr1, Expr expr2)
-{
-        Expr x = exprCnt++;
-        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
-        exprInfo[x].kind = EXPR_BINOP;
-        exprInfo[x].tBinop.kind = opkind;
-        exprInfo[x].tBinop.tok = tok;
-        exprInfo[x].tBinop.expr1 = expr1;
-        exprInfo[x].tBinop.expr2 = expr2;
-        return x;
-}
-
-Expr add_member_expr(Expr expr, String name)
-{
-        Expr x = exprCnt++;
-        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
-        exprInfo[x].kind = EXPR_MEMBER;
-        exprInfo[x].tMember.expr = expr;
-        exprInfo[x].tMember.name = name;
-        return x;
-}
-
-Expr add_subscript_expr(Expr expr1, Expr expr2)
-{
-        Expr x = exprCnt++;
-        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
-        exprInfo[x].kind = EXPR_SUBSCRIPT;
-        exprInfo[x].tSubscript.expr1 = expr1;
-        exprInfo[x].tSubscript.expr2 = expr2;
-        return x;
-}
-
-Param add_Param(Proc proc, Type tp)
-{
-        Param x = paramCnt++;
-        RESIZE_GLOBAL_BUFFER(paramInfo, paramCnt);
-        paramInfo[x].proc = proc;
-        paramInfo[x].sym = -1; // later
-        paramInfo[x].tp = tp;
-        paramInfo[x].rank = x;
-        return x;
-}
-
-void add_ChildStmt(Stmt parent, Stmt child)
-{
-        int x = childStmtCnt++;
-        RESIZE_GLOBAL_BUFFER(childStmtInfo, childStmtCnt);
-        childStmtInfo[x].parent = parent;
-        childStmtInfo[x].child = child;
-        childStmtInfo[x].rank = x;
-}
-
-void add_CallArg(Expr callExpr, Expr argExpr)
-{
-        int x = callArgCnt++;
-        RESIZE_GLOBAL_BUFFER(callArgInfo, callArgCnt);
-        callArgInfo[x].callExpr = callExpr;
-        callArgInfo[x].argExpr = argExpr;
-        callArgInfo[x].rank = x;
 }
 
 void initialize_pseudo_constant_data(void)
@@ -248,7 +77,11 @@ void initialize_pseudo_constant_data(void)
         for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
                 String name = intern_cstring(basetypesToBeInitialized[i].name);
                 int size = basetypesToBeInitialized[i].size;
-                Type tp = add_base_type(name, size);
+                Type tp = typeCnt++;
+                RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+                typeInfo[tp].kind = TYPE_BASE;
+                typeInfo[tp].tBase.name = name;
+                typeInfo[tp].tBase.size = size;
                 add_type_symbol(name, globalScope, tp);
         }
 }
@@ -557,35 +390,50 @@ Symref parse_symref(void)
 {
         PARSE_LOG();
         Token tok = parse_token_kind(TOKTYPE_WORD);
-        return add_symref(tok, currentScope);
+        Scope refScope = currentScope;
+        Symref ref = symrefCnt++;
+        RESIZE_GLOBAL_BUFFER(symrefInfo, symrefCnt);
+        symrefInfo[ref].name = tokenInfo[tok].tWord.string;
+        symrefInfo[ref].refScope = refScope;
+        symrefInfo[ref].tok = tok;
+        return ref;
 }
 
 Type parse_type(void)
 {
         PARSE_LOG();
         Symref ref = parse_symref();
-        Type tp = add_ref_type(ref);
+        Type tp = typeCnt++;
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+        typeInfo[tp].kind = TYPE_REFERENCE;
+        typeInfo[tp].tRef.ref = ref;
+        typeInfo[tp].tRef.resolvedTp = -1;
         Token tok = look_next_token();
         if (tokenInfo[tok].kind == TOKTYPE_ASTERISK) {
                 parse_next_token();
-                tp = add_pointer_type(tp);
+                Type ptp = typeCnt++;
+                RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+                typeInfo[ptp].kind = TYPE_POINTER;
+                typeInfo[ptp].tPointer.tp = tp;
+                tp = ptp;
         }
         return tp;
 }
 
 Type parse_entity(void)
 {
-        Type tp;
-        Type etp;
-        String name;
-        Symbol sym;
-
         PARSE_LOG();
-        tp = parse_type();
-        name = parse_name();
-        etp = add_entity_type(name, tp);
-        sym = add_type_symbol(name, currentScope, etp);
+
+        Type tp = parse_type();
+        String name = parse_name();
         parse_token_kind(TOKTYPE_SEMICOLON);
+        Type etp = typeCnt++;
+        Symbol sym = add_type_symbol(name, currentScope, etp);
+
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+        typeInfo[etp].kind = TYPE_ENTITY;
+        typeInfo[etp].tEntity.name = name;
+        typeInfo[etp].tEntity.tp = tp;
         return etp;
 }
 
@@ -665,11 +513,17 @@ Expr parse_expr(int minprec)
         }
         else if (tokenInfo[tok].kind == TOKTYPE_WORD) {
                 Symref ref = parse_symref();
-                expr = add_symref_expr(ref);
+                expr = exprCnt++;
+                RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                exprInfo[expr].kind = EXPR_SYMREF;
+                exprInfo[expr].tSymref.ref = ref;
         }
         else if (tokenInfo[tok].kind == TOKTYPE_INTEGER) {
                 parse_next_token();
-                expr = add_literal_expr(tok);
+                expr = exprCnt++;
+                RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                exprInfo[expr].kind = EXPR_LITERAL;
+                exprInfo[expr].tLiteral.tok = tok;
         }
         else if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
                 parse_next_token();
@@ -688,35 +542,62 @@ Expr parse_expr(int minprec)
                 }
                 else if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
                         parse_next_token();
-                        expr = add_call_expr(expr);
+                        Expr calleeExpr = expr;
+                        expr = exprCnt++;
                         while (look_token_kind(TOKTYPE_RIGHTPAREN) == -1) {
-                                Expr subexpr = parse_expr(0);
-                                add_CallArg(expr, subexpr);
+                                Expr argExpr = parse_expr(0);
+                                int x = callArgCnt++;
+                                RESIZE_GLOBAL_BUFFER(callArgInfo, callArgCnt);
+                                callArgInfo[x].callExpr = expr;
+                                callArgInfo[x].argExpr = argExpr;
+                                callArgInfo[x].rank = x;
                                 if (look_token_kind(TOKTYPE_COMMA) == -1)
                                         break;
                                 parse_next_token();
                         }
                         parse_token_kind(TOKTYPE_RIGHTPAREN);
+                        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                        exprInfo[expr].kind = EXPR_CALL;
+                        exprInfo[expr].tCall.callee = calleeExpr;
+                        exprInfo[expr].tCall.firstArgIdx = -1;
+                        exprInfo[expr].tCall.nargs = 0;
                 }
                 else if (tokenInfo[tok].kind == TOKTYPE_DOT) {
                         parse_next_token();
                         Token x = parse_token_kind(TOKTYPE_WORD);
                         String name = tokenInfo[x].tWord.string;
-                        expr = add_member_expr(expr, name);
+                        Expr enclosingExpr = expr;
+                        expr = exprCnt++;
+                        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                        exprInfo[expr].kind = EXPR_MEMBER;
+                        exprInfo[expr].tMember.expr = enclosingExpr;
+                        exprInfo[expr].tMember.name = name;
                 }
                 else if (tokenInfo[tok].kind == TOKTYPE_LEFTBRACKET) {
                         parse_next_token();
-                        Expr subexpr = parse_expr(0);
+                        Expr expr1 = expr;
+                        Expr expr2 = parse_expr(0);
                         parse_token_kind(TOKTYPE_RIGHTBRACKET);
-                        expr = add_subscript_expr(expr, subexpr);
+                        expr = exprCnt++;
+                        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                        exprInfo[expr].kind = EXPR_SUBSCRIPT;
+                        exprInfo[expr].tSubscript.expr1 = expr1;
+                        exprInfo[expr].tSubscript.expr2 = expr2;
                 }
                 else if (token_is_binary_infix_operator(tok, &opkind)) {
                         int opprec = binopInfo[opkind].prec;
                         if (opprec < minprec)
                                 break;
                         parse_next_token();
-                        Expr subexpr = parse_expr(opprec + 1);
-                        expr = add_binop_expr(opkind, tok, expr, subexpr);
+                        Expr expr1 = expr;
+                        Expr expr2 = parse_expr(opprec + 1);
+                        expr = exprCnt++;
+                        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                        exprInfo[expr].kind = EXPR_BINOP;
+                        exprInfo[expr].tBinop.kind = opkind;
+                        exprInfo[expr].tBinop.tok = tok;
+                        exprInfo[expr].tBinop.expr1 = expr1;
+                        exprInfo[expr].tBinop.expr2 = expr2;
                 }
                 else {
                         break;
@@ -769,8 +650,12 @@ Stmt parse_compound_stmt(void)
         Stmt stmt = stmtCnt++;
         parse_token_kind(TOKTYPE_LEFTBRACE);
         while (look_token_kind(TOKTYPE_RIGHTBRACE) == -1) {
-                Stmt substmt = parse_stmt();
-                add_ChildStmt(stmt, substmt);
+                Stmt child = parse_stmt();
+                int x = childStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(childStmtInfo, childStmtCnt);
+                childStmtInfo[x].parent = stmt;
+                childStmtInfo[x].child = child;
+                childStmtInfo[x].rank = x;
         }
         parse_token_kind(TOKTYPE_RIGHTBRACE);
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
@@ -814,6 +699,7 @@ Stmt parse_while_stmt(void)
         Stmt childStmt = parse_expr_or_compound_stmt();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        outs("HERE!\n");
         stmtInfo[stmt].kind = STMT_WHILE;
         stmtInfo[stmt].tWhile.condExpr = condExpr;
         stmtInfo[stmt].tWhile.childStmt = childStmt;
@@ -918,9 +804,18 @@ void parse_proc(void)
                         break;
                 Type paramtp = parse_type();
                 String paramname = parse_name();
-                Param param = add_Param(proc, paramtp);
-                Symbol paramsym = add_param_symbol(paramname, pscope, param);
+                Param param = paramCnt++;
+                Symbol paramsym = symbolCnt++;
+                RESIZE_GLOBAL_BUFFER(paramInfo, paramCnt);
+                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+                paramInfo[param].proc = proc;
                 paramInfo[param].sym = paramsym;
+                paramInfo[param].tp = paramtp;
+                paramInfo[param].rank = param;
+                symbolInfo[paramsym].name = paramname;
+                symbolInfo[paramsym].scope = pscope;
+                symbolInfo[paramsym].kind = SYMBOL_PARAM;
+                symbolInfo[paramsym].tParam = param;
                 if (look_token_kind(TOKTYPE_COMMA) == -1)
                         break;
                 parse_next_token();

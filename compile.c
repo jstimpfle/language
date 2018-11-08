@@ -317,29 +317,14 @@ Type check_expr_type(Expr x)
 {
         Type tp = -1;
         switch (exprInfo[x].kind) {
-        case EXPR_LITERAL:
-                tp = check_literal_expr_type(x);
-                break;
-        case EXPR_SYMREF:
-                tp = check_symref_expr_type(x);
-                break;
-        case EXPR_UNOP:
-                tp = check_unop_expr_type(x);
-                break;
-        case EXPR_BINOP:
-                tp = check_binop_expr_type(x);
-                break;
-        case EXPR_MEMBER:
-                tp = check_member_expr_type(x);
-                break;
-        case EXPR_SUBSCRIPT:
-                tp = check_subscript_expr_type(x);
-                break;
-        case EXPR_CALL:
-                tp = check_call_expr_type(x);
-                break;
-        default:
-                UNHANDLED_CASE();
+        case EXPR_LITERAL:      tp = check_literal_expr_type(x); break;
+        case EXPR_SYMREF:       tp = check_symref_expr_type(x); break;
+        case EXPR_UNOP:         tp = check_unop_expr_type(x); break;
+        case EXPR_BINOP:        tp = check_binop_expr_type(x); break;
+        case EXPR_MEMBER:       tp = check_member_expr_type(x); break;
+        case EXPR_SUBSCRIPT:    tp = check_subscript_expr_type(x); break;
+        case EXPR_CALL:         tp = check_call_expr_type(x); break;
+        default:                UNHANDLED_CASE();
         }
         exprInfo[x].tp = tp;
         return tp;
