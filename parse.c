@@ -1,6 +1,7 @@
 #include "defs.h"
 #include "api.h"
 
+INTERNAL
 Token add_word_token(File file, int offset, String string)
 {
         Token x = tokenCnt++;
@@ -12,6 +13,7 @@ Token add_word_token(File file, int offset, String string)
         return x;
 }
 
+INTERNAL
 Token add_integer_token(File file, int offset, long long value)
 {
         Token x = tokenCnt++;
@@ -23,6 +25,7 @@ Token add_integer_token(File file, int offset, long long value)
         return x;
 }
 
+INTERNAL
 Token add_bare_token(File file, int offset, int kind)
 {
         Token x = tokenCnt++;
@@ -33,6 +36,7 @@ Token add_bare_token(File file, int offset, int kind)
         return x;
 }
 
+INTERNAL
 Symbol add_type_symbol(String name, Scope scope, Type tp)
 {
         Symbol x = symbolCnt++;
@@ -44,6 +48,7 @@ Symbol add_type_symbol(String name, Scope scope, Type tp)
         return x;
 }
 
+INTERNAL
 Scope add_global_scope(void)
 {
         Scope x = scopeCnt++;
@@ -55,6 +60,7 @@ Scope add_global_scope(void)
         return x;
 }
 
+INTERNAL
 Expr add_unop_expr(int opkind, Token tok, Expr expr)
 {
         Expr x = exprCnt++;
@@ -86,6 +92,7 @@ void initialize_pseudo_constant_data(void)
         }
 }
 
+INTERNAL
 int token_is_unary_prefix_operator(Token tok, int *out_optype)
 {
         int tp = tokenInfo[tok].kind;
@@ -98,6 +105,7 @@ int token_is_unary_prefix_operator(Token tok, int *out_optype)
         return 0;
 }
 
+INTERNAL
 int token_is_unary_postfix_operator(Token tok, int *out_optype)
 {
         int tp = tokenInfo[tok].kind;
@@ -110,6 +118,7 @@ int token_is_unary_postfix_operator(Token tok, int *out_optype)
         return 0;
 }
 
+INTERNAL
 int token_is_binary_infix_operator(Token tok, int *out_optp)
 {
         int tp = tokenInfo[tok].kind;
@@ -122,6 +131,7 @@ int token_is_binary_infix_operator(Token tok, int *out_optp)
         return 0;
 }
 
+INTERNAL
 int look_char(void)
 {
         if (! haveSavedChar) {
@@ -140,6 +150,7 @@ int look_char(void)
         return savedChar;
 }
 
+INTERNAL
 int read_char(void)
 {
         int c = look_char();
@@ -150,6 +161,7 @@ int read_char(void)
         return c;
 }
 
+INTERNAL
 void push_scope(Scope scope)
 {
         if (scopeStackCnt >= LENGTH(scopeStack))
@@ -159,6 +171,7 @@ void push_scope(Scope scope)
         currentScope = scope;
 }
 
+INTERNAL
 void pop_scope(void)
 {
         assert(scopeStackCnt > 1);
@@ -166,6 +179,7 @@ void pop_scope(void)
         currentScope = scopeStack[scopeStackCnt-1];
 }
 
+INTERNAL
 Token parse_next_token(void)
 {
         int c;
@@ -325,6 +339,7 @@ Token parse_next_token(void)
         return ans;
 }
 
+INTERNAL
 Token look_next_token(void)
 {
         if (haveSavedToken)
@@ -336,6 +351,7 @@ Token look_next_token(void)
         }
 }
 
+INTERNAL
 Token parse_token_kind(int tkind)
 {
         Token tok = parse_next_token();
@@ -352,6 +368,7 @@ Token parse_token_kind(int tkind)
         return tok;
 }
 
+INTERNAL
 Token look_token_kind(int tkind)
 {
         Token tok = look_next_token();
@@ -360,6 +377,7 @@ Token look_token_kind(int tkind)
         return tok;
 }
 
+INTERNAL
 String parse_name(void)
 {
         PARSE_LOG();
@@ -367,6 +385,7 @@ String parse_name(void)
         return tokenInfo[tok].tWord.string;
 }
 
+INTERNAL
 Symref parse_symref(void)
 {
         PARSE_LOG();
@@ -380,6 +399,7 @@ Symref parse_symref(void)
         return ref;
 }
 
+INTERNAL
 Type parse_type(void)
 {
         PARSE_LOG();
@@ -401,6 +421,7 @@ Type parse_type(void)
         return tp;
 }
 
+INTERNAL
 Type parse_entity(void)
 {
         PARSE_LOG();
@@ -418,6 +439,7 @@ Type parse_entity(void)
         return etp;
 }
 
+INTERNAL
 Array parse_array(void)
 {
         PARSE_LOG();
@@ -453,6 +475,7 @@ Array parse_array(void)
         return array;
 }
 
+INTERNAL
 Data parse_data(void)
 {
         PARSE_LOG();
@@ -480,6 +503,7 @@ Data parse_data(void)
         return data;
 }
 
+INTERNAL
 Expr parse_expr(int minprec)
 {
         PARSE_LOG();
@@ -587,6 +611,7 @@ Expr parse_expr(int minprec)
         return expr;
 }
 
+INTERNAL
 Stmt parse_data_stmt(void)
 {
         PARSE_LOG();
@@ -598,6 +623,7 @@ Stmt parse_data_stmt(void)
         return stmt;
 }
 
+INTERNAL
 Stmt parse_array_stmt(void)
 {
         PARSE_LOG();
@@ -609,6 +635,7 @@ Stmt parse_array_stmt(void)
         return stmt;
 }
 
+INTERNAL
 Stmt parse_expr_stmt(void)
 {
         PARSE_LOG();
@@ -621,9 +648,10 @@ Stmt parse_expr_stmt(void)
         return stmt;
 }
 
-Stmt parse_expr_or_compound_stmt(void);
-Stmt parse_stmt(void);
+INTERNAL Stmt parse_expr_or_compound_stmt(void);
+INTERNAL Stmt parse_stmt(void);
 
+INTERNAL
 Stmt parse_compound_stmt(void)
 {
         PARSE_LOG();
@@ -646,6 +674,7 @@ Stmt parse_compound_stmt(void)
         return stmt;
 }
 
+INTERNAL
 Stmt parse_expr_or_compound_stmt(void)
 {
         PARSE_LOG();
@@ -656,6 +685,7 @@ Stmt parse_expr_or_compound_stmt(void)
                 return parse_expr_stmt();
 }
 
+INTERNAL
 Stmt parse_if_stmt(void)
 {
         PARSE_LOG();
@@ -671,6 +701,7 @@ Stmt parse_if_stmt(void)
         return stmt;
 }
 
+INTERNAL
 Stmt parse_while_stmt(void)
 {
         PARSE_LOG();
@@ -686,6 +717,7 @@ Stmt parse_while_stmt(void)
         return stmt;
 }
 
+INTERNAL
 Stmt parse_for_stmt(void)
 {
         PARSE_LOG();
@@ -707,6 +739,7 @@ Stmt parse_for_stmt(void)
         return stmt;
 }
 
+INTERNAL
 Stmt parse_return_stmt(void)
 {
         PARSE_LOG();
@@ -719,6 +752,7 @@ Stmt parse_return_stmt(void)
         return stmt;
 }
 
+INTERNAL
 Stmt parse_stmt(void)
 {
         Token tok;
@@ -760,6 +794,7 @@ Stmt parse_stmt(void)
         }
 }
 
+INTERNAL
 void parse_proc(void)
 {
         PARSE_LOG();
@@ -825,6 +860,7 @@ void parse_proc(void)
         pop_scope();
 }
 
+INTERNAL
 int compare_Symbol(const void *a, const void *b)
 {
         const Symbol *x = a;
@@ -832,6 +868,7 @@ int compare_Symbol(const void *a, const void *b)
         return symbolInfo[*x].scope - symbolInfo[*y].scope;
 }
 
+INTERNAL
 int compare_ParamInfo(const void *a, const void *b)
 {
         const struct ParamInfo *x = a;
@@ -841,6 +878,7 @@ int compare_ParamInfo(const void *a, const void *b)
         return x->rank - y->rank;
 }
 
+INTERNAL
 int compare_ChildStmtInfo(const void *a, const void *b)
 {
         const struct ChildStmtInfo *x = a;
@@ -850,6 +888,7 @@ int compare_ChildStmtInfo(const void *a, const void *b)
         return x->rank - y->rank;
 }
 
+INTERNAL
 int compare_CallArgInfo(const void *a, const void *b)
 {
         const struct CallArgInfo *x = a;

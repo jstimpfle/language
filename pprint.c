@@ -3,16 +3,19 @@
 
 static int indentSize;
 
+INTERNAL
 void add_indent(void)
 {
         indentSize += 4;
 }
 
+INTERNAL
 void remove_indent(void)
 {
         indentSize -= 4;
 }
 
+INTERNAL
 void pp_newline(void)
 {
         outs("\n");
@@ -20,6 +23,7 @@ void pp_newline(void)
                 outs(" ");
 }
 
+INTERNAL
 void pp_type(Type tp)
 {
         if (tp < 0) {
@@ -51,6 +55,7 @@ void pp_type(Type tp)
         }
 }
 
+INTERNAL
 void pp_entity(Type t)
 {
         pp_newline();
@@ -61,6 +66,7 @@ void pp_entity(Type t)
         outs(";");
 }
 
+INTERNAL
 void pp_data(Data d)
 {
         pp_newline();
@@ -71,6 +77,7 @@ void pp_data(Data d)
         outs(";");
 }
 
+INTERNAL
 void pp_array(Array a)
 {
         Type t = arrayInfo[a].tp;
@@ -85,6 +92,7 @@ void pp_array(Array a)
         outs(";");
 }
 
+INTERNAL
 void pp_expr(Expr expr)
 {
         switch (exprInfo[expr].kind) {
@@ -150,6 +158,7 @@ void pp_expr(Expr expr)
         }
 }
 
+INTERNAL
 void pp_expr_stmt(Stmt stmt)
 {
         pp_newline();
@@ -157,8 +166,9 @@ void pp_expr_stmt(Stmt stmt)
         outs(";");
 }
 
-void pp_stmt(Stmt stmt);
+INTERNAL void pp_stmt(Stmt stmt);
 
+INTERNAL
 void pp_compound_stmt(Stmt stmt)
 {
         outs("{");
@@ -172,16 +182,19 @@ void pp_compound_stmt(Stmt stmt)
         outs("}");
 }
 
+INTERNAL
 void pp_data_stmt(Stmt stmt)
 {
         pp_data(stmtInfo[stmt].tData);
 }
 
+INTERNAL
 void pp_array_stmt(Stmt stmt)
 {
         pp_array(stmtInfo[stmt].tArray);
 }
 
+INTERNAL
 void pp_stmt(Stmt stmt)
 {
         switch (stmtInfo[stmt].kind) {
@@ -250,6 +263,7 @@ void pp_stmt(Stmt stmt)
         }
 }
 
+INTERNAL
 void pp_proc(Proc p)
 {
         outs("\n");

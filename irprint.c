@@ -1,16 +1,19 @@
 #include "defs.h"
 #include "api.h"
 
+INTERNAL
 void irp_constant(long long x)
 {
         outf("%lld", x);
 }
 
+INTERNAL
 void irp_symbol(Symbol sym)
 {
         outf("@%s", SS(sym));
 }
 
+INTERNAL
 void irp_reg(IrReg v)
 {
         if (irRegInfo[v].sym >= 0)
@@ -19,6 +22,7 @@ void irp_reg(IrReg v)
                 outf("%%%d", v);
 }
 
+INTERNAL
 void irp_proc(IrProc p)
 {
         outf("PROC #%d \"%s\":\n", p, string_buffer(irProcInfo[p].name));

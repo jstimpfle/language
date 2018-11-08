@@ -1,6 +1,7 @@
 #include "defs.h"
 #include "api.h"
 
+INTERNAL
 Symbol find_symbol_in_scope(String name, Scope scope)
 {
         //MSG("RESOLVE %s\n", string_buffer(name));
@@ -32,6 +33,7 @@ void resolve_symbol_references(void)
         }
 }
 
+INTERNAL
 void resolve_ref_type(Type t)
 {
         if (typeInfo[t].isComplete >= 0) {
@@ -110,17 +112,20 @@ void resolve_type_references(void)
         }
 }
 
+INTERNAL
 int is_integral_type(Type t)
 {
         return typeInfo[t].kind == TYPE_BASE; //XXX
 }
 
+INTERNAL
 int is_bad_type(Type t)
 {
         assert(t >= 0);  // is this really true?
         return ! typeInfo[t].isComplete;
 }
 
+INTERNAL
 int type_equal(Type a, Type b)
 {
         if (!typeInfo[a].isComplete)
@@ -138,6 +143,7 @@ int type_equal(Type a, Type b)
         return a == b;
 }
 
+INTERNAL
 Type check_literal_expr_type(Expr x)
 {
         //XXX
@@ -146,6 +152,7 @@ Type check_literal_expr_type(Expr x)
         return tp;
 }
 
+INTERNAL
 Type check_symref_expr_type(Expr x)
 {
         Symref ref = exprInfo[x].tSymref.ref;
@@ -185,8 +192,10 @@ out:
         return tp;
 }
 
+INTERNAL
 Type check_expr_type(Expr x);
 
+INTERNAL
 Type check_unop_expr_type(Expr x)
 {
         int op = exprInfo[x].tUnop.kind;
@@ -216,6 +225,7 @@ Type check_unop_expr_type(Expr x)
         return tp;
 }
 
+INTERNAL
 Type check_binop_expr_type(Expr x)
 {
         int op = exprInfo[x].tUnop.kind;
@@ -247,6 +257,7 @@ Type check_binop_expr_type(Expr x)
         return tp;
 }
 
+INTERNAL
 Type check_member_expr_type(Expr x)
 {
         /*
@@ -260,6 +271,7 @@ Type check_member_expr_type(Expr x)
         return tp;
 }
 
+INTERNAL
 Type check_subscript_expr_type(Expr x)
 {
         Expr x1 = exprInfo[x].tSubscript.expr1;
@@ -291,6 +303,7 @@ Type check_subscript_expr_type(Expr x)
         return tp;
 }
 
+INTERNAL
 Type check_call_expr_type(Expr x)
 {
         //XXX total mess and incomplete and wrong
@@ -313,6 +326,7 @@ Type check_call_expr_type(Expr x)
         return -1;
 }
 
+INTERNAL
 Type check_expr_type(Expr x)
 {
         Type tp = -1;
@@ -450,6 +464,7 @@ void compile_expr(Expr x)
         }
 }
 
+INTERNAL
 void compile_stmt(IrProc irp, Stmt stmt)
 {
         switch (stmtInfo[stmt].kind) {

@@ -1,6 +1,7 @@
 #include "defs.h"
 #include "api.h"
 
+INTERNAL
 String add_string(const char *buf, int len)
 {
         int pos = strbufCnt;
@@ -19,6 +20,7 @@ String add_string(const char *buf, int len)
         return s;
 }
 
+INTERNAL
 unsigned hash_string(const void *str, int len)
 {
         unsigned hsh = 5381;
@@ -27,6 +29,7 @@ unsigned hash_string(const void *str, int len)
         return hsh;
 }
 
+INTERNAL
 String lookup_string_with_hash(const void *buf, int len, unsigned hsh)
 {
         unsigned bck;
@@ -42,6 +45,7 @@ String lookup_string_with_hash(const void *buf, int len, unsigned hsh)
         return -1;
 }
 
+INTERNAL
 void insert_string_with_hash(String s, unsigned hsh)
 {
         unsigned bck;

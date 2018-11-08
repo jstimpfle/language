@@ -2,6 +2,7 @@
 #include "api.h"
 
 /* offset may be 1 past the end of file (i.e., equal to file size) */
+INTERNAL
 int compute_lineno(File file, int offset)
 {
         int i;
@@ -14,6 +15,7 @@ int compute_lineno(File file, int offset)
 }
 
 /* offset may be 1 past the end of file (i.e., equal to file size) */
+INTERNAL
 int compute_colno(File file, int offset)
 {
         int i;
@@ -27,6 +29,7 @@ int compute_colno(File file, int offset)
         return column;
 }
 
+INTERNAL
 void find_expr_position(Expr x, File *file, int *offset)
 {
         // TODO: should this be added as hard data to ExprInfo?
