@@ -197,16 +197,6 @@ Type add_entity_type(String name, Type tp)
         return x;
 }
 
-Type add_array_type(Type idxtp, Type valuetp)
-{
-        Type x = typeCnt++;
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[x].kind = TYPE_ARRAY;
-        typeInfo[x].tArray.idxtp = idxtp;
-        typeInfo[x].tArray.valuetp = valuetp;
-        return x;
-}
-
 Type add_pointer_type(Type tp)
 {
         Type x = typeCnt++;
@@ -269,28 +259,6 @@ Symbol add_data_symbol(String name, Scope scope, Data data)
         return x;
 }
 
-Symbol add_array_symbol(String name, Scope scope, Array array)
-{
-        Symbol x = symbolCnt++;
-        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        symbolInfo[x].name = name;
-        symbolInfo[x].scope = scope;
-        symbolInfo[x].kind = SYMBOL_ARRAY;
-        symbolInfo[x].tArray = array;
-        return x;
-}
-
-Symbol add_proc_symbol(String name, Scope scope, Proc proc)
-{
-        Symbol x = symbolCnt++;
-        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        symbolInfo[x].name = name;
-        symbolInfo[x].scope = scope;
-        symbolInfo[x].kind = SYMBOL_PROC;
-        symbolInfo[x].tProc = proc;
-        return x;
-}
-
 Symbol add_param_symbol(String name, Scope scope, Param param)
 {
         Symbol x = symbolCnt++;
@@ -299,16 +267,6 @@ Symbol add_param_symbol(String name, Scope scope, Param param)
         symbolInfo[x].scope = scope;
         symbolInfo[x].kind = SYMBOL_PARAM;
         symbolInfo[x].tParam = param;
-        return x;
-}
-
-Array add_array(Scope scope, Type tp)
-{
-        Array x = arrayCnt++;
-        RESIZE_GLOBAL_BUFFER(arrayInfo, arrayCnt);
-        arrayInfo[x].scope = scope;
-        arrayInfo[x].tp = tp;
-        arrayInfo[x].sym = -1; // later
         return x;
 }
 
@@ -330,30 +288,6 @@ Scope add_global_scope(void)
         scopeInfo[x].firstSymbol = -1;
         scopeInfo[x].numSymbols = 0;
         scopeInfo[x].kind = SCOPE_GLOBAL;
-        return x;
-}
-
-Scope add_proc_scope(Scope parent)
-{
-        Scope x = scopeCnt++;
-        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
-        scopeInfo[x].parentScope = parent;
-        scopeInfo[x].firstSymbol = -1;
-        scopeInfo[x].numSymbols = 0;
-        scopeInfo[x].kind = SCOPE_PROC;
-        return x;
-}
-
-Proc add_proc(Type tp, Scope scope)
-{
-        Proc x = procCnt++;
-        RESIZE_GLOBAL_BUFFER(procInfo, procCnt);
-        procInfo[x].tp = tp;
-        procInfo[x].sym = -1; // later
-        procInfo[x].scope = scope;
-        procInfo[x].firstParam = -1;
-        procInfo[x].nparams = 0;
-        procInfo[x].body = -1;
         return x;
 }
 
@@ -900,25 +834,37 @@ Type parse_entity(void)
 
 Array parse_array(void)
 {
-        Type idxtp;
-        Type valuetp;
-        Type tp;
-        Array array;
-        String name;
-        Symbol sym;
-
         PARSE_LOG();
-        valuetp = parse_type();
-        name = parse_name();
+
+        Type valuetp = parse_type();
+        String name = parse_name();
         parse_token_kind(TOKTYPE_LEFTBRACKET);
-        idxtp = parse_type();
-        tp = add_array_type(idxtp, valuetp);
-        array = add_array(currentScope, tp);
-        sym = add_array_symbol(name, currentScope, array);
+        Type idxtp = parse_type();
+        
+        Type tp = typeCnt++;
+        Array array = arrayCnt++;
+        Symbol sym = symbolCnt++;
+
+        RESIZE_GLOBAL_BUFFER(arrayInfo, arrayCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+
+        arrayInfo[array].scope = currentScope;
+        arrayInfo[array].tp = tp;
         arrayInfo[array].sym = sym;
+        
+        typeInfo[tp].kind = TYPE_ARRAY;
+        typeInfo[tp].tArray.idxtp = idxtp;
+        typeInfo[tp].tArray.valuetp = valuetp;
+
+        symbolInfo[sym].name = name;
+        symbolInfo[sym].scope = currentScope;
+        symbolInfo[sym].kind = SYMBOL_ARRAY;
+        symbolInfo[sym].tArray = array;
+
         parse_token_kind(TOKTYPE_RIGHTBRACKET);
         parse_token_kind(TOKTYPE_SEMICOLON);
         add_type_symbol(name, currentScope, tp);
+
         return array;
 }
 
@@ -1163,46 +1109,57 @@ Stmt parse_stmt(void)
 
 void parse_proc(void)
 {
-        Type rettp;  /* result type */
-        String name;  /* proc name */
-        Symbol psym;  /* proc symbol */
-        Scope pscope; /* proc scope */
-        Proc proc;
-        Token tok;
-        Stmt body;
-
         PARSE_LOG();
-        rettp = parse_type();
-        name = parse_name();
-        pscope = add_proc_scope(currentScope);
-        proc = add_proc(rettp, pscope);
-        psym = add_proc_symbol(name, currentScope, proc);
-        procInfo[proc].sym = psym;
-        scopeInfo[pscope].tProc.proc = proc;
+
+        Type rettp = parse_type();
+        String pname = parse_name();
+        
+        Scope parentScope = currentScope;
+        Scope pscope = scopeCnt++;        
+        Proc proc = procCnt++;
+        Symbol psym = symbolCnt++;
+
+        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
+        RESIZE_GLOBAL_BUFFER(procInfo, procCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
 
         push_scope(pscope);
         parse_token_kind(TOKTYPE_LEFTPAREN);
         for (;;) {
-                Param param;
-                String paramname;
-                Symbol paramsym;
-                Type paramtp;
-
-                tok = look_next_token();
+                Token tok = look_next_token();
                 if (tokenInfo[tok].kind == TOKTYPE_RIGHTPAREN)
                         break;
-                paramtp = parse_type();
-                paramname = parse_name();
-                param = add_Param(proc, paramtp);
-                paramsym = add_param_symbol(paramname, pscope, param);
+                Type paramtp = parse_type();
+                String paramname = parse_name();
+                Param param = add_Param(proc, paramtp);
+                Symbol paramsym = add_param_symbol(paramname, pscope, param);
                 paramInfo[param].sym = paramsym;
                 if (look_token_kind(TOKTYPE_COMMA) == -1)
                         break;
                 parse_next_token();
         }
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-        body = parse_compound_stmt();
-        procInfo[proc].body = body;
+        
+        Stmt pbody = parse_compound_stmt();
+
+        scopeInfo[pscope].parentScope = parentScope;
+        scopeInfo[pscope].firstSymbol = -1;
+        scopeInfo[pscope].numSymbols = 0;
+        scopeInfo[pscope].kind = SCOPE_PROC;
+        scopeInfo[pscope].tProc.proc = proc;
+        
+        procInfo[proc].tp = rettp;
+        procInfo[proc].sym = psym;
+        procInfo[proc].scope = pscope;
+        procInfo[proc].firstParam = -1;
+        procInfo[proc].nparams = 0;
+        procInfo[proc].body = pbody;
+
+        symbolInfo[psym].name = pname;
+        symbolInfo[psym].scope = parentScope;
+        symbolInfo[psym].kind = SYMBOL_PROC;
+        symbolInfo[psym].tProc = proc;
+
         pop_scope();
 }
 
