@@ -668,7 +668,7 @@ struct IrReturnResultInfo {
 };
 
 struct IrRegInfo {
-        IrProc irproc;
+        IrProc proc;
 
         /* TODO: think about IrReg names and their relation
         to the Symbols on the language level */
@@ -707,6 +707,9 @@ struct IrCallStmtInfo {
 struct IrCondGotoStmtInfo {
         IrReg condreg;
         IrStmt tgtstmt;
+        /* Jump if the condition is false or true?
+         * This flag might lead to complexity... */
+        int isNeg;
 };
 
 struct IrGotoStmtInfo {
@@ -740,6 +743,7 @@ struct IrLabelInfo {
 struct IrProcInfo {
         String name;  // TODO name vs symbol vs language Symbol?
         IrStmt firstIrStmt; // speed-up
+        IrStmt firstIrReg; // speed-up
 };
 
 
@@ -888,7 +892,7 @@ void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
 #define WARN(fmt, ...) _msg(__FILE__, __LINE__, "WARN", fmt, ##__VA_ARGS__)
 #define FATAL(fmt, ...) _fatal(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define ABORT() _abort()
-#define UNHANDLED_CASE() FATAL("Unhandled case!");
+#define UNHANDLED_CASE() FATAL("Unhandled case!\n");
 
 
 

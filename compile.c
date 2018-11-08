@@ -1757,7 +1757,7 @@ void compile_expr(Expr x)
                 IrStmt s0 = irStmtCnt++;
                 IrStmt s1 = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irRegInfo[addr].irproc = exprToProc[x];
+                irRegInfo[addr].proc = exprToProc[x];
                 irRegInfo[addr].name = intern_cstring("(addr)"); //XXX
                 irRegInfo[addr].sym = sym; //XXX
                 irRegInfo[addr].tp = -1; //XXX
@@ -1822,9 +1822,23 @@ void compile_expr(Expr x)
 void compile_stmt(IrProc irp, Stmt stmt)
 {
         switch (stmtInfo[stmt].kind) {
-        case STMT_EXPR:
+        case STMT_DATA: {
+                Data data = stmtInfo[stmt].tData;
+                IrReg reg = irRegCnt++;
+                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+                irRegInfo[reg].proc = irp;
+                irRegInfo[reg].name = 0; //XXX
+                irRegInfo[reg].sym = dataInfo[data].sym;
+                irRegInfo[reg].tp = dataInfo[data].tp;
+                break;
+        }
+        case STMT_ARRAY: {
+                break;
+        }
+        case STMT_EXPR: {
                 compile_expr(stmtInfo[stmt].tExpr.expr);
                 break;
+        }
         case STMT_COMPOUND: {
                 Stmt first = stmtInfo[stmt].tCompound.firstChildStmtIdx;
                 Stmt last = first + stmtInfo[stmt].tCompound.numStatements;
@@ -1837,13 +1851,35 @@ void compile_stmt(IrProc irp, Stmt stmt)
                 Stmt cldStmt = stmtInfo[stmt].tIf.childStmt;
                 compile_expr(condExpr);
                 IrStmt irs = irStmtCnt++;
+                compile_stmt(irp, cldStmt);
+                IrStmt stmtAfterBlock = irStmtCnt;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[irs].proc = irp;
                 irStmtInfo[irs].kind = IRSTMT_CONDGOTO;
                 irStmtInfo[irs].tCondGoto.condreg = exprToIrReg[condExpr];
-                irStmtInfo[irs].tCondGoto.tgtstmt = -1;
+                irStmtInfo[irs].tCondGoto.tgtstmt = stmtAfterBlock;
+                irStmtInfo[irs].tCondGoto.isNeg = 1;
+                break;
+        }
+        case STMT_WHILE: {
+                Expr condExpr = stmtInfo[stmt].tIf.condExpr;
+                Stmt cldStmt = stmtInfo[stmt].tIf.childStmt;
+                compile_expr(condExpr);
+                IrStmt irs = irStmtCnt++;
+                IrStmt firstStmtInBlock = irStmtCnt;
                 compile_stmt(irp, cldStmt);
-                irStmtInfo[irs].tCondGoto.tgtstmt = irStmtCnt;
+                IrStmt backJmp = irStmtCnt++;
+                IrStmt stmtAfterBlock = irStmtCnt;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irStmtInfo[irs].proc = irp;
+                irStmtInfo[irs].kind = IRSTMT_CONDGOTO;
+                irStmtInfo[irs].tCondGoto.condreg = exprToIrReg[condExpr];
+                irStmtInfo[irs].tCondGoto.tgtstmt = stmtAfterBlock;
+                irStmtInfo[irs].tCondGoto.isNeg = 1;
+                irStmtInfo[backJmp].proc = irp;
+                irStmtInfo[backJmp].kind = IRSTMT_GOTO;
+                irStmtInfo[backJmp].tGoto.tgtstmt = firstStmtInBlock;
+                break;
         }
         case STMT_RETURN: {
                 Expr resultExpr = stmtInfo[stmt].tReturn.expr;
@@ -1861,8 +1897,7 @@ void compile_stmt(IrProc irp, Stmt stmt)
                 break;
         }
         default:
-                //UNHANDLED_CASE();
-                break;
+                UNHANDLED_CASE();
         }
 }
 
@@ -1883,6 +1918,7 @@ void compile_to_IR(void)
                 RESIZE_GLOBAL_BUFFER(irProcInfo, irProcCnt);
                 irProcInfo[ip].name = symbolInfo[procInfo[x].sym].name;
                 irProcInfo[ip].firstIrStmt = 0;
+                irProcInfo[ip].firstIrReg = 0;
         }
 
         DEBUG("For each local variable make an IrReg to hold it\n");
@@ -1890,10 +1926,10 @@ void compile_to_IR(void)
                 Scope s = dataInfo[x].scope;
                 if (scopeInfo[s].kind == SCOPE_PROC) {
                         Proc p = scopeInfo[s].tProc.proc;
-                        IrProc ip = procToIrProc[p];
+                        IrProc irp = procToIrProc[p];
                         IrReg r = irRegCnt++;
                         RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
-                        irRegInfo[r].irproc = ip;
+                        irRegInfo[r].proc = irp;
                         irRegInfo[r].name = symbolInfo[dataInfo[x].sym].name;
                         irRegInfo[r].sym = dataInfo[x].sym;
                         irRegInfo[r].tp = dataInfo[x].tp;
@@ -1907,7 +1943,7 @@ void compile_to_IR(void)
                 IrReg r = irRegCnt++;
                 exprToIrReg[x] = r;
                 RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
-                irRegInfo[r].irproc = procToIrProc[p];
+                irRegInfo[r].proc = procToIrProc[p];
                 irRegInfo[r].name = intern_cstring("(tmp)") /*XXX*/;
                 irRegInfo[r].sym = -1; // registers from Expr's are unnamed
                 irRegInfo[r].tp = exprInfo[x].tp; // for now

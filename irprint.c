@@ -22,38 +22,46 @@ void irp_reg(IrReg v)
 void irp_proc(IrProc p)
 {
         outf("PROC #%d \"%s\":\n", p, string_buffer(irProcInfo[p].name));
+        for (IrReg reg = irProcInfo[p].firstIrReg;
+             reg < irRegCnt && irRegInfo[reg].proc == p;
+             reg++) {
+                outs("  Reg:  ");
+                irp_reg(reg);
+                outs("\n");
+        }
         for (IrStmt i = irProcInfo[p].firstIrStmt;
              i < irStmtCnt && irStmtInfo[i].proc == p;
              i++) {
                 outf("%5d   ", i);
                 switch (irStmtInfo[i].kind) {
                 case IRSTMT_LOADCONSTANT:
-                        outs("LOADCONSTANT ");
+                        outs("LDC   ");
                         irp_constant(irStmtInfo[i].tLoadConstant.constval);
                         outs(", ");
                         irp_reg(irStmtInfo[i].tLoadConstant.tgtreg);
                         break;
                 case IRSTMT_LOADSYMBOLADDR:
-                        outs("LOADSYMBOLADDR ");
+                        outs("LDA   ");
                         irp_symbol(irStmtInfo[i].tLoadSymbolAddr.sym);
                         outs(", ");
                         irp_reg(irStmtInfo[i].tLoadSymbolAddr.tgtreg);
                         break;
                 case IRSTMT_LOAD:
-                        outs("LOAD ");
+                        outs("LD    ");
                         irp_reg(irStmtInfo[i].tLoad.srcaddrreg);
                         outs(", ");
                         irp_reg(irStmtInfo[i].tLoad.tgtreg);
                         break;
                 case IRSTMT_STORE:
-                        outs("STORE ");
+                        outs("STR   ");
                         irp_reg(irStmtInfo[i].tStore.srcreg);
                         outs(", ");
                         irp_reg(irStmtInfo[i].tStore.tgtaddrreg);
                         break;
                 case IRSTMT_CALL: {
-                        outs("CALL ");
+                        outs("CALL  ");
                         irp_reg(irStmtInfo[i].tCall.callee);
+                        outs(", ");
                         outs("(");
                         int arg = irStmtInfo[i].tCall.firstIrCallArg;
                         for (;;) {
@@ -66,7 +74,7 @@ void irp_proc(IrProc p)
                                 outs(", ");
                         }
                         outs(")");
-                        outs(" -> ");
+                        outs(", ");
                         outs("(");
                         int ret = irStmtInfo[i].tCall.firstIrCallResult;
                         for (;;) {
@@ -85,19 +93,22 @@ void irp_proc(IrProc p)
                         break;
                 }
                 case IRSTMT_CONDGOTO: {
-                        outs("CONDGOTO ");
+                        if (irStmtInfo[i].tCondGoto.isNeg)
+                                outs("JNE   ");
+                        else
+                                outs("JE    ");
                         irp_reg(irStmtInfo[i].tCondGoto.condreg);
                         outs(", ");
                         outf("%d", irStmtInfo[i].tCondGoto.tgtstmt);
                         break;
                 }
                 case IRSTMT_GOTO: {
-                        outs("GOTO ");
+                        outs("JMP   ");
                         outf("%d", irStmtInfo[i].tGoto.tgtstmt);
                         break;
                 }
                 case IRSTMT_RETURN: {
-                        outs("RETURN ");
+                        outs("RET   ");
                         outs("(");
                         int res = irStmtInfo[i].tReturn.firstResult;
                         for (;;) {
@@ -124,12 +135,17 @@ void irprint(void)
 {
         outs("\n");
         DEBUG("Fixing indices\n");
-        for (IrStmt i = irStmtCnt; i-- > 0;) {
-                Proc proc = irStmtInfo[i].proc;
-                irProcInfo[proc].firstIrStmt = i;
+        for (IrStmt i = irStmtCnt; i --> 0;) {
+                IrProc irp = irStmtInfo[i].proc;
+                irProcInfo[irp].firstIrStmt = i;
+        }
+        for (IrReg i = irRegCnt; i --> 0;) {
+                IrProc irp = irRegInfo[i].proc;
+                irProcInfo[irp].firstIrReg = i;
         }
         DEBUG("Printing procs\n");
         outs("\n");
-        for (IrProc p = 0; p < irProcCnt; p++)
+        for (IrProc p = 0; p < irProcCnt; p++) {
                 irp_proc(p);
+        }
 }

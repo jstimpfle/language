@@ -4,13 +4,15 @@ proc int f(Foobar x)
 {
     /* test comment */
     data int* x;
-    array int a[F];
-    return a[x];
-    return a[3];
-    return 3[x];
-    g(3, 5*4);
+    array int a[Foobar];
+    if (3)
+        g(3, 5*4);
+    while (0)
+        1;
+    return 1;
 }
 
 proc int g()
 {
+    data int a;
 }
