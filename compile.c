@@ -248,17 +248,6 @@ Symbol add_type_symbol(String name, Scope scope, Type tp)
         return x;
 }
 
-Symbol add_data_symbol(String name, Scope scope, Data data)
-{
-        Symbol x = symbolCnt++;
-        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        symbolInfo[x].name = name;
-        symbolInfo[x].scope = scope;
-        symbolInfo[x].kind = SYMBOL_DATA;
-        symbolInfo[x].tData = data;
-        return x;
-}
-
 Symbol add_param_symbol(String name, Scope scope, Param param)
 {
         Symbol x = symbolCnt++;
@@ -267,16 +256,6 @@ Symbol add_param_symbol(String name, Scope scope, Param param)
         symbolInfo[x].scope = scope;
         symbolInfo[x].kind = SYMBOL_PARAM;
         symbolInfo[x].tParam = param;
-        return x;
-}
-
-Data add_data(Scope scope, Type tp)
-{
-        Data x = dataCnt++;
-        RESIZE_GLOBAL_BUFFER(dataInfo, dataCnt);
-        dataInfo[x].scope = scope;
-        dataInfo[x].tp = tp;
-        dataInfo[x].sym = -1;  // later
         return x;
 }
 
@@ -371,84 +350,6 @@ Expr add_subscript_expr(Expr expr1, Expr expr2)
         exprInfo[x].tSubscript.expr1 = expr1;
         exprInfo[x].tSubscript.expr2 = expr2;
         return x;
-}
-
-Stmt add_data_stmt(Data data)
-{
-        Stmt stmt = stmtCnt++;
-        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_DATA;
-        stmtInfo[stmt].tData = data;
-        return stmt;
-}
-
-Stmt add_array_stmt(Array array)
-{
-        Stmt stmt = stmtCnt++;
-        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_ARRAY;
-        stmtInfo[stmt].tArray = array;
-        return stmt;
-}
-
-Stmt add_if_stmt(Expr condExpr, Stmt childStmt)
-{
-        Stmt stmt = stmtCnt++;
-        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_IF;
-        stmtInfo[stmt].tIf.condExpr = condExpr;
-        stmtInfo[stmt].tIf.childStmt = childStmt;
-        return stmt;
-}
-
-Stmt add_while_stmt(Expr condExpr, Stmt childStmt)
-{
-        Stmt stmt = stmtCnt++;
-        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_WHILE;
-        stmtInfo[stmt].tWhile.condExpr = condExpr;
-        stmtInfo[stmt].tWhile.childStmt = childStmt;
-        return stmt;
-}
-
-Stmt add_return_stmt(Expr expr)
-{
-        Stmt stmt = stmtCnt++;
-        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_RETURN;
-        stmtInfo[stmt].tReturn.expr = expr;
-        return stmt;
-}
-
-Stmt add_for_stmt(Stmt initStmt, Expr condExpr, Stmt stepStmt, Stmt childStmt)
-{
-        Stmt stmt = stmtCnt++;
-        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_FOR;
-        stmtInfo[stmt].tFor.initStmt = initStmt;
-        stmtInfo[stmt].tFor.condExpr = condExpr;
-        stmtInfo[stmt].tFor.stepStmt = stepStmt;
-        stmtInfo[stmt].tFor.childStmt = childStmt;
-        return stmt;
-}
-
-Stmt add_expr_stmt(Expr expr)
-{
-        Stmt stmt = stmtCnt++;
-        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_EXPR;
-        stmtInfo[stmt].tExpr.expr = expr;
-        return stmt;
-}
-
-Stmt add_compound_stmt(void)
-{
-        Stmt stmt = stmtCnt++;
-        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_COMPOUND;
-        stmtInfo[stmt].tCompound.numStatements = 0;
-        stmtInfo[stmt].tCompound.firstChildStmtIdx = -1;
-        return stmt;
 }
 
 Param add_Param(Proc proc, Type tp)
@@ -840,6 +741,8 @@ Array parse_array(void)
         String name = parse_name();
         parse_token_kind(TOKTYPE_LEFTBRACKET);
         Type idxtp = parse_type();
+        parse_token_kind(TOKTYPE_RIGHTBRACKET);
+        parse_token_kind(TOKTYPE_SEMICOLON);
         
         Type tp = typeCnt++;
         Array array = arrayCnt++;
@@ -860,9 +763,6 @@ Array parse_array(void)
         symbolInfo[sym].scope = currentScope;
         symbolInfo[sym].kind = SYMBOL_ARRAY;
         symbolInfo[sym].tArray = array;
-
-        parse_token_kind(TOKTYPE_RIGHTBRACKET);
-        parse_token_kind(TOKTYPE_SEMICOLON);
         add_type_symbol(name, currentScope, tp);
 
         return array;
@@ -870,18 +770,28 @@ Array parse_array(void)
 
 Data parse_data(void)
 {
-        Type tp;
-        String name;
-        Symbol sym;
-        Data data;
-
         PARSE_LOG();
-        tp = parse_type();
-        name = parse_name();
-        data = add_data(currentScope, tp);
-        sym = add_data_symbol(name, currentScope, data);
-        dataInfo[data].sym = sym;
+
+        Type tp = parse_type();
+        String name = parse_name();
         parse_token_kind(TOKTYPE_SEMICOLON);
+
+        Scope scope = currentScope;
+        Data data = dataCnt++;
+        Symbol sym = symbolCnt++;
+
+        RESIZE_GLOBAL_BUFFER(dataInfo, dataCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+
+        dataInfo[data].scope = scope;
+        dataInfo[data].tp = tp;
+        dataInfo[data].sym = sym;
+
+        symbolInfo[sym].name = name;
+        symbolInfo[sym].scope = scope;
+        symbolInfo[sym].kind = SYMBOL_DATA;
+        symbolInfo[sym].tData = data;
+
         return data;
 }
 
@@ -966,14 +876,22 @@ Stmt parse_data_stmt(void)
 {
         PARSE_LOG();
         Data data = parse_data();
-        return add_data_stmt(data);
+        Stmt stmt = stmtCnt++;
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        stmtInfo[stmt].kind = STMT_DATA;
+        stmtInfo[stmt].tData = data;
+        return stmt;
 }
 
 Stmt parse_array_stmt(void)
 {
         PARSE_LOG();
         Array array = parse_array();
-        return add_array_stmt(array);
+        Stmt stmt = stmtCnt++;
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        stmtInfo[stmt].kind = STMT_ARRAY;
+        stmtInfo[stmt].tArray = array;
+        return stmt;
 }
 
 Stmt parse_expr_stmt(void)
@@ -981,7 +899,11 @@ Stmt parse_expr_stmt(void)
         PARSE_LOG();
         Expr expr = parse_expr(0);
         parse_token_kind(TOKTYPE_SEMICOLON);
-        return add_expr_stmt(expr);
+        Stmt stmt = stmtCnt++;
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        stmtInfo[stmt].kind = STMT_EXPR;
+        stmtInfo[stmt].tExpr.expr = expr;
+        return stmt;
 }
 
 Stmt parse_expr_or_compound_stmt(void);
@@ -989,17 +911,21 @@ Stmt parse_stmt(void);
 
 Stmt parse_compound_stmt(void)
 {
-        Stmt stmt;
-        Stmt substmt;
-
         PARSE_LOG();
-        stmt = add_compound_stmt();
+
+        Stmt stmt = stmtCnt++;
         parse_token_kind(TOKTYPE_LEFTBRACE);
         while (look_token_kind(TOKTYPE_RIGHTBRACE) == -1) {
-                substmt = parse_stmt();
+                Stmt substmt = parse_stmt();
                 add_ChildStmt(stmt, substmt);
         }
         parse_token_kind(TOKTYPE_RIGHTBRACE);
+
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        stmtInfo[stmt].kind = STMT_COMPOUND;
+        stmtInfo[stmt].tCompound.numStatements = 0;
+        stmtInfo[stmt].tCompound.firstChildStmtIdx = -1;
+
         return stmt;
 }
 
@@ -1015,47 +941,53 @@ Stmt parse_expr_or_compound_stmt(void)
 
 Stmt parse_if_stmt(void)
 {
-        Stmt condExpr;
-        Stmt childStmt;
-
         PARSE_LOG();
+        Stmt stmt = stmtCnt++;
         parse_token_kind(TOKTYPE_LEFTPAREN);
-        condExpr = parse_expr(0);
+        Expr condExpr = parse_expr(0);
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-        childStmt = parse_expr_or_compound_stmt();
-        return add_if_stmt(condExpr, childStmt);
+        Stmt childStmt = parse_expr_or_compound_stmt();
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        stmtInfo[stmt].kind = STMT_IF;
+        stmtInfo[stmt].tIf.condExpr = condExpr;
+        stmtInfo[stmt].tIf.childStmt = childStmt;
+        return stmt;
 }
 
 Stmt parse_while_stmt(void)
 {
-        Expr condExpr;
-        Stmt childStmt;
-
         PARSE_LOG();
         parse_token_kind(TOKTYPE_LEFTPAREN);
-        condExpr = parse_expr(0);
+        Expr condExpr = parse_expr(0);
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-        childStmt = parse_expr_or_compound_stmt();
-        return add_while_stmt(condExpr, childStmt);
+        Stmt childStmt = parse_expr_or_compound_stmt();
+        Stmt stmt = stmtCnt++;
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        stmtInfo[stmt].kind = STMT_WHILE;
+        stmtInfo[stmt].tWhile.condExpr = condExpr;
+        stmtInfo[stmt].tWhile.childStmt = childStmt;
+        return stmt;
 }
 
 Stmt parse_for_stmt(void)
 {
-        Stmt initStmt;
-        Expr condExpr;
-        Stmt stepStmt;
-        Stmt childStmt;
-
         PARSE_LOG();
         parse_token_kind(TOKTYPE_LEFTPAREN);
-        initStmt = parse_expr_stmt();
+        Stmt initStmt = parse_expr_stmt();
         parse_token_kind(TOKTYPE_SEMICOLON);
-        condExpr = parse_expr(0);
+        Expr condExpr = parse_expr(0);
         parse_token_kind(TOKTYPE_SEMICOLON);
-        stepStmt = parse_expr_stmt();
+        Stmt stepStmt = parse_expr_stmt();
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-        childStmt = parse_expr_or_compound_stmt();
-        return add_for_stmt(initStmt, condExpr, stepStmt, childStmt);
+        Stmt childStmt = parse_expr_or_compound_stmt();
+        Stmt stmt = stmtCnt++;
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        stmtInfo[stmt].kind = STMT_FOR;
+        stmtInfo[stmt].tFor.initStmt = initStmt;
+        stmtInfo[stmt].tFor.condExpr = condExpr;
+        stmtInfo[stmt].tFor.stepStmt = stepStmt;
+        stmtInfo[stmt].tFor.childStmt = childStmt;
+        return stmt;
 }
 
 Stmt parse_return_stmt(void)
@@ -1063,7 +995,11 @@ Stmt parse_return_stmt(void)
         PARSE_LOG();
         Expr expr = parse_expr(0);
         parse_token_kind(TOKTYPE_SEMICOLON);
-        return add_return_stmt(expr);
+        Stmt stmt = stmtCnt++;
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        stmtInfo[stmt].kind = STMT_RETURN;
+        stmtInfo[stmt].tReturn.expr = expr;
+        return stmt;
 }
 
 Stmt parse_stmt(void)
