@@ -4,13 +4,13 @@
 INTERNAL
 Symbol find_symbol_in_scope(String name, Scope scope)
 {
-        //MSG("RESOLVE %s\n", string_buffer(name));
+        //DEBUG("RESOLVE %s\n", string_buffer(name));
         for (; scope != -1; scope = scopeInfo[scope].parentScope) {
                 Symbol first = scopeInfo[scope].firstSymbol;
                 Symbol last = first + scopeInfo[scope].numSymbols;
                 for (Symbol i = first; i < last; i++) {
                         if (symbolInfo[i].name == name) {
-                                //MSG("FOUND symbol %s\n", string_buffer(name));
+                                //DEBUG("FOUND symbol %s\n", string_buffer(name));
                                 return i;
                         }
                 }
@@ -41,7 +41,7 @@ void resolve_ref_type(Type t)
                 return;
         }
         if (typeInfo[t].isComplete == -1) {
-                WARN("Type #%d: cyclic type reference\n", t);
+                MSG(lvl_warn, "Type #%d: cyclic type reference\n", t);
                 typeInfo[t].isComplete = 0;
                 return;
         }
@@ -296,7 +296,7 @@ Type check_subscript_expr_type(Expr x)
         else
                 tp = typeInfo[t1].tArray.valuetp;
         /*
-        MSG("t1=%d, t2=%d, idxtp=%d, valuetp=%d, tp=%d\n",
+        DEBUG("t1=%d, t2=%d, idxtp=%d, valuetp=%d, tp=%d\n",
             t1, t2, typeInfo[t1].tArray.idxtp, typeInfo[t1].tArray.valuetp, tp);
             */
         exprInfo[x].tp = tp;

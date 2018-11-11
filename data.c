@@ -178,5 +178,13 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         MAKE( irReturnResultInfo ),
         MAKE( irProcInfo ),
         MAKE( irLabelInfo ),
+        /* Codegen */
+        MAKE( dataSection ),
+        MAKE( codeSection ),
+        MAKE( symDefInfo ),
+        MAKE( relocInfo ),
+        /* X64 Asm */
+        MAKE( x64StackLocInfo ),
+        /* */
 #undef MAKE
 };

@@ -98,6 +98,8 @@ typedef int IrReturnResult;
 typedef int IrStmt;
 typedef int IrLabel;
 
+typedef long long IrConstval;
+
 /**
  * \enum{TokenKind}: Token kinds (lexical syntax)
  *
@@ -171,6 +173,13 @@ enum {
         BUFFER_irReturnResultInfo,
         BUFFER_irProcInfo,
         BUFFER_irLabelInfo,
+        /* Codegen */
+        BUFFER_dataSection,
+        BUFFER_codeSection,
+        BUFFER_symDefInfo,
+        BUFFER_relocInfo,
+        /* X64 Asm */
+        BUFFER_x64StackLocInfo,
         /* */
         NUM_BUFFERS,
 };
@@ -296,6 +305,32 @@ enum {
         IRSTMT_RETURN,
 };
 
+enum {
+        SECTION_DATA,
+        SECTION_CODE,
+};
+
+enum {
+        /* The order is important here: this values (0000...1111 binary) are
+         * also used for instruction encoding. */
+        X64REG_RAX,
+        X64REG_RCX,
+        X64REG_RDX,
+        X64REG_RBX,
+        X64REG_RSP,
+        X64REG_RBP,
+        X64REG_RSI,
+        X64REG_RDI,
+        X64REG_R8,
+        X64REG_R9,
+        X64REG_R10,
+        X64REG_R11,
+        X64REG_R12,
+        X64REG_R13,
+        X64REG_R14,
+        X64REG_R15,
+        NUM_X64REGS,
+};
 
 /**
  * \struct{StringToBeInterned} Static information used at program initialization
@@ -679,7 +714,7 @@ struct IrRegInfo {
 };
 
 struct IrLoadConstantStmtInfo {
-        long long constval;
+        IrConstval constval;
         IrReg tgtreg;
 };
 
@@ -746,6 +781,26 @@ struct IrProcInfo {
         IrStmt firstIrReg; // speed-up
 };
 
+
+struct SymDefInfo {
+        Symbol symbol;
+        int kind; // SECTION_
+        int offset;
+        int size;
+};
+
+struct RelocInfo {
+        Symbol symbol;
+        int kind; // SECTION_
+        int offset;
+};
+
+
+
+struct X64StackLocInfo {
+        IrReg irreg;
+        int offset;
+};
 
 
 #ifdef DATA_IMPL
@@ -857,6 +912,18 @@ DATA struct IrReturnResultInfo *irReturnResultInfo;
 DATA struct IrProcInfo *irProcInfo;
 DATA struct IrLabelInfo *irLabelInfo;
 
+DATA int dataSectionCnt;
+DATA int codeSectionCnt;
+DATA int symDefCnt;
+DATA int relocCnt;
+DATA unsigned char *dataSection;
+DATA unsigned char *codeSection;
+DATA struct SymDefInfo *symDefInfo;
+DATA struct RelocInfo *relocInfo;
+
+DATA int x64StackLocCnt;
+DATA struct X64StackLocInfo *x64StackLocInfo;
+
 #undef DATA
 
 
@@ -892,13 +959,13 @@ void NORETURN _abort(void);
 void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
 
 #define MSG(lvl, fmt, ...) _msg(__FILE__, __LINE__, lvl, fmt, ##__VA_ARGS__)
-#define DEBUG(...) \
-        if (doDebug) \
-                _msg(__FILE__, __LINE__, "DEBUG", __VA_ARGS__)
-#define WARN(fmt, ...) _msg(__FILE__, __LINE__, "WARN", fmt, ##__VA_ARGS__)
 #define FATAL(fmt, ...) _fatal(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define ABORT() _abort()
 #define UNHANDLED_CASE() FATAL("Unhandled case!\n");
+#define ABORT() _abort()
+#define DEBUG(...) do { \
+        if (doDebug) \
+                _msg(__FILE__, __LINE__, "DEBUG", __VA_ARGS__); \
+} while (0)
 
 
 /*
@@ -925,17 +992,24 @@ void _msg_at_expr(const char *srcfilename, int srcline,
 #define MSG_AT_TOK(...) _msg_at_tok(__FILE__, __LINE__, __VA_ARGS__)
 #define MSG_AT_EXPR(...) _msg_at_expr(__FILE__, __LINE__, __VA_ARGS__)
 
-#define FATAL_PARSE_ERROR_AT(...) \
-        do { MSG_AT(lvl_fatal, __VA_ARGS__); ABORT(); } while (0)
-#define FATAL_PARSE_ERROR_AT_TOK(...) \
-        do { MSG_AT_TOK(lvl_fatal, __VA_ARGS__); ABORT(); } while (0)
 #define LOG_TYPE_ERROR_EXPR(...) MSG_AT_EXPR(lvl_error, __VA_ARGS__)
 #define LOG_TYPE_ERROR_EXPR(...) MSG_AT_EXPR(lvl_error, __VA_ARGS__)
 
-#define PARSE_LOG() \
+#define PARSE_LOG() do { \
         if (doDebug) \
                 MSG_AT(lvl_debug, currentFile, currentOffset, \
-                       "%s()\n", __func__)
+                       "%s()\n", __func__); \
+} while (0)
+
+#define FATAL_PARSE_ERROR_AT(...) do { \
+        MSG_AT(lvl_fatal, __VA_ARGS__); \
+        ABORT(); \
+} while (0)
+
+#define FATAL_PARSE_ERROR_AT_TOK(...) do { \
+        MSG_AT_TOK(lvl_fatal, __VA_ARGS__); \
+        ABORT(); \
+} while (0)
 
 
 /* memory.c */
@@ -1024,3 +1098,13 @@ void compile_to_IR(void);
  * irprint.c
  */
 void irprint(void);
+
+/*
+ * elfobject.c
+ */
+void write_elf64_object(const char *outfilepath);
+
+/*
+ * x64asm.c
+ */
+void codegen_x64(void);

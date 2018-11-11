@@ -134,20 +134,18 @@ int token_is_binary_infix_operator(Token tok, int *out_optp)
 INTERNAL
 int look_char(void)
 {
-        if (! haveSavedChar) {
-                if (currentOffset < fileInfo[currentFile].size) {
-                        haveSavedChar = 1;
-                        int c = fileInfo[currentFile].buf[currentOffset];
-                        if (c < 32 && c != ' ' && c != '\n')
-                                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-                                                     "Invalid byte %d\n", c);
-                        savedChar = c;
-                }
-                else {
-                        savedChar = -1;
-                }
+        if (haveSavedChar)
+                return savedChar;
+        if (currentOffset < fileInfo[currentFile].size) {
+                int c = fileInfo[currentFile].buf[currentOffset];
+                if (c < 32 && c != ' ' && c != '\n')
+                        FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
+                                             "Invalid byte %d\n", c);
+                haveSavedChar = 1;
+                savedChar = c;
+                return c;
         }
-        return savedChar;
+        return -1;
 }
 
 INTERNAL
@@ -183,7 +181,6 @@ INTERNAL
 Token parse_next_token(void)
 {
         int c;
-        int off;
         Token ans;
 
         if (haveSavedToken) {
@@ -217,7 +214,7 @@ Token parse_next_token(void)
         }
 
         /* good to go. Variable c contains first character to lex */
-        off = currentOffset - 1;
+        int off = currentOffset - 1;
         if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')) {
                 lexbufCnt = 0;
                 for (;;) {
@@ -425,13 +422,11 @@ INTERNAL
 Type parse_entity(void)
 {
         PARSE_LOG();
-
         Type tp = parse_type();
         String name = parse_name();
         parse_token_kind(TOKTYPE_SEMICOLON);
         Type etp = typeCnt++;
         add_type_symbol(name, currentScope, etp);
-
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[etp].kind = TYPE_ENTITY;
         typeInfo[etp].tEntity.name = name;
@@ -451,27 +446,23 @@ Array parse_array(void)
         parse_token_kind(TOKTYPE_RIGHTBRACKET);
         parse_token_kind(TOKTYPE_SEMICOLON);
 
-        Type tp = typeCnt++;
         Array array = arrayCnt++;
+        Type tp = typeCnt++;
         Symbol sym = symbolCnt++;
-
+        add_type_symbol(name, currentScope, tp);
         RESIZE_GLOBAL_BUFFER(arrayInfo, arrayCnt);
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-
         arrayInfo[array].scope = currentScope;
         arrayInfo[array].tp = tp;
         arrayInfo[array].sym = sym;
-
         typeInfo[tp].kind = TYPE_ARRAY;
         typeInfo[tp].tArray.idxtp = idxtp;
         typeInfo[tp].tArray.valuetp = valuetp;
-
         symbolInfo[sym].name = name;
         symbolInfo[sym].scope = currentScope;
         symbolInfo[sym].kind = SYMBOL_ARRAY;
         symbolInfo[sym].tArray = array;
-        add_type_symbol(name, currentScope, tp);
-
         return array;
 }
 
@@ -479,7 +470,6 @@ INTERNAL
 Data parse_data(void)
 {
         PARSE_LOG();
-
         Type tp = parse_type();
         String name = parse_name();
         parse_token_kind(TOKTYPE_SEMICOLON);
@@ -487,19 +477,15 @@ Data parse_data(void)
         Scope scope = currentScope;
         Data data = dataCnt++;
         Symbol sym = symbolCnt++;
-
         RESIZE_GLOBAL_BUFFER(dataInfo, dataCnt);
         RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-
         dataInfo[data].scope = scope;
         dataInfo[data].tp = tp;
         dataInfo[data].sym = sym;
-
         symbolInfo[sym].name = name;
         symbolInfo[sym].scope = scope;
         symbolInfo[sym].kind = SYMBOL_DATA;
         symbolInfo[sym].tData = data;
-
         return data;
 }
 
@@ -755,10 +741,8 @@ Stmt parse_return_stmt(void)
 INTERNAL
 Stmt parse_stmt(void)
 {
-        Token tok;
-
         PARSE_LOG();
-        tok = look_next_token();
+        Token tok = look_next_token();
         if (tokenInfo[tok].kind == TOKTYPE_WORD) {
                 String s = tokenInfo[tok].tWord.string;
                 if (s == constStr[CONSTSTR_DATA]) {
@@ -795,7 +779,7 @@ Stmt parse_stmt(void)
 }
 
 INTERNAL
-void parse_proc(void)
+Proc parse_proc(void)
 {
         PARSE_LOG();
 
@@ -836,28 +820,25 @@ void parse_proc(void)
                 parse_next_token();
         }
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-
         Stmt pbody = parse_compound_stmt();
+        pop_scope();
 
         scopeInfo[pscope].parentScope = parentScope;
         scopeInfo[pscope].firstSymbol = -1;
         scopeInfo[pscope].numSymbols = 0;
         scopeInfo[pscope].kind = SCOPE_PROC;
         scopeInfo[pscope].tProc.proc = proc;
-
         procInfo[proc].tp = rettp;
         procInfo[proc].sym = psym;
         procInfo[proc].scope = pscope;
         procInfo[proc].firstParam = -1;
         procInfo[proc].nparams = 0;
         procInfo[proc].body = pbody;
-
         symbolInfo[psym].name = pname;
         symbolInfo[psym].scope = parentScope;
         symbolInfo[psym].kind = SYMBOL_PROC;
         symbolInfo[psym].tProc = proc;
-
-        pop_scope();
+        return proc;
 }
 
 INTERNAL
@@ -900,18 +881,12 @@ int compare_CallArgInfo(const void *a, const void *b)
 
 void parse_global_scope(void)
 {
-        Token tok;
-        String s;
-
         PARSE_LOG();
         globalScope = add_global_scope();
         push_scope(globalScope);
-        for (;;) {
-                tok = look_next_token();
-                if (tok == -1)
-                        break;
-                parse_token_kind(TOKTYPE_WORD);
-                s = tokenInfo[tok].tWord.string;
+        while (look_token_kind(TOKTYPE_WORD) != -1) {
+                Token tok = parse_token_kind(TOKTYPE_WORD);
+                String s = tokenInfo[tok].tWord.string;
                 if (s == constStr[CONSTSTR_ENTITY])
                         parse_entity();
                 else if (s == constStr[CONSTSTR_ARRAY])
