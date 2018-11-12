@@ -291,50 +291,6 @@ Other                   0
 #define STT_LOPROC      13      /* Processor-specific use */
 #define STT_HIPROC      15      /* (ditto) */
 
-
-void initialize_Elf64_Ehdr(struct Elf64_Ehdr *h)
-{
-        memset(h, 0, sizeof *h);
-
-        h->e_ident[EI_MAG0] = 0x7f;
-        h->e_ident[EI_MAG1] = 'E';
-        h->e_ident[EI_MAG2] = 'L';
-        h->e_ident[EI_MAG3] = 'F';
-        h->e_ident[EI_CLASS] = ELFCLASS64;
-        h->e_ident[EI_DATA] = ELFDATA2LSB;
-        h->e_ident[EI_VERSION] = EV_CURRENT;
-        h->e_ident[EI_OSABI] = ELFOSABI_SYSV;
-        h->e_ident[EI_ABIVERSION] = 0;
-        h->e_type = ET_REL;
-        h->e_machine = 62;  // XXX: this should mean AMD64. I picked this up from somewhere else.
-        h->e_version = EV_CURRENT;
-        h->e_entry = 0;
-        h->e_phoff = 0;  // set later
-        h->e_shoff = 0;  // set later
-        h->e_flags = 0;  // XXX: ???
-        h->e_ehsize = sizeof *h;  // XXX: ???
-        h->e_phentsize = 0;  // XXX: ???
-        h->e_phnum = 0;  // increased later
-        h->e_shentsize = sizeof (struct Elf64_Shdr);  // XXX: ?
-        h->e_shnum = 0;  // increased later
-        h->e_shstrndx = 0;  // set later
-}
-
-void initialize_Elf64_Shdr(struct Elf64_Shdr *sh)
-{
-        memset(sh, 0, sizeof *sh);
-        sh->sh_addralign = 1;
-}
-
-typedef unsigned char Elf64_Uchar;
-typedef uint64_t Elf64_Addr;
-typedef uint64_t Elf64_Off;
-typedef uint16_t Elf64_Half;
-typedef uint32_t Elf64_Word;
-typedef int32_t Elf64_Sword;
-typedef uint64_t Elf64_Xword;
-typedef int64_t Elf64_Sxword;
-
 void write_Elf64_Uchar(Elf64_Uchar x, FILE *f)
 {
         fputc(x, f);
@@ -467,77 +423,99 @@ size_t append_to_ElfStringTable(struct ElfStringTable *t, const char *str)
 
 void write_elf64_object(const char *outfilepath)
 {
-        FILE *f = fopen(outfilepath, "wb");
-        if (f == NULL) {
-                fprintf(stderr, "Failed to open file %s\n", outfilepath);
-                abort();
-        }
 
-        struct ElfStringTable myheaderstrings;
-        struct ElfStringTable mystrings;
-        struct Elf64_Ehdr ehdr;
-        struct Elf64_Shdr dummyhdr;  // the first section header is SHN_UNDEF
-        struct Elf64_Shdr symtabhdr;  // header for .symtab section (symbol table)
-        struct Elf64_Shdr texthdr;  // header for .text section
-        struct Elf64_Shdr strtabhdr;  // header for table for most strings
-        struct Elf64_Shdr shstrtabhdr;  // header for table for string section names (referenced by e_shstrndx)
+        struct ElfStringTable shstrtabStrings;
+        struct ElfStringTable strtabStrings;
         struct Elf64_Sym *elfsyms;
         struct Alloc elfsymsAlloc;
 
-        init_ElfStringTable(&myheaderstrings);
-        init_ElfStringTable(&mystrings);
-        initialize_Elf64_Ehdr(&ehdr);
-        initialize_Elf64_Shdr(&dummyhdr);
-        initialize_Elf64_Shdr(&symtabhdr);
-        initialize_Elf64_Shdr(&texthdr);
-        initialize_Elf64_Shdr(&strtabhdr);
-        initialize_Elf64_Shdr(&shstrtabhdr);
+        init_ElfStringTable(&shstrtabStrings);
+        init_ElfStringTable(&strtabStrings);
         BUF_INIT(&elfsyms, &elfsymsAlloc);
 
-        ehdr.e_shoff = sizeof (struct Elf64_Shdr);  // XXX
-        ehdr.e_shnum = 5;
-        ehdr.e_shstrndx = 4; /* .shstrtab comes last */
-
         /* Make sure that string index 0 points to an empty string */
-        append_to_ElfStringTable(&myheaderstrings, "");
-        append_to_ElfStringTable(&mystrings, "");
+        append_to_ElfStringTable(&shstrtabStrings, "");
+        append_to_ElfStringTable(&strtabStrings, "");
 
-        dummyhdr.sh_name = 0;  // empty/missing string
-        symtabhdr.sh_name = append_to_ElfStringTable(&myheaderstrings, ".symtab");
-        texthdr.sh_name = append_to_ElfStringTable(&myheaderstrings, ".text");
-        strtabhdr.sh_name = append_to_ElfStringTable(&myheaderstrings, ".strtab");
-        shstrtabhdr.sh_name = append_to_ElfStringTable(&myheaderstrings, ".shstrtab");
-
+        /* Make symbol strings and symbol table */
         BUF_RESERVE(&elfsyms, &elfsymsAlloc, symDefCnt);
         for (int i = 0; i < symDefCnt; i++) {
-                elfsyms[i].st_name = append_to_ElfStringTable(&mystrings, SS(symDefInfo[i].symbol));
+                elfsyms[i].st_name = append_to_ElfStringTable(&strtabStrings, SS(symDefInfo[i].symbol));
                 elfsyms[i].st_info = (STB_GLOBAL << 4) | STT_FUNC;
                 elfsyms[i].st_other = 0;
-                elfsyms[i].st_shndx = SHN_ABS; //XXX???
+                elfsyms[i].st_shndx = SHN_ABS;
                 elfsyms[i].st_value = symDefInfo[i].offset;
                 elfsyms[i].st_size = symDefInfo[i].size;
         }
 
-        dummyhdr.sh_type = SHT_NULL;
-        symtabhdr.sh_type = SHT_SYMTAB;
-        texthdr.sh_type = SHT_PROGBITS;
-        strtabhdr.sh_type = SHT_STRTAB;
+        struct Elf64_Ehdr ehdr        = {0};
+        struct Elf64_Shdr dummyhdr    = {0};  // the first section header is SHN_UNDEF
+        struct Elf64_Shdr symtabhdr   = {0};  // header for .symtab section (symbol table)
+        struct Elf64_Shdr texthdr     = {0};  // header for .text section
+        struct Elf64_Shdr strtabhdr   = {0};  // header for table for most strings
+        struct Elf64_Shdr shstrtabhdr = {0};  // header for table for string section names (referenced by e_shstrndx)
+
+        /*
+         * initialize File header
+         */
+
+        ehdr.e_ident[EI_MAG0] = 0x7f;
+        ehdr.e_ident[EI_MAG1] = 'E';
+        ehdr.e_ident[EI_MAG2] = 'L';
+        ehdr.e_ident[EI_MAG3] = 'F';
+        ehdr.e_ident[EI_CLASS] = ELFCLASS64;
+        ehdr.e_ident[EI_DATA] = ELFDATA2LSB;
+        ehdr.e_ident[EI_VERSION] = EV_CURRENT;
+        ehdr.e_ident[EI_OSABI] = ELFOSABI_SYSV;
+        ehdr.e_ident[EI_ABIVERSION] = 0;
+        ehdr.e_type = ET_REL;
+        ehdr.e_machine = 62;  // code for AMD64 (not listed in the spec)
+        ehdr.e_version = EV_CURRENT;
+        ehdr.e_entry = 0;
+        ehdr.e_phoff = 0;
+        ehdr.e_shoff = sizeof (struct Elf64_Ehdr);  // XXX
+        ehdr.e_flags = 0;
+        ehdr.e_ehsize = sizeof (struct Elf64_Ehdr);  // XXX
+        ehdr.e_phentsize = 0;
+        ehdr.e_phnum = 0;
+        ehdr.e_shentsize = sizeof (struct Elf64_Shdr);  // XXX
+        ehdr.e_shnum = 5;
+        ehdr.e_shstrndx = 4; /* .shstrtab comes last (e_shnum - 1 == 4) */
+
+        /*
+         * Initialize section headers
+         */
+
+        symtabhdr  .sh_name = append_to_ElfStringTable(&shstrtabStrings, ".symtab");
+        texthdr    .sh_name = append_to_ElfStringTable(&shstrtabStrings, ".text");
+        strtabhdr  .sh_name = append_to_ElfStringTable(&shstrtabStrings, ".strtab");
+        shstrtabhdr.sh_name = append_to_ElfStringTable(&shstrtabStrings, ".shstrtab");
+
+        symtabhdr  .sh_type = SHT_SYMTAB;
+        texthdr    .sh_type = SHT_PROGBITS;
+        strtabhdr  .sh_type = SHT_STRTAB;
         shstrtabhdr.sh_type = SHT_STRTAB;
 
-        dummyhdr.sh_size = 0;
-        symtabhdr.sh_size = (symDefCnt + 1) * sizeof (struct Elf64_Sym);  // XXX sizeof? symDefCnt + 1, because there is one dummy symbol upfront
-        texthdr.sh_size = codeSectionCnt;
-        strtabhdr.sh_size = mystrings.size;
-        shstrtabhdr.sh_size = myheaderstrings.size;
+        symtabhdr  .sh_size = (symDefCnt + 1) * sizeof (struct Elf64_Sym);  // XXX sizeof? symDefCnt + 1, because there is one dummy symbol upfront
+        texthdr    .sh_size = codeSectionCnt;
+        strtabhdr  .sh_size = strtabStrings.size;
+        shstrtabhdr.sh_size = shstrtabStrings.size;
 
         /* XXX: Alignment? */
-        dummyhdr.sh_offset = ehdr.e_shoff + ehdr.e_shnum * sizeof (struct Elf64_Shdr);
-        symtabhdr.sh_offset = dummyhdr.sh_offset + dummyhdr.sh_size;
-        texthdr.sh_offset = symtabhdr.sh_offset + symtabhdr.sh_size;
-        strtabhdr.sh_offset = texthdr.sh_offset + texthdr.sh_size;
+        symtabhdr  .sh_offset = ehdr.e_shoff + ehdr.e_shnum * sizeof (struct Elf64_Shdr);
+        texthdr    .sh_offset = symtabhdr.sh_offset + symtabhdr.sh_size;
+        strtabhdr  .sh_offset = texthdr.sh_offset + texthdr.sh_size;
         shstrtabhdr.sh_offset = strtabhdr.sh_offset + strtabhdr.sh_size;
 
-        symtabhdr.sh_flags = SHF_ALLOC; /* ??? needed ??? */
+        /* XXX: ??? */
+        symtabhdr  .sh_addralign = 1;
+        texthdr    .sh_addralign = 16;
+        strtabhdr  .sh_addralign = 1;
+        shstrtabhdr.sh_addralign = 1;
+
+        symtabhdr.sh_flags = SHF_ALLOC;
+        texthdr  .sh_flags = SHF_ALLOC | SHF_EXECINSTR;
+
         symtabhdr.sh_entsize = sizeof (struct Elf64_Sym);  // ???
         symtabhdr.sh_link = 3;  // index of strtabhdr
         symtabhdr.sh_info = 1;  /* XXX not sure what to put here. See Table 11,
@@ -553,46 +531,43 @@ void write_elf64_object(const char *outfilepath)
         fprintf(stderr, "start / size of .shstrtab section is %d / %d\n", (int) shstrtabhdr.sh_offset, (int) shstrtabhdr.sh_size);
         */
 
-        /* Write global Elf header and section headers */
+        FILE *f = fopen(outfilepath, "wb");
+        if (f == NULL) {
+                fprintf(stderr, "Failed to open file %s\n", outfilepath);
+                abort();
+        }
+
         write_Elf64_Ehdr(&ehdr, f);
         write_Elf64_Shdr(&dummyhdr, f);
         write_Elf64_Shdr(&symtabhdr, f);
         write_Elf64_Shdr(&texthdr, f);
         write_Elf64_Shdr(&strtabhdr, f);
         write_Elf64_Shdr(&shstrtabhdr, f);
-        //fprintf(stderr, "after section headers, the file is %d large\n", (int) ftell(f));
 
-        /* write .symtab section */
+        /* .symtab */
         {
-                /* one fake symbol required */
+                /* one dummy symbol required */
                 struct Elf64_Sym esym = {0};
-                memset(&esym, 0, sizeof esym);
                 write_Elf64_Sym(&esym, f);
         }
         for (int i = 0; i < symDefCnt; i++) {
                 write_Elf64_Sym(&elfsyms[i], f);
         }
-        //fprintf(stderr, "after .symtab, the file is %d large\n", (int) ftell(f));
-
-        /* write .text section */
+        /* .text */
         fwrite(codeSection, codeSectionCnt, 1, f);
-        //fprintf(stderr, "after .text, the file is %d large\n", (int) ftell(f));
+        /* .strtab */
+        fwrite(strtabStrings.buf, strtabStrings.size, 1, f);
+        /* .shstrtab */
+        fwrite(shstrtabStrings.buf, shstrtabStrings.size, 1, f);
 
-        /* write .strtab section */
-        fwrite(mystrings.buf, mystrings.size, 1, f);
-        //fprintf(stderr, "after .strtab, the file is %d large\n", (int) ftell(f));
-
-        /* write .shstrtab section */
-        fwrite(myheaderstrings.buf, myheaderstrings.size, 1, f);
-        //fprintf(stderr, "after .shstrtab, the file is %d large\n", (int) ftell(f));
-
+        fflush(f);
         if (ferror(f)) {
                 fprintf(stderr, "I/O error writing to %s\n", outfilepath);
                 abort();
         }
         fclose(f);
 
-        exit_ElfStringTable(&myheaderstrings);
-        exit_ElfStringTable(&mystrings);
+        exit_ElfStringTable(&shstrtabStrings);
+        exit_ElfStringTable(&strtabStrings);
         BUF_EXIT(&elfsyms, &elfsymsAlloc);
 }
