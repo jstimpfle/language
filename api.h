@@ -1026,17 +1026,17 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                   int clear, const char *UNUSED file, int UNUSED line);
 
 #define BUF_INIT(buf, alloc) \
-        _buf_init((void**)(buf), (alloc), sizeof *(buf), __FILE__, __LINE__);
+        _buf_init((void**)(buf), (alloc), sizeof **(buf), __FILE__, __LINE__);
 
 #define BUF_EXIT(buf, alloc) \
-        _buf_exit((void**)(buf), (alloc), sizeof *(buf), __FILE__, __LINE__);
+        _buf_exit((void**)(buf), (alloc), sizeof **(buf), __FILE__, __LINE__);
 
 #define BUF_RESERVE(buf, alloc, cnt) \
-        _buf_reserve((void**)(buf), (alloc), (cnt), sizeof *(buf), 0, \
+        _buf_reserve((void**)(buf), (alloc), (cnt), sizeof **(buf), 0, \
                      __FILE__, __LINE__);
 
 #define BUF_RESERVE_Z(buf, alloc, cnt) \
-        _buf_reserve((void**)(buf), (alloc), (cnt), sizeof *(buf), 1, \
+        _buf_reserve((void**)(buf), (alloc), (cnt), sizeof **(buf), 1, \
                      __FILE__, __LINE__);
 
 void _resize_global_buffer(int buf, int nelems, int clear);
