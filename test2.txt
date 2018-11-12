@@ -15,4 +15,6 @@ proc int f(Foobar x)
 proc int g()
 {
     data int a;
+    a = 41;
+    return a + 1;
 }

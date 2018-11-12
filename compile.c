@@ -357,11 +357,12 @@ void check_types(void)
 
 void compile_expr(Expr x)
 {
+        Proc proc = exprInfo[x].proc;
         switch (exprInfo[x].kind) {
         case EXPR_LITERAL: {
                 IrStmt y = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[y].proc = exprToProc[x];
+                irStmtInfo[y].proc = proc;
                 irStmtInfo[y].kind = IRSTMT_LOADCONSTANT;
                 irStmtInfo[y].tLoadConstant.constval = tokenInfo[exprInfo[x].tLiteral.tok].tInteger.value; //XXX
                 irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
@@ -385,7 +386,7 @@ void compile_expr(Expr x)
                 irCallArgInfo[arg2].callStmt = y;
                 irCallResultInfo[ret].callStmt = y;
                 irCallResultInfo[ret].tgtreg = exprToIrReg[x];
-                irStmtInfo[y].proc = exprToProc[x];
+                irStmtInfo[y].proc = proc;
                 // XXX: We "call" the binop operation. This is very inefficient.
                 irStmtInfo[y].kind = IRSTMT_CALL;
                 irStmtInfo[y].tCall.callee = 0;  //XXX TODO: need register holding address of binop operation
@@ -402,15 +403,15 @@ void compile_expr(Expr x)
                 IrStmt s0 = irStmtCnt++;
                 IrStmt s1 = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irRegInfo[addr].proc = exprToProc[x];
+                irRegInfo[addr].proc = proc;
                 irRegInfo[addr].name = intern_cstring("(addr)"); //XXX
                 irRegInfo[addr].sym = sym; //XXX
                 irRegInfo[addr].tp = -1; //XXX
-                irStmtInfo[s0].proc = exprToProc[x];
+                irStmtInfo[s0].proc = proc;
                 irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
                 irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
                 irStmtInfo[s0].tLoadSymbolAddr.tgtreg = addr;
-                irStmtInfo[s1].proc = exprToProc[x];
+                irStmtInfo[s1].proc = proc;
                 irStmtInfo[s1].kind = IRSTMT_LOAD;
                 irStmtInfo[s1].tLoad.srcaddrreg = addr;
                 irStmtInfo[s1].tLoad.tgtreg = exprToIrReg[x];
@@ -434,7 +435,7 @@ void compile_expr(Expr x)
                  */
                 IrStmt y = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[y].proc = exprToProc[x];
+                irStmtInfo[y].proc = proc;
                 irStmtInfo[y].kind = IRSTMT_CALL;
                 irStmtInfo[y].tCall.callee = exprToIrReg[calleeExpr];
                 irStmtInfo[y].tCall.firstIrCallArg = irCallArgCnt; // XXX: Achtung!
@@ -551,11 +552,6 @@ void compile_to_IR(void)
 {
         DEBUG("For each expression find its proc.\n");
         DEBUG("(TODO: think about adding this data already when parsing?\n");
-        RESIZE_GLOBAL_BUFFER(exprToProc, exprCnt);
-        for (Expr x = 0; x < exprCnt; x++) {
-                exprToProc[x] = (Proc)0;  //XXX
-        }
-
         DEBUG("For each Proc make an IrProc\n");
         RESIZE_GLOBAL_BUFFER(procToIrProc, procCnt);
         for (Proc x = 0; x < procCnt; x++) {
@@ -585,7 +581,7 @@ void compile_to_IR(void)
         DEBUG("For each expression make an IrReg to hold the result\n");
         RESIZE_GLOBAL_BUFFER(exprToIrReg, exprCnt);
         for (Expr x = 0; x < exprCnt; x++) {
-                Proc p = exprToProc[x];
+                Proc p = exprInfo[x].proc;
                 IrReg r = irRegCnt++;
                 exprToIrReg[x] = r;
                 RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);

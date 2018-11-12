@@ -475,23 +475,24 @@ void write_elf64_object(const char *outfilepath)
 
         struct ElfStringTable myheaderstrings;
         struct ElfStringTable mystrings;
-
         struct Elf64_Ehdr ehdr;
         struct Elf64_Shdr dummyhdr;  // the first section header is SHN_UNDEF
         struct Elf64_Shdr symtabhdr;  // header for .symtab section (symbol table)
         struct Elf64_Shdr texthdr;  // header for .text section
         struct Elf64_Shdr strtabhdr;  // header for table for most strings
         struct Elf64_Shdr shstrtabhdr;  // header for table for string section names (referenced by e_shstrndx)
+        struct Elf64_Sym *elfsyms;
+        struct Alloc elfsymsAlloc;
 
         init_ElfStringTable(&myheaderstrings);
         init_ElfStringTable(&mystrings);
-
         initialize_Elf64_Ehdr(&ehdr);
         initialize_Elf64_Shdr(&dummyhdr);
         initialize_Elf64_Shdr(&symtabhdr);
         initialize_Elf64_Shdr(&texthdr);
         initialize_Elf64_Shdr(&strtabhdr);
         initialize_Elf64_Shdr(&shstrtabhdr);
+        BUF_INIT(&elfsyms, &elfsymsAlloc);
 
         ehdr.e_shoff = sizeof (struct Elf64_Shdr);  // XXX
         ehdr.e_shnum = 5;
@@ -507,8 +508,15 @@ void write_elf64_object(const char *outfilepath)
         strtabhdr.sh_name = append_to_ElfStringTable(&myheaderstrings, ".strtab");
         shstrtabhdr.sh_name = append_to_ElfStringTable(&myheaderstrings, ".shstrtab");
 
-        for (int i = 0; i < symDefCnt; i++)
-                append_to_ElfStringTable(&mystrings, SS(symDefInfo[i].symbol));
+        BUF_RESERVE(&elfsyms, &elfsymsAlloc, symDefCnt);
+        for (int i = 0; i < symDefCnt; i++) {
+                elfsyms[i].st_name = append_to_ElfStringTable(&mystrings, SS(symDefInfo[i].symbol));
+                elfsyms[i].st_info = (STB_GLOBAL << 4) | STT_FUNC;
+                elfsyms[i].st_other = 0;
+                elfsyms[i].st_shndx = SHN_ABS; //XXX???
+                elfsyms[i].st_value = symDefInfo[i].offset;
+                elfsyms[i].st_size = symDefInfo[i].size;
+        }
 
         dummyhdr.sh_type = SHT_NULL;
         symtabhdr.sh_type = SHT_SYMTAB;
@@ -562,15 +570,7 @@ void write_elf64_object(const char *outfilepath)
                 write_Elf64_Sym(&esym, f);
         }
         for (int i = 0; i < symDefCnt; i++) {
-                struct Elf64_Sym esym = {0};
-                esym.st_name = 1; //XXX see string append to "mystrings" above
-                esym.st_info = (STB_GLOBAL << 4) | STT_FUNC;
-                esym.st_other = 0;
-                esym.st_shndx = SHN_ABS; //XXX???
-                esym.st_value = 0; //XXX
-                esym.st_size = symDefInfo[i].size;
-                esym.st_size = 0; //XXX
-                write_Elf64_Sym(&esym, f);
+                write_Elf64_Sym(&elfsyms[i], f);
         }
         //fprintf(stderr, "after .symtab, the file is %d large\n", (int) ftell(f));
 
@@ -594,4 +594,5 @@ void write_elf64_object(const char *outfilepath)
 
         exit_ElfStringTable(&myheaderstrings);
         exit_ElfStringTable(&mystrings);
+        BUF_EXIT(&elfsyms, &elfsymsAlloc);
 }

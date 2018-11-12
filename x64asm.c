@@ -40,18 +40,18 @@ int find_stack_loc(IrReg irreg)
 INTERNAL
 void begin_symbol(Symbol sym)
 {
-        int sd = symDefCnt++;
+        SymDef sd = symDefCnt++;
         RESIZE_GLOBAL_BUFFER(symDefInfo, symDefCnt);
         symDefInfo[sd].symbol = sym;
         symDefInfo[sd].kind = SECTION_CODE;
         symDefInfo[sd].offset = codeSectionCnt;  //XXX Alignment?
-        symDefInfo[sd].size = 42; //XXX
+        symDefInfo[sd].size = 0; // set later
 }
 
 INTERNAL
 void end_symbol(void)
 {
-        int sd = symDefCnt - 1;
+        SymDef sd = symDefCnt - 1;
         symDefInfo[sd].size = codeSectionCnt - symDefInfo[sd].offset;
 }
 
@@ -63,9 +63,20 @@ void emit_data(uchar *buf, int len)
 INTERNAL
 void emit_code(uchar *buf, int len)
 {
-        RESIZE_GLOBAL_BUFFER(codeSection, codeSectionCnt + len);
-        mem_copy(codeSection + codeSectionCnt, buf, len);
+        int pos = codeSectionCnt;
         codeSectionCnt += len;
+        RESIZE_GLOBAL_BUFFER(codeSection, codeSectionCnt);
+        mem_copy(codeSection + pos, buf, len);
+}
+
+INTERNAL
+void emit_code_relocation(Symbol symbol, int offset)
+{
+        Reloc reloc = relocCnt++;
+        RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
+        relocInfo[reloc].symbol = symbol;
+        relocInfo[reloc].kind = SECTION_CODE;
+        relocInfo[reloc].offset = offset;
 }
 
 #define BYTE(x, n) (((x) >> (n)) & 255)
@@ -121,8 +132,11 @@ void emit_load_constant_stack(Constval constval, X64StackLoc loc)
 }
 
 INTERNAL
-void emit_load_symaddr_stack(Constval constval, X64StackLoc loc)
+void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
 {
+        emit_code_relocation(symbol, codeSectionCnt);
+        emit_mov_64_imm_reg(0, X64REG_RAX);
+        emit_mov_64_reg_stack(X64REG_RAX, loc);
 }
 
 INTERNAL
@@ -182,7 +196,8 @@ void x64asm_proc(IrProc irp)
 
 void codegen_x64(void)
 {
-        x64asm_proc(0);
+        for (IrProc x = 0; x < irProcCnt; x++)
+                x64asm_proc(x);
 
         for (int i = 0; i < codeSectionCnt; i++) {
                 if (i & 7)

@@ -65,6 +65,7 @@ Expr add_unop_expr(int opkind, Token tok, Expr expr)
 {
         Expr x = exprCnt++;
         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+        exprInfo[x].proc = currentProc;
         exprInfo[x].kind = EXPR_UNOP;
         exprInfo[x].tUnop.kind = opkind;
         exprInfo[x].tUnop.tok = tok;
@@ -506,6 +507,7 @@ Expr parse_expr(int minprec)
                 Symref ref = parse_symref();
                 expr = exprCnt++;
                 RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                exprInfo[expr].proc = currentProc;
                 exprInfo[expr].kind = EXPR_SYMREF;
                 exprInfo[expr].tSymref.ref = ref;
         }
@@ -513,6 +515,7 @@ Expr parse_expr(int minprec)
                 parse_next_token();
                 expr = exprCnt++;
                 RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                exprInfo[expr].proc = currentProc;
                 exprInfo[expr].kind = EXPR_LITERAL;
                 exprInfo[expr].tLiteral.tok = tok;
         }
@@ -548,6 +551,7 @@ Expr parse_expr(int minprec)
                         }
                         parse_token_kind(TOKTYPE_RIGHTPAREN);
                         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                        exprInfo[expr].proc = currentProc;
                         exprInfo[expr].kind = EXPR_CALL;
                         exprInfo[expr].tCall.callee = calleeExpr;
                         exprInfo[expr].tCall.firstArgIdx = -1;
@@ -560,6 +564,7 @@ Expr parse_expr(int minprec)
                         Expr enclosingExpr = expr;
                         expr = exprCnt++;
                         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                        exprInfo[expr].proc = currentProc;
                         exprInfo[expr].kind = EXPR_MEMBER;
                         exprInfo[expr].tMember.expr = enclosingExpr;
                         exprInfo[expr].tMember.name = name;
@@ -571,6 +576,7 @@ Expr parse_expr(int minprec)
                         parse_token_kind(TOKTYPE_RIGHTBRACKET);
                         expr = exprCnt++;
                         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                        exprInfo[expr].proc = currentProc;
                         exprInfo[expr].kind = EXPR_SUBSCRIPT;
                         exprInfo[expr].tSubscript.expr1 = expr1;
                         exprInfo[expr].tSubscript.expr2 = expr2;
@@ -584,6 +590,7 @@ Expr parse_expr(int minprec)
                         Expr expr2 = parse_expr(opprec + 1);
                         expr = exprCnt++;
                         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                        exprInfo[expr].proc = currentProc;
                         exprInfo[expr].kind = EXPR_BINOP;
                         exprInfo[expr].tBinop.kind = opkind;
                         exprInfo[expr].tBinop.tok = tok;
@@ -795,7 +802,9 @@ Proc parse_proc(void)
         RESIZE_GLOBAL_BUFFER(procInfo, procCnt);
         RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
 
+        currentProc = proc;
         push_scope(pscope);
+
         parse_token_kind(TOKTYPE_LEFTPAREN);
         for (;;) {
                 Token tok = look_next_token();

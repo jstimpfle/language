@@ -100,6 +100,9 @@ typedef int IrLabel;
 
 typedef long long IrConstval;
 
+typedef int SymDef;  // symbol definition position in code
+typedef int Reloc; // relocation in code
+
 /**
  * \enum{TokenKind}: Token kinds (lexical syntax)
  *
@@ -618,6 +621,7 @@ struct SubscriptExprInfo {
 };
 
 struct ExprInfo {
+        Proc proc;
         int kind;
         union {
                 struct SymrefExprInfo tSymref;
@@ -796,7 +800,6 @@ struct RelocInfo {
 };
 
 
-
 struct X64StackLocInfo {
         IrReg irreg;
         int offset;
@@ -844,6 +847,7 @@ DATA int savedChar;
 DATA int haveSavedToken;
 DATA Token savedToken;
 
+DATA Proc currentProc;
 DATA Scope globalScope;
 DATA Scope currentScope;
 DATA Scope scopeStack[16];
