@@ -38,6 +38,24 @@ int find_stack_loc(IrReg irreg)
 }
 
 INTERNAL
+void begin_symbol(Symbol sym)
+{
+        int sd = symDefCnt++;
+        RESIZE_GLOBAL_BUFFER(symDefInfo, symDefCnt);
+        symDefInfo[sd].symbol = sym;
+        symDefInfo[sd].kind = SECTION_CODE;
+        symDefInfo[sd].offset = codeSectionCnt;  //XXX Alignment?
+        symDefInfo[sd].size = 42; //XXX
+}
+
+INTERNAL
+void end_symbol(void)
+{
+        int sd = symDefCnt - 1;
+        symDefInfo[sd].size = codeSectionCnt - symDefInfo[sd].offset;
+}
+
+INTERNAL
 void emit_data(uchar *buf, int len)
 {
 }
@@ -62,7 +80,7 @@ void emit_mov_64_imm_reg(Constval imm, int x64reg)
         EMIT(
                 0x48, 0x8b, (x64reg<<3) | 0x04,
                 /* up to 3 bytes imm */
-                BYTE(imm, 1), BYTE(imm, 2), BYTE(imm, 3)
+                BYTE(imm, 0), BYTE(imm, 1), BYTE(imm, 2)
         );
 }
 
@@ -115,6 +133,8 @@ void emit_load_addrval_stack(Constval constval, X64StackLoc loc)
 INTERNAL
 void x64asm_proc(IrProc irp)
 {
+        begin_symbol(irProcInfo[irp].symbol);
+
         /* for each variable, find a place on the stack */
         for (IrStmt irs = irProcInfo[irp].firstIrStmt;
              irs < irStmtCnt && irStmtInfo[irs].proc == irp;
@@ -156,6 +176,8 @@ void x64asm_proc(IrProc irp)
 			break;
                 }
         }
+
+        end_symbol();
 }
 
 void codegen_x64(void)
@@ -163,11 +185,11 @@ void codegen_x64(void)
         x64asm_proc(0);
 
         for (int i = 0; i < codeSectionCnt; i++) {
-                outf("%.2x", codeSection[i]);
                 if (i & 7)
                         outf(" ");
                 else
                         outf("\n");
+                outf("%.2x", codeSection[i]);
         }
         outs("\n");
 }

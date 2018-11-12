@@ -776,7 +776,7 @@ struct IrLabelInfo {
 };
 
 struct IrProcInfo {
-        String name;  // TODO name vs symbol vs language Symbol?
+        Symbol symbol;
         IrStmt firstIrStmt; // speed-up
         IrStmt firstIrReg; // speed-up
 };

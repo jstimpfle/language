@@ -562,7 +562,7 @@ void compile_to_IR(void)
                 IrProc ip = irProcCnt++;
                 procToIrProc[x] = ip;
                 RESIZE_GLOBAL_BUFFER(irProcInfo, irProcCnt);
-                irProcInfo[ip].name = symbolInfo[procInfo[x].sym].name;
+                irProcInfo[ip].symbol = procInfo[x].sym;
                 irProcInfo[ip].firstIrStmt = 0;
                 irProcInfo[ip].firstIrReg = 0;
         }
@@ -599,7 +599,7 @@ void compile_to_IR(void)
         for (Proc p = 0; p < procCnt; p++) {
                 DEBUG("Compile proc #%d %s\n", p, SS(procInfo[p].sym));
                 IrProc irp = procToIrProc[p];
-                irProcInfo[irp].name = symbolInfo[procInfo[p].sym].name;
+                irProcInfo[irp].symbol = procInfo[p].sym;
                 compile_stmt(irp, procInfo[p].body);
         }
 }

@@ -25,7 +25,7 @@ void irp_reg(IrReg v)
 INTERNAL
 void irp_proc(IrProc p)
 {
-        outf("PROC #%d \"%s\":\n", p, string_buffer(irProcInfo[p].name));
+        outf("PROC #%d \"%s\":\n", p, SS(irProcInfo[p].symbol));
         for (IrReg reg = irProcInfo[p].firstIrReg;
              reg < irRegCnt && irRegInfo[reg].proc == p;
              reg++) {
