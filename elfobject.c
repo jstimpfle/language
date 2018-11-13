@@ -130,7 +130,7 @@ struct Elf64_Shdr {
         Elf64_Xword     sh_entsize;     /* Size of entries, if section has table */
 };
 
-/* Symbol table symbol */
+/* Figure 4. ELF-64 Symbol table entry */
 struct Elf64_Sym {
         /* st_name contains the offset, in bytes, to the symbol name, relative
          * to the start of the symbol string table. If this field contains zero,
@@ -165,6 +165,67 @@ struct Elf64_Sym {
         Elf64_Addr      st_value;       /* Symbol value */
         Elf64_Xword     st_size;        /* Size of object (e.g., common) */
 };
+
+/* Figure 5. ELF-64 Relocation Entries (Elf64_Rel and Elf64_Rela) */
+struct Elf64_Rel {
+        /* r_offset indicates the location at which the relocation should be
+         * applied. For a relocatable file, this is the offset, in bytes, from
+         * the beginning of the section to the beginning of the storage unit
+         * being relocated. For an executable or shared object, this is the
+         * virtual address of the storage unit being relocated. */
+        /* r_info contains both a symbol table index and a relocation type. The
+         * symbol table index identifies the symbol whose value should be used
+         * in the relocation. Relocation types are processor specific. The
+         * symbol table index is obtained by applying the ELF64_R_SYM macro to
+         * this field, and the relocation type is obtained by applying the
+         * ELF64_R_TYPE macro to this field. The ELF64_R_INFO macro combines a
+         * symbol table index and a relocation type to produce a value for this
+         * field. */
+        /* r_addend (only struct Elf64_Rela) specifies a constant addend used to
+         * compute the value to be stored in the relocated field. */
+        Elf64_Addr      r_offset;       /* Address of reference */
+        Elf64_Xword     r_info;         /* Symbol index and type of relocation */
+};
+
+struct Elf64_Rela {
+        Elf64_Addr      r_offset;       /* Address of reference */
+        Elf64_Xword     r_info;         /* Symbol index and type of relocation */
+        Elf64_Sxword    r_addend;       /* Constant part of expression */
+};
+
+/* Figure 6. ELF-64 Program Header Table Entry */
+struct Elf64_Phdr {
+        /* p_type identifies the type of segment. The processor-independent
+         * segment types are shown in Table 16. */
+        /* p_flags contains the segment attributes. The processor-independent
+         * flags are shown in Table 17. The top eight bits are reserved for
+         * processor-specific use, and the next eight bits are reserved for
+         * environment-specific use. */
+        /* p_offset contains the offset, in bytes, of the segment from the
+         * beginning of the file. */
+        /* p_vaddr contains the virtual address of the segment in memory. */
+        /* p_paddr is reserved for systems with physical addressing. */
+        /* p_filesz contains the size, in bytes, of the file image of the
+         * segment. */
+        /* p_memsz contains the size, in bytes, of the memory image of the
+         * segment */
+        /* p_align specifies the alignment constraint for the segment. Must be a
+         * power of two. The values of p_offset and p_vaddr must be congruent
+         * modulo the alignment. */
+        Elf64_Word      p_type;         /* Type of segment */
+        Elf64_Word      p_flags;        /* Segment attributes */
+        Elf64_Off       p_offset;       /* Offset in file */
+        Elf64_Addr      p_vaddr;        /* Virtual address in memory */
+        Elf64_Addr      p_paddr;        /* Reserved */
+        Elf64_Xword     p_filesz;       /* Size of segment in file */
+        Elf64_Xword     p_memsz;        /* Size of segment in memory */
+        Elf64_Xword     p_align;        /* Alignment of segment */
+};
+
+/* (macros mentioned above) */
+#define ELF64_R_SYM(i)  ((i) >> 32)
+#define ELF64_R_TYPE(i) ((i) & 0xffffffffL)
+#define ELF64_R_INFO(s, t) (((s) << 32) + ((t) & 0xffffffffL))
 
 /* Table 2. Names for the individual bytes in (struct Elf64_Ehdr).e_ident */
 #define EI_MAG0         0       /* File identification */
@@ -290,6 +351,28 @@ Other                   0
 #define STT_HIOS        12      /* (ditto) */
 #define STT_LOPROC      13      /* Processor-specific use */
 #define STT_HIPROC      15      /* (ditto) */
+
+/* Table 16. Segment Types, p_type */
+#define PT_NULL         0       /* Unused entry */
+#define PT_LOAD         1       /* Loadable segment */
+#define PT_DYNAMIC      2       /* Dynamic linking tables */
+#define PT_INTERP       3       /* Program interpreter path name */
+#define PT_NOTE         4       /* Note sections */
+#define PT_SHLIB        5       /* Reserved */
+#define PT_PHDR         6       /* Program header table */
+#define PT_LOOS         0x60000000      /* Environment-specific use */
+#define PT_HIOS         0x6FFFFFFF      /* (ditto) */
+#define PT_LOPROC       0x70000000      /* Processor-specific use */
+#define PT_HIPROC       0x7FFFFFFF      /* (ditto) */
+
+/* Table 17. Segment Attributes, p_flags */
+#define PF_X            0x1     /* Execute permission */
+#define PF_W            0x2     /* Write permission */
+#define PF_R            0x4     /* Read permission */
+#define PF_MASKOS       0x00FF0000      /* These flag bits are reserved for
+                                           environment-specific use */
+#define PF_MASKPROC     0xFF000000      /* These flag bits are reserved for
+                                           processor-specific use */
 
 void write_Elf64_Uchar(Elf64_Uchar x, FILE *f)
 {
@@ -421,6 +504,26 @@ size_t append_to_ElfStringTable(struct ElfStringTable *t, const char *str)
         return result;
 }
 
+/* The sections that we use here. TODO: .reltext, .relatext (and same for bss,
+ * data) for relocations. The order is important. It is the order of appearance
+ * in the object file that we write. */
+enum {
+        ELFSECTION_DUMMY,
+        ELFSECTION_SYMTAB,
+        ELFSECTION_TEXT,
+        ELFSECTION_STRTAB,
+        ELFSECTION_SHSTRTAB,
+        NUM_ELFSECTIONS,
+};
+
+const char *sectionNames[NUM_ELFSECTIONS] = {
+        [ELFSECTION_DUMMY   ] = "",
+        [ELFSECTION_SYMTAB  ] = ".symtab",
+        [ELFSECTION_TEXT    ] = ".text",
+        [ELFSECTION_STRTAB  ] = ".strtab",
+        [ELFSECTION_SHSTRTAB] = ".symstrtab",
+};
+
 void write_elf64_object(const char *outfilepath)
 {
 
@@ -443,17 +546,13 @@ void write_elf64_object(const char *outfilepath)
                 elfsyms[i].st_name = append_to_ElfStringTable(&strtabStrings, SS(symDefInfo[i].symbol));
                 elfsyms[i].st_info = (STB_GLOBAL << 4) | STT_FUNC;
                 elfsyms[i].st_other = 0;
-                elfsyms[i].st_shndx = SHN_ABS;
+                elfsyms[i].st_shndx = ELFSECTION_TEXT; // symbol references the .text section
                 elfsyms[i].st_value = symDefInfo[i].offset;
                 elfsyms[i].st_size = symDefInfo[i].size;
         }
 
         struct Elf64_Ehdr ehdr        = {0};
-        struct Elf64_Shdr dummyhdr    = {0};  // the first section header is SHN_UNDEF
-        struct Elf64_Shdr symtabhdr   = {0};  // header for .symtab section (symbol table)
-        struct Elf64_Shdr texthdr     = {0};  // header for .text section
-        struct Elf64_Shdr strtabhdr   = {0};  // header for table for most strings
-        struct Elf64_Shdr shstrtabhdr = {0};  // header for table for string section names (referenced by e_shstrndx)
+        struct Elf64_Shdr sectionHeader[NUM_ELFSECTIONS] = {0};
 
         /*
          * initialize File header
@@ -486,41 +585,40 @@ void write_elf64_object(const char *outfilepath)
          * Initialize section headers
          */
 
-        symtabhdr  .sh_name = append_to_ElfStringTable(&shstrtabStrings, ".symtab");
-        texthdr    .sh_name = append_to_ElfStringTable(&shstrtabStrings, ".text");
-        strtabhdr  .sh_name = append_to_ElfStringTable(&shstrtabStrings, ".strtab");
-        shstrtabhdr.sh_name = append_to_ElfStringTable(&shstrtabStrings, ".shstrtab");
+        for (int i = 0; i < NUM_ELFSECTIONS; i++)
+                sectionHeader[i].sh_name = append_to_ElfStringTable(
+                                        &shstrtabStrings, sectionNames[i]);
 
-        symtabhdr  .sh_type = SHT_SYMTAB;
-        texthdr    .sh_type = SHT_PROGBITS;
-        strtabhdr  .sh_type = SHT_STRTAB;
-        shstrtabhdr.sh_type = SHT_STRTAB;
+        sectionHeader[ ELFSECTION_SYMTAB   ].sh_type = SHT_SYMTAB;
+        sectionHeader[ ELFSECTION_TEXT     ].sh_type = SHT_PROGBITS;
+        sectionHeader[ ELFSECTION_STRTAB   ].sh_type = SHT_STRTAB;
+        sectionHeader[ ELFSECTION_SHSTRTAB ].sh_type = SHT_STRTAB;
 
-        symtabhdr  .sh_size = (symDefCnt + 1) * sizeof (struct Elf64_Sym);  // XXX sizeof? symDefCnt + 1, because there is one dummy symbol upfront
-        texthdr    .sh_size = codeSectionCnt;
-        strtabhdr  .sh_size = strtabStrings.size;
-        shstrtabhdr.sh_size = shstrtabStrings.size;
+        sectionHeader[ ELFSECTION_SYMTAB   ].sh_size = (symDefCnt + 1) * sizeof (struct Elf64_Sym);  // XXX sizeof? symDefCnt + 1, because there is one dummy symbol upfront
+        sectionHeader[ ELFSECTION_TEXT     ].sh_size = codeSectionCnt;
+        sectionHeader[ ELFSECTION_STRTAB   ].sh_size = strtabStrings.size;
+        sectionHeader[ ELFSECTION_SHSTRTAB ].sh_size = shstrtabStrings.size;
 
         /* XXX: Alignment? */
-        symtabhdr  .sh_offset = ehdr.e_shoff + ehdr.e_shnum * sizeof (struct Elf64_Shdr);
-        texthdr    .sh_offset = symtabhdr.sh_offset + symtabhdr.sh_size;
-        strtabhdr  .sh_offset = texthdr.sh_offset + texthdr.sh_size;
-        shstrtabhdr.sh_offset = strtabhdr.sh_offset + strtabhdr.sh_size;
+        sectionHeader[ ELFSECTION_SYMTAB   ].sh_offset = ehdr.e_shoff + ehdr.e_shnum * sizeof (struct Elf64_Shdr);
+        sectionHeader[ ELFSECTION_TEXT     ].sh_offset = sectionHeader[ELFSECTION_SYMTAB].sh_offset + sectionHeader[ELFSECTION_SYMTAB].sh_size;
+        sectionHeader[ ELFSECTION_STRTAB   ].sh_offset = sectionHeader[ELFSECTION_TEXT  ].sh_offset + sectionHeader[ELFSECTION_TEXT  ].sh_size;
+        sectionHeader[ ELFSECTION_SHSTRTAB ].sh_offset = sectionHeader[ELFSECTION_STRTAB].sh_offset + sectionHeader[ELFSECTION_STRTAB].sh_size;
 
         /* XXX: ??? */
-        symtabhdr  .sh_addralign = 1;
-        texthdr    .sh_addralign = 16;
-        strtabhdr  .sh_addralign = 1;
-        shstrtabhdr.sh_addralign = 1;
+        sectionHeader[ ELFSECTION_SYMTAB   ].sh_addralign = 1;
+        sectionHeader[ ELFSECTION_TEXT     ].sh_addralign = 16;
+        sectionHeader[ ELFSECTION_STRTAB   ].sh_addralign = 1;
+        sectionHeader[ ELFSECTION_SHSTRTAB ].sh_addralign = 1;
 
-        symtabhdr.sh_flags = SHF_ALLOC;
-        texthdr  .sh_flags = SHF_ALLOC | SHF_EXECINSTR;
+        sectionHeader[ ELFSECTION_SYMTAB   ].sh_flags = SHF_ALLOC;
+        sectionHeader[ ELFSECTION_TEXT     ].sh_flags = SHF_ALLOC | SHF_EXECINSTR;
 
-        symtabhdr.sh_entsize = sizeof (struct Elf64_Sym);  // ???
-        symtabhdr.sh_link = 3;  // index of strtabhdr
-        symtabhdr.sh_info = 1;  /* XXX not sure what to put here. See Table 11,
-                                   "Index of first non-local symbol (i.e.,
-                                   number of local symbols)" */
+        sectionHeader[ ELFSECTION_SYMTAB   ].sh_entsize = sizeof (struct Elf64_Sym);  // ???
+        sectionHeader[ ELFSECTION_SYMTAB   ].sh_link = ELFSECTION_STRTAB;  // index of .strtab
+        sectionHeader[ ELFSECTION_SYMTAB   ].sh_info = 1;  /* XXX not sure what to put here. See Table 11,
+                                                          "Index of first non-local symbol (i.e.,
+                                                          number of local symbols)" */
 
         /*
         fprintf(stderr, "the size of a section header is %d\n", (int) sizeof (struct Elf64_Shdr));
@@ -538,11 +636,8 @@ void write_elf64_object(const char *outfilepath)
         }
 
         write_Elf64_Ehdr(&ehdr, f);
-        write_Elf64_Shdr(&dummyhdr, f);
-        write_Elf64_Shdr(&symtabhdr, f);
-        write_Elf64_Shdr(&texthdr, f);
-        write_Elf64_Shdr(&strtabhdr, f);
-        write_Elf64_Shdr(&shstrtabhdr, f);
+        for (int i = 0; i < NUM_ELFSECTIONS; i++)
+                write_Elf64_Shdr(&sectionHeader[i], f);
 
         /* .symtab */
         {

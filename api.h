@@ -165,7 +165,6 @@ enum {
         BUFFER_callArgInfo,
         /* AST -> IR */
         BUFFER_procToIrProc,
-        BUFFER_exprToProc,
         BUFFER_exprToIrReg,
         /* IR */
         BUFFER_irSymbolInfo,
@@ -894,7 +893,6 @@ DATA struct ChildStmtInfo *childStmtInfo;
 DATA struct CallArgInfo *callArgInfo;
 
 DATA IrProc *procToIrProc;
-DATA Proc *exprToProc;
 DATA IrReg *exprToIrReg;
 
 

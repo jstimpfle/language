@@ -18,3 +18,8 @@ proc int g()
     a = 41;
     return a + 1;
 }
+
+proc int h()
+{
+    1 + 1;
+}
