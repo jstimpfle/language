@@ -79,7 +79,7 @@ void emit_code_relocation(Symbol symbol, int offset)
         relocInfo[reloc].offset = offset;
 }
 
-#define BYTE(x, n) (((x) >> (n)) & 255)
+#define BYTE(x, n) ((unsigned long long) (x) >> (8*(n)))
 #define EMIT(...) do { \
         uchar bytes[] = { __VA_ARGS__ }; \
         emit_code(bytes, sizeof bytes); \
@@ -88,40 +88,140 @@ void emit_code_relocation(Symbol symbol, int offset)
 INTERNAL
 void emit_mov_64_imm_reg(Constval imm, int x64reg)
 {
+#if 0
         EMIT(
-                0x48, 0x8b, (x64reg<<3) | 0x04,
+                0x4c, 0x01, (x64reg<<0) | 0x00,
                 /* up to 3 bytes imm */
                 BYTE(imm, 0), BYTE(imm, 1), BYTE(imm, 2)
         );
+#endif
+        EMIT(
+                0x00, 0x00,
+                0x01, 0x00,
+                0x02, 0x00,
+                0x03, 0x00,
+                0x04, 0x00,
+
+                      0x89, 0x00,
+                0x4c, 0x89, 0x00
+        );
+}
+
+#define REX_BASE 0x40
+#define REX_W    0x08  /* usually means "64-bit operand instead of default size" */
+#define REX_R    0x04  /* usually shift register range of 1st operand to R8-... from RAX-... */
+#define REX_X    0x02
+#define REX_B    0x01  /* usually shift register range of 2st operand to R8-... from RAX-... */
+
+/* Emit the MOD-REG-R/M byte and the optional displacement byte(s).
+ *
+ * r1 and r2 are interpreted without the 4th LSB,
+ * such that they are always one of the low 8 registers. (The 4th LSB is encoded
+ * in a different place in the x64 ISA). After that reinterpretation, r2 must
+ * not be X64REG_RBP -- that value is taken for SIB addressing (scale index
+ * byte).
+ *
+ * d is the displacement (register relative offset, which applies to r1 or to r2
+ * depending on the preceding opcode). The value of d determines the 2 MSB of
+ * the MOD-REG-R/M byte (i.e., the MOD part).
+ *
+ * If d == 0, MOD = 0b00 (no displacement, and no displacement bytes following).
+ *
+ * Else if -128 <= d <= 127, MOD = 0b01 (8bit signed displacement, and 1
+ * displacement byte following).
+ *
+ * Else MOD = 0b10 (32bit signed displacement, and 4 displacement bytes
+ * following).
+ */
+static inline int emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
+{
+        r1 &= 7;
+        r2 &= 7;
+        assert(0 <= r1 && r1 < 8);
+        assert(0 <= r2 && r2 < 8 && r2 != X64REG_RBP);
+
+        int mod;
+        if (d == 0)
+                mod = 0x00;
+        else if (-128 <= d && d < 128) {
+                mod = 0x01;
+        }
+        else {
+                assert(-(1LL << 31) <= d);
+                assert(d < (1LL << 31));
+                mod = 0x02;
+        }
+
+        int modrmreg = (mod << 6) | (r1 << 3) | r2;
+
+        EMIT(modrmreg);
+        if (mod == 0x01)
+                EMIT(d);
+        else if (mod == 0x02)
+                EMIT(BYTE(d, 0), BYTE(d, 1), BYTE(d, 2), BYTE(d, 3));
 }
 
 INTERNAL
-void emit_mov_64_imm_indirect(Constval imm, int x64reg)
+void emit_add_64_imm_RAX(Constval imm)
 {
+        assert(imm < (1ULL << 32));
         EMIT(
-                0x48, 0x89
+                REX_BASE|REX_W, 0x05,
+                BYTE(imm, 0), BYTE(imm, 1), BYTE(imm, 2), BYTE(imm, 3)
         );
 }
 
 INTERNAL
-void emit_mov_64_reg_reg(int r1, int r2)
+void emit_add_64_reg_indirect(int r1, int r2, long d)
 {
-        assert(r1 < 8);
-        assert(r2 < 8);
+        int R = (r1 >= 8) ? REX_R : 0;
+        int B = (r2 >= 8) ? REX_B : 0;
+        EMIT(REX_BASE|REX_W|R|B, 0x01);
+        emit_modrmreg_and_displacement_bytes(r1, r2, d);
+}
+
+INTERNAL
+void emit_add_64_indirect_reg(int r1, int r2, long d)
+{
+        int R = (r2 >= 8) ? REX_R : 0;
+        int B = (r1 >= 8) ? REX_B : 0;
+        EMIT(REX_BASE|REX_W|R|B, 0x03);
+        emit_modrmreg_and_displacement_bytes(r1, r2, d);
+}
+
+void emit_mov_64_imm_indirect(Constval imm, int x64reg, long d)
+{
+        /*
         EMIT(
-                0x48, 0x89,
-                0xc0 | (r1 << 3) | r2
+                REX_BASE|REX_W, 0x8a,
+                BYTE(imm, 0), BYTE(imm, 1), BYTE(imm, 2), BYTE(imm, 3)
         );
+        */
+}
+
+INTERNAL
+void emit_mov_64_reg_indirect(int r1, int r2, long d)
+{
+        int R = (r1 >= 8) ? REX_R : 0;
+        int B = (r2 >= 8) ? REX_B : 0;
+        EMIT(REX_BASE|REX_W|R|B, 0x89);
+        emit_modrmreg_and_displacement_bytes(r1, r2, d);
+}
+
+/* d = displacement value. */
+INTERNAL
+void emit_mov_64_indirect_reg(int r1, int r2, long d)
+{
+        int R = (r2 >= 8) ? REX_R : 0;
+        int B = (r1 >= 8) ? REX_B : 0;
+        EMIT(REX_BASE|REX_W|R|B, 0x89|0x02);
+        emit_modrmreg_and_displacement_bytes(r1, r2, d);
 }
 
 INTERNAL
 void emit_mov_64_reg_stack(int x64reg, X64StackLoc loc)
 {
-        assert(loc < 256);
-        EMIT(
-                0x48, 0x89, 0x44 | (x64reg << 3),
-                0x24, loc
-        );
+        // TODO
 }
 
 INTERNAL
@@ -198,6 +298,14 @@ void codegen_x64(void)
 {
         for (IrProc x = 0; x < irProcCnt; x++)
                 x64asm_proc(x);
+
+        emit_add_64_imm_RAX(0x31);
+        emit_add_64_indirect_reg(X64REG_RCX, X64REG_RDX, 0x3f3f3f3f);
+        emit_add_64_reg_indirect(X64REG_RCX, X64REG_RDX, 0);
+        emit_mov_64_reg_indirect(X64REG_RDX, X64REG_R11, 3);
+        emit_mov_64_imm_indirect(42, X64REG_RAX, 0);
+        emit_mov_64_indirect_reg(X64REG_RDX, X64REG_RBX, 127);
+        //emit_mov_64_reg_indirect(X64REG_RSP, X64REG_R13);
 
         for (int i = 0; i < codeSectionCnt; i++) {
                 if (i & 7)

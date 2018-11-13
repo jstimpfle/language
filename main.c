@@ -13,7 +13,7 @@ int main(int argc, const char **argv)
 {
         const char *fileToParse;
 
-        fileToParse = "test.txt";
+        fileToParse = "test2.txt";
         for (int i = 1; i < argc; i++) {
                 if (cstr_compare(argv[i], "-debug") == 0)
                         doDebug = 1;
