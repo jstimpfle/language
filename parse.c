@@ -216,7 +216,7 @@ Token parse_next_token(void)
 
         /* good to go. Variable c contains first character to lex */
         int off = currentOffset - 1;
-        if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')) {
+        if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_') {
                 lexbufCnt = 0;
                 for (;;) {
                         int idx = lexbufCnt++;
@@ -225,7 +225,8 @@ Token parse_next_token(void)
                         c = look_char();
                         if (!('a' <= c && c <= 'z') &&
                             !('A' <= c && c <= 'Z') &&
-                            !('0' <= c && c <= '9'))
+                            !('0' <= c && c <= '9') &&
+                            !(c == '_'))
                                 break;
                         read_char();
                 }
