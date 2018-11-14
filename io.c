@@ -35,19 +35,33 @@ void read_whole_file(File file)
         fileInfo[file].buf[fileInfo[file].size] = '\0';
 }
 
-void mem_fill(void *ptr, int val, int size)
+void clear_mem(void *ptr, int size)
 {
-        memset(ptr, val, size);
+        char *p = ptr;
+        while (size--)
+                *p++ = 0;
 }
 
-void mem_copy(void *dst, const void *src, int size)
+void copy_mem(void *dst, const void *src, int size)
 {
-        memcpy(dst, src, size);
+        char *d = dst;
+        const char *s = src;
+        while (size--)
+                *d++ = *s++;
 }
 
-int mem_compare(const void *m1, const void *m2, int size)
+int compare_mem(const void *m1, const void *m2, int size)
 {
-        return memcmp(m1, m2, size);
+        const char *a = m1;
+        const char *b = m2;
+        while (size && *a == *b)
+                size--, a++, b++;
+        if (!size)
+                return 0;
+        else if (*a > *b)
+                return 1;
+        else
+                return -1;
 }
 
 int cstr_length(const char *s)

@@ -66,7 +66,7 @@ void emit_code(uchar *buf, int len)
         int pos = codeSectionCnt;
         codeSectionCnt += len;
         RESIZE_GLOBAL_BUFFER(codeSection, codeSectionCnt);
-        mem_copy(codeSection + pos, buf, len);
+        copy_mem(codeSection + pos, buf, len);
 }
 
 INTERNAL

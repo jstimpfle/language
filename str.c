@@ -7,7 +7,7 @@ String add_string(const char *buf, int len)
         int pos = strbufCnt;
         strbufCnt += len + 1;
         RESIZE_GLOBAL_BUFFER(strbuf, strbufCnt);
-        mem_copy(&strbuf[pos], buf, len);
+        copy_mem(&strbuf[pos], buf, len);
         strbuf[pos + len] = '\0';
 
         String s = stringCnt;
@@ -39,7 +39,7 @@ String lookup_string_with_hash(const void *buf, int len, unsigned hsh)
         for (s = strBucketInfo[bck].firstString; s != -1;
              s = stringInfo[s].next) {
                 if (string_length(s) == len &&
-                    mem_compare(string_buffer(s), buf, len) == 0)
+                    compare_mem(string_buffer(s), buf, len) == 0)
                         return s;
         }
         return -1;

@@ -930,17 +930,18 @@ DATA struct X64StackLocInfo *x64StackLocInfo;
 
 
 void read_whole_file(File file);
-void mem_fill(void *ptr, int val, int size);
-void mem_copy(void *dst, const void *src, int size);
-int mem_compare(const void *m1, const void *m2, int size);
+void clear_mem(void *ptr, int size);
+void copy_mem(void *dst, const void *src, int size);
+int compare_mem(const void *m1, const void *m2, int size);
 int cstr_length(const char *s);
 int cstr_compare(const char *s1, const char *m2);
 void sort_array(void *ptr, int nelems, int elemsize,
                 int (*compare)(const void*, const void*));
 
 #define LENGTH(a) ((int) (sizeof (a) / sizeof (a)[0]))
-#define CLEAR(x) mem_fill(&(x), 0, sizeof (x))
-#define SORT(a, n, cmp) sort_array(a, n, sizeof *(a), cmp)
+#define SORT(a, n, cmp) sort_array((a), (n), sizeof *(a), (cmp))
+#define CLEAR(x) clear_mem(&(x), sizeof (x))
+#define COPY(x, y) copy_mem((x), (y), sizeof (x))
 
 
 /*
@@ -960,8 +961,8 @@ void _msg_end(void);
 void NORETURN _abort(void);
 void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
 
-#define MSG(lvl, fmt, ...) _msg(__FILE__, __LINE__, lvl, fmt, ##__VA_ARGS__)
-#define FATAL(fmt, ...) _fatal(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define MSG(lvl, fmt, ...) _msg(__FILE__, __LINE__, (lvl), (fmt), ##__VA_ARGS__)
+#define FATAL(fmt, ...) _fatal(__FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 #define UNHANDLED_CASE() FATAL("Unhandled case!\n");
 #define ABORT() _abort()
 #define DEBUG(...) do { \

@@ -35,13 +35,8 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                 if (!p)
                         FATAL("OOM!");
                 if (clear)
-                        mem_fill((char*)p + alloc->cap * elsize, 0,
-                        (cnt - alloc->cap) * elsize);
-                else {
-                        /* maybe this helps for debugging?*/
-                        mem_fill((char*)p + alloc->cap * elsize, -1,
-                                (cnt - alloc->cap) * elsize);
-                }
+                        clear_mem((char*)p + alloc->cap * elsize,
+                                  (cnt - alloc->cap) * elsize);
                 *ptr = p;
                 alloc->cap = cnt;
         }
