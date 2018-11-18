@@ -1,5 +1,7 @@
 entity int Foobar;
 
+data int z;
+
 proc int f(Foobar x)
 {
     /* test comment */
@@ -22,4 +24,9 @@ proc int g()
 proc int h()
 {
     1 + 1;
+}
+
+proc int main()
+{
+    return 18;
 }

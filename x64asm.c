@@ -46,22 +46,22 @@ int find_stack_loc(IrReg irreg)
         return -r;
 }
 
-INTERNAL
+INTERNAL UNUSED
 int is_imm8(Imm64 imm)
 {
-        return 0 <= imm && imm < (1u << 8);
+        return imm < (1u << 8);
 }
 
-INTERNAL
+INTERNAL UNUSED
 int is_imm16(Imm64 imm)
 {
-        return 0 <= imm && imm < (1u << 16);
+        return imm < (1u << 16);
 }
 
 INTERNAL
 int is_imm32(Imm64 imm)
 {
-        return 0 <= imm && imm < (1ull << 32);
+        return imm < (1ull << 32);
 }
 
 INTERNAL
@@ -181,7 +181,7 @@ int make_sib_byte(unsigned scale, unsigned r1, unsigned r2)
  * Else MOD = 0b10 (32bit signed displacement, and 4 displacement bytes
  * following).
  */
-static inline int emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
+static inline void emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
 {
         r1 &= 7;
         r2 &= 7;
@@ -207,7 +207,7 @@ static inline int emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
 
         if (r2 == X64_RSP) {
                 havesib = 1;
-                sib = X64_RSP;
+                sib = make_sib_byte(0x00, 0x00, X64_RSP);
         }
         else if (r2 == X64_RBP && mod == 0x00) {
                 mod = 0x01;
@@ -226,15 +226,7 @@ static inline int emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
         }
 }
 
-INTERNAL
-void emit_add_64_imm_RAX(Imm64 imm)
-{
-        emit(REX_BASE|REX_W);
-        emit(0x05);
-        emit64(imm);
-}
-
-INTERNAL
+INTERNAL UNUSED
 void emit_add_64_reg_indirect(int r1, int r2, long d)
 {
         int R = (r1 & ~7) ? REX_R : 0;
@@ -244,7 +236,7 @@ void emit_add_64_reg_indirect(int r1, int r2, long d)
         emit_modrmreg_and_displacement_bytes(r1, r2, d);
 }
 
-INTERNAL
+INTERNAL UNUSED
 void emit_add_64_indirect_reg(int r1, int r2, long d)
 {
         int R = (r2 & ~7) ? REX_R : 0;
@@ -254,7 +246,7 @@ void emit_add_64_indirect_reg(int r1, int r2, long d)
         emit_modrmreg_and_displacement_bytes(r2, r1, d);
 }
 
-INTERNAL
+INTERNAL UNUSED
 void emit_add_64_reg_reg(int r1, int r2)
 {
         int R = (r1 & ~7) ? REX_R : 0;
@@ -262,6 +254,23 @@ void emit_add_64_reg_reg(int r1, int r2)
         emit(REX_BASE|REX_W|R|B);
         emit(0x01);
         emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+}
+
+INTERNAL
+void emit_add_imm32_reg(Imm32 imm, int reg)
+{
+        if (reg == X64_RAX) {
+                /* optimization */
+                emit(0x05);
+                emit32(imm);
+        }
+        else {
+                int B = (reg & ~7) ? REX_B : 0;
+                emit(REX_BASE|REX_W|B);
+                emit(0x81);
+                emit(make_modrm_byte(0x03, 0x00, reg & 7));
+                emit32(imm);
+        }
 }
 
 INTERNAL
@@ -278,8 +287,7 @@ void emit_mov_64_imm_reg(Imm64 imm, int r1)
         }
 }
 
-/* Like emit_mov_64_imm_reg(), but always use the 8-byte version to support
- * relocation */
+/* Like emit_mov_64_imm_reg(), but always use the 8-byte version */
 INTERNAL
 void emit_mov_64_address_reg(Imm64 imm, int r1)
 {
@@ -287,13 +295,15 @@ void emit_mov_64_address_reg(Imm64 imm, int r1)
         emit(0xb8 | r1);
         emit64(imm);
 }
-
+/* Like emit_mov_64_imm_reg(), but always use the 8-byte version and emit
+ * a relocation */
 INTERNAL
-void emit_mov_64_imm_RAX(Imm64 imm)
+void emit_mov_64_reloc_reg(Symbol symbol, int r1)
 {
         emit(REX_BASE|REX_W);
-        emit(0xb8);
-        emit64(imm);
+        emit(0xb8 | r1);
+        emit_code_relocation(symbol, codeSectionCnt);
+        emit64(0x00);
 }
 
 INTERNAL
@@ -342,34 +352,56 @@ void emit_mov_64_stack_reg(X64StackLoc loc, int reg)
 INTERNAL
 void emit_load_constant_stack(Imm64 imm, X64StackLoc loc)
 {
+#if 0  /* doesn't work for indirect addressing, since memory is not zero extended! */
         if (is_imm32(imm)) {
                 /* shorter sequence: 32-bit immediate loads directly to stack
                  * variable using mod=0x01 register+displacement addressing. */
                 emit(0xc7);  // "C7 /0 iw", mov immediate 32
                 emit_modrmreg_and_displacement_bytes(0x00, X64_RBP, loc);
-                emit32(imm);
+                emit32(0x07070707);
         }
         else {
+#endif
                 /* 64-bit immediate loads to stack variable only via imm64
                  * register load */
                 emit_mov_64_imm_reg(imm, X64_RAX);
                 emit_mov_64_reg_stack(X64_RAX, loc);
+#if 0
         }
+#endif
 }
 
 INTERNAL
 void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
 {
-        emit_code_relocation(symbol, codeSectionCnt);
-        emit_mov_64_address_reg(0, X64_RAX);
+        emit_mov_64_reloc_reg(symbol, X64_RAX);
         emit_mov_64_reg_stack(X64_RAX, loc);
+}
+
+INTERNAL
+void emit_call_reg(int r1)
+{
+        /* FF /2 */
+        int R = (r1 & ~7) ? REX_R : 0;
+        emit(REX_BASE|REX_W|R);
+        emit(0xff);
+        emit(make_modrm_byte(0x00, 0x02, r1 & 7));
+}
+
+INTERNAL
+void emit_function_prologue(void)
+{
+        emit(0x55);  // push rbp
+        emit_mov_64_reg_reg(X64_RSP, X64_RBP);
+        emit_add_imm32_reg(-0x1000 /*XXX*/, X64_RSP);
 }
 
 INTERNAL
 void emit_function_epilogue(void)
 {
-        emit_mov_64_reg_reg(X64_RBP, X64_RSP);
-        emit(0xc3);
+        //emit_mov_64_reg_reg(X64_RBP, X64_RSP);
+        emit(0xc9);  // leave
+        emit(0xc3);  // ret
 }
 
 INTERNAL
@@ -377,6 +409,7 @@ void x64asm_proc(IrProc irp)
 {
         begin_symbol(irProcInfo[irp].symbol);
 
+        emit_function_prologue();
         /* for each variable, find a place on the stack */
         for (IrStmt irs = irProcInfo[irp].firstIrStmt;
              irs < irStmtCnt && irStmtInfo[irs].proc == irp;
@@ -430,10 +463,17 @@ void x64asm_proc(IrProc irp)
                         X64StackLoc l1 = find_stack_loc(r1);
                         X64StackLoc l2 = find_stack_loc(r2);
                         X64StackLoc l3 = find_stack_loc(r3);
+                        /*
                         emit_mov_64_stack_reg(l1, X64_RAX);
                         emit_mov_64_stack_reg(l2, X64_RCX);
                         emit_add_64_reg_reg(X64_RAX, X64_RCX);
                         emit_mov_64_reg_stack(X64_RCX, l3);
+                        */
+                        emit_mov_64_stack_reg(l1, X64_RAX);
+                        emit_mov_64_stack_reg(l2, X64_RCX);
+                        emit_mov_64_address_reg(0x007, X64_RDX);
+                        emit_call_reg(X64_RDX);
+                        emit_mov_64_reg_stack(X64_RAX, l3);
 			break;
                 }
                 case IRSTMT_CONDGOTO:

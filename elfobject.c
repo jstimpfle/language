@@ -225,7 +225,7 @@ struct Elf64_Phdr {
 /* (macros mentioned above) */
 #define ELF64_R_SYM(i)  ((i) >> 32)
 #define ELF64_R_TYPE(i) ((i) & 0xffffffffL)
-#define ELF64_R_INFO(s, t) (((s) << 32) + ((t) & 0xffffffffL))
+#define ELF64_R_INFO(s, t) (((Elf64_Xword) (s) << 32) + ((t) & 0xffffffffL))
 
 /* Table 2. Names for the individual bytes in (struct Elf64_Ehdr).e_ident */
 #define EI_MAG0         0       /* File identification */
@@ -463,7 +463,7 @@ void write_Elf64_Sym(const struct Elf64_Sym *esym, FILE *f)
         write_Elf64_Xword(esym->st_size, f);
 }
 
-void write_Elf64_Rela(const struct Elf64_Rela *rela, File *f)
+void write_Elf64_Rela(const struct Elf64_Rela *rela, FILE *f)
 {
         write_Elf64_Addr(rela->r_offset, f);
         write_Elf64_Xword(rela->r_info, f);
@@ -605,7 +605,7 @@ void write_elf64_object(const char *outfilepath)
 
         for (int i = 0; i < relocCnt; i++) {
                 if (relocInfo[i].kind == SECTION_CODE) {
-                        int symbolIdx = relocInfo[i].symbol;  // XXX
+                        Elf64_Addr symbolIdx = 0;  // XXX: relocInfo[i].symbol to internal idx
                         int x = relaTextCnt++;
                         BUF_RESERVE(&relaText, &relaTextAlloc, relaTextCnt);
                         relaText[x].r_info = ELF64_R_INFO(symbolIdx, 0);
