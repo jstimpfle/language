@@ -508,25 +508,24 @@ size_t append_to_ElfStringTable(struct ElfStringTable *t, const char *str)
  * data) for relocations. The order is important. It is the order of appearance
  * in the object file that we write. */
 enum {
-        ELFSECTION_DUMMY,
-        ELFSECTION_SYMTAB,
-        ELFSECTION_TEXT,
-        ELFSECTION_STRTAB,
-        ELFSECTION_SHSTRTAB,
-        NUM_ELFSECTIONS,
+        ES_DUMMY,
+        ES_SYMTAB,
+        ES_TEXT,
+        ES_STRTAB,
+        ES_SHSTRTAB,
+        NUM_ESS,
 };
 
-const char *sectionNames[NUM_ELFSECTIONS] = {
-        [ELFSECTION_DUMMY   ] = "",
-        [ELFSECTION_SYMTAB  ] = ".symtab",
-        [ELFSECTION_TEXT    ] = ".text",
-        [ELFSECTION_STRTAB  ] = ".strtab",
-        [ELFSECTION_SHSTRTAB] = ".symstrtab",
+const char *sectionNames[NUM_ESS] = {
+        [ES_DUMMY   ] = "",
+        [ES_SYMTAB  ] = ".symtab",
+        [ES_TEXT    ] = ".text",
+        [ES_STRTAB  ] = ".strtab",
+        [ES_SHSTRTAB] = ".symstrtab",
 };
 
 void write_elf64_object(const char *outfilepath)
 {
-
         struct ElfStringTable shstrtabStrings;
         struct ElfStringTable strtabStrings;
         struct Elf64_Sym *elfsyms;
@@ -543,86 +542,88 @@ void write_elf64_object(const char *outfilepath)
         /* Make symbol strings and symbol table */
         BUF_RESERVE(&elfsyms, &elfsymsAlloc, symDefCnt);
         for (int i = 0; i < symDefCnt; i++) {
-                elfsyms[i].st_name = append_to_ElfStringTable(&strtabStrings, SS(symDefInfo[i].symbol));
+                elfsyms[i].st_name = append_to_ElfStringTable(
+                                                &strtabStrings,
+                                                SS(symDefInfo[i].symbol));
                 elfsyms[i].st_info = (STB_GLOBAL << 4) | STT_FUNC;
                 elfsyms[i].st_other = 0;
-                elfsyms[i].st_shndx = ELFSECTION_TEXT; // symbol references the .text section
+                elfsyms[i].st_shndx = ES_TEXT; // symbol references the .text section
                 elfsyms[i].st_value = symDefInfo[i].offset;
                 elfsyms[i].st_size = symDefInfo[i].size;
         }
 
-        struct Elf64_Ehdr ehdr        = {0};
-        struct Elf64_Shdr sectionHeader[NUM_ELFSECTIONS] = {0};
+        struct Elf64_Ehdr eh = {0};
+        struct Elf64_Shdr sh[NUM_ESS] = {0};
 
         /*
          * initialize File header
          */
 
-        ehdr.e_ident[EI_MAG0] = 0x7f;
-        ehdr.e_ident[EI_MAG1] = 'E';
-        ehdr.e_ident[EI_MAG2] = 'L';
-        ehdr.e_ident[EI_MAG3] = 'F';
-        ehdr.e_ident[EI_CLASS] = ELFCLASS64;
-        ehdr.e_ident[EI_DATA] = ELFDATA2LSB;
-        ehdr.e_ident[EI_VERSION] = EV_CURRENT;
-        ehdr.e_ident[EI_OSABI] = ELFOSABI_SYSV;
-        ehdr.e_ident[EI_ABIVERSION] = 0;
-        ehdr.e_type = ET_REL;
-        ehdr.e_machine = 62;  // code for AMD64 (not listed in the spec)
-        ehdr.e_version = EV_CURRENT;
-        ehdr.e_entry = 0;
-        ehdr.e_phoff = 0;
-        ehdr.e_shoff = sizeof (struct Elf64_Ehdr);  // XXX
-        ehdr.e_flags = 0;
-        ehdr.e_ehsize = sizeof (struct Elf64_Ehdr);  // XXX
-        ehdr.e_phentsize = 0;
-        ehdr.e_phnum = 0;
-        ehdr.e_shentsize = sizeof (struct Elf64_Shdr);  // XXX
-        ehdr.e_shnum = 5;
-        ehdr.e_shstrndx = 4; /* .shstrtab comes last (e_shnum - 1 == 4) */
+        eh.e_ident[EI_MAG0] = 0x7f;
+        eh.e_ident[EI_MAG1] = 'E';
+        eh.e_ident[EI_MAG2] = 'L';
+        eh.e_ident[EI_MAG3] = 'F';
+        eh.e_ident[EI_CLASS] = ELFCLASS64;
+        eh.e_ident[EI_DATA] = ELFDATA2LSB;
+        eh.e_ident[EI_VERSION] = EV_CURRENT;
+        eh.e_ident[EI_OSABI] = ELFOSABI_SYSV;
+        eh.e_ident[EI_ABIVERSION] = 0;
+        eh.e_type = ET_REL;
+        eh.e_machine = 62;  // code for AMD64 (not listed in the spec)
+        eh.e_version = EV_CURRENT;
+        eh.e_entry = 0;
+        eh.e_phoff = 0;
+        eh.e_shoff = sizeof (struct Elf64_Ehdr);  // XXX
+        eh.e_flags = 0;
+        eh.e_ehsize = sizeof (struct Elf64_Ehdr);  // XXX
+        eh.e_phentsize = 0;
+        eh.e_phnum = 0;
+        eh.e_shentsize = sizeof (struct Elf64_Shdr);  // XXX
+        eh.e_shnum = 5;
+        eh.e_shstrndx = 4; /* .shstrtab comes last (e_shnum - 1 == 4) */
 
         /*
          * Initialize section headers
          */
 
-        for (int i = 0; i < NUM_ELFSECTIONS; i++)
-                sectionHeader[i].sh_name = append_to_ElfStringTable(
+        for (int i = 0; i < NUM_ESS; i++)
+                sh[i].sh_name = append_to_ElfStringTable(
                                         &shstrtabStrings, sectionNames[i]);
 
-        sectionHeader[ ELFSECTION_SYMTAB   ].sh_type = SHT_SYMTAB;
-        sectionHeader[ ELFSECTION_TEXT     ].sh_type = SHT_PROGBITS;
-        sectionHeader[ ELFSECTION_STRTAB   ].sh_type = SHT_STRTAB;
-        sectionHeader[ ELFSECTION_SHSTRTAB ].sh_type = SHT_STRTAB;
+        sh[ES_SYMTAB  ].sh_type = SHT_SYMTAB;
+        sh[ES_TEXT    ].sh_type = SHT_PROGBITS;
+        sh[ES_STRTAB  ].sh_type = SHT_STRTAB;
+        sh[ES_SHSTRTAB].sh_type = SHT_STRTAB;
 
-        sectionHeader[ ELFSECTION_SYMTAB   ].sh_size = (symDefCnt + 1) * sizeof (struct Elf64_Sym);  // XXX sizeof? symDefCnt + 1, because there is one dummy symbol upfront
-        sectionHeader[ ELFSECTION_TEXT     ].sh_size = codeSectionCnt;
-        sectionHeader[ ELFSECTION_STRTAB   ].sh_size = strtabStrings.size;
-        sectionHeader[ ELFSECTION_SHSTRTAB ].sh_size = shstrtabStrings.size;
+        sh[ES_SYMTAB  ].sh_size = (symDefCnt + 1) * sizeof (struct Elf64_Sym);  // XXX sizeof? symDefCnt + 1, because there is one dummy symbol upfront
+        sh[ES_TEXT    ].sh_size = codeSectionCnt;
+        sh[ES_STRTAB  ].sh_size = strtabStrings.size;
+        sh[ES_SHSTRTAB].sh_size = shstrtabStrings.size;
 
         /* XXX: Alignment? */
-        sectionHeader[ ELFSECTION_SYMTAB   ].sh_offset = ehdr.e_shoff + ehdr.e_shnum * sizeof (struct Elf64_Shdr);
-        sectionHeader[ ELFSECTION_TEXT     ].sh_offset = sectionHeader[ELFSECTION_SYMTAB].sh_offset + sectionHeader[ELFSECTION_SYMTAB].sh_size;
-        sectionHeader[ ELFSECTION_STRTAB   ].sh_offset = sectionHeader[ELFSECTION_TEXT  ].sh_offset + sectionHeader[ELFSECTION_TEXT  ].sh_size;
-        sectionHeader[ ELFSECTION_SHSTRTAB ].sh_offset = sectionHeader[ELFSECTION_STRTAB].sh_offset + sectionHeader[ELFSECTION_STRTAB].sh_size;
+        sh[ES_SYMTAB  ].sh_offset = eh.e_shoff + eh.e_shnum * sizeof (struct Elf64_Shdr);
+        sh[ES_TEXT    ].sh_offset = sh[ES_SYMTAB].sh_offset + sh[ES_SYMTAB].sh_size;
+        sh[ES_STRTAB  ].sh_offset = sh[ES_TEXT  ].sh_offset + sh[ES_TEXT  ].sh_size;
+        sh[ES_SHSTRTAB].sh_offset = sh[ES_STRTAB].sh_offset + sh[ES_STRTAB].sh_size;
 
         /* XXX: ??? */
-        sectionHeader[ ELFSECTION_SYMTAB   ].sh_addralign = 1;
-        sectionHeader[ ELFSECTION_TEXT     ].sh_addralign = 16;
-        sectionHeader[ ELFSECTION_STRTAB   ].sh_addralign = 1;
-        sectionHeader[ ELFSECTION_SHSTRTAB ].sh_addralign = 1;
+        sh[ES_SYMTAB  ].sh_addralign = 1;
+        sh[ES_TEXT    ].sh_addralign = 16;
+        sh[ES_STRTAB  ].sh_addralign = 1;
+        sh[ES_SHSTRTAB].sh_addralign = 1;
 
-        sectionHeader[ ELFSECTION_SYMTAB   ].sh_flags = SHF_ALLOC;
-        sectionHeader[ ELFSECTION_TEXT     ].sh_flags = SHF_ALLOC | SHF_EXECINSTR;
+        sh[ES_SYMTAB].sh_flags = SHF_ALLOC;
+        sh[ES_TEXT  ].sh_flags = SHF_ALLOC | SHF_EXECINSTR;
 
-        sectionHeader[ ELFSECTION_SYMTAB   ].sh_entsize = sizeof (struct Elf64_Sym);  // ???
-        sectionHeader[ ELFSECTION_SYMTAB   ].sh_link = ELFSECTION_STRTAB;  // index of .strtab
-        sectionHeader[ ELFSECTION_SYMTAB   ].sh_info = 1;  /* XXX not sure what to put here. See Table 11,
-                                                          "Index of first non-local symbol (i.e.,
-                                                          number of local symbols)" */
+        sh[ES_SYMTAB].sh_entsize = sizeof (struct Elf64_Sym);  // ???
+        sh[ES_SYMTAB].sh_link = ES_STRTAB;  // index of .strtab
+        sh[ES_SYMTAB].sh_info = 1;  /* XXX not sure what to put here. See Table 11,
+                                       "Index of first non-local symbol (i.e.,
+                                       number of local symbols)" */
 
         /*
         fprintf(stderr, "the size of a section header is %d\n", (int) sizeof (struct Elf64_Shdr));
-        fprintf(stderr, "start of section header table is at %d\n", (int) ehdr.e_shoff);
+        fprintf(stderr, "start of section header table is at %d\n", (int) eh.e_shoff);
         fprintf(stderr, "start / size of .text section is %d / %d\n", (int) texthdr.sh_offset, (int) texthdr.sh_size);
         fprintf(stderr, "start / size of .symtab section is %d / %d\n", (int) symtabhdr.sh_offset, (int) symtabhdr.sh_size);
         fprintf(stderr, "start / size of .strtab section is %d / %d\n", (int) strtabhdr.sh_offset, (int) strtabhdr.sh_size);
@@ -635,9 +636,9 @@ void write_elf64_object(const char *outfilepath)
                 abort();
         }
 
-        write_Elf64_Ehdr(&ehdr, f);
-        for (int i = 0; i < NUM_ELFSECTIONS; i++)
-                write_Elf64_Shdr(&sectionHeader[i], f);
+        write_Elf64_Ehdr(&eh, f);
+        for (int i = 0; i < NUM_ESS; i++)
+                write_Elf64_Shdr(&sh[i], f);
 
         /* .symtab */
         {
