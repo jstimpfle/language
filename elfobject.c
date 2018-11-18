@@ -463,6 +463,13 @@ void write_Elf64_Sym(const struct Elf64_Sym *esym, FILE *f)
         write_Elf64_Xword(esym->st_size, f);
 }
 
+void write_Elf64_Rela(const struct Elf64_Rela *rela, File *f)
+{
+        write_Elf64_Addr(rela->r_offset, f);
+        write_Elf64_Xword(rela->r_info, f);
+        write_Elf64_Sxword(rela->r_addend, f);
+}
+
 struct ElfStringTable {
         char *buf;
         size_t size;
@@ -511,6 +518,7 @@ enum {
         ES_DUMMY,
         ES_SYMTAB,
         ES_TEXT,
+        ES_RELATEXT,
         ES_STRTAB,
         ES_SHSTRTAB,
         NUM_ESS,
@@ -520,6 +528,7 @@ const char *sectionNames[NUM_ESS] = {
         [ES_DUMMY   ] = "",
         [ES_SYMTAB  ] = ".symtab",
         [ES_TEXT    ] = ".text",
+        [ES_RELATEXT] = ".rela.text",
         [ES_STRTAB  ] = ".strtab",
         [ES_SHSTRTAB] = ".symstrtab",
 };
@@ -529,11 +538,15 @@ void write_elf64_object(const char *outfilepath)
         struct ElfStringTable shstrtabStrings;
         struct ElfStringTable strtabStrings;
         struct Elf64_Sym *elfsyms;
+        struct Elf64_Rela *relaText;
         struct Alloc elfsymsAlloc;
+        struct Alloc relaTextAlloc;
+        int relaTextCnt = 0;
 
         init_ElfStringTable(&shstrtabStrings);
         init_ElfStringTable(&strtabStrings);
         BUF_INIT(&elfsyms, &elfsymsAlloc);
+        BUF_INIT(&relaText, &relaTextAlloc);
 
         /* Make sure that string index 0 points to an empty string */
         append_to_ElfStringTable(&shstrtabStrings, "");
@@ -579,8 +592,8 @@ void write_elf64_object(const char *outfilepath)
         eh.e_phentsize = 0;
         eh.e_phnum = 0;
         eh.e_shentsize = sizeof (struct Elf64_Shdr);  // XXX
-        eh.e_shnum = 5;
-        eh.e_shstrndx = 4; /* .shstrtab comes last (e_shnum - 1 == 4) */
+        eh.e_shnum = NUM_ESS;
+        eh.e_shstrndx = NUM_ESS - 1; /* .shstrtab comes last */
 
         /*
          * Initialize section headers
@@ -590,36 +603,56 @@ void write_elf64_object(const char *outfilepath)
                 sh[i].sh_name = append_to_ElfStringTable(
                                         &shstrtabStrings, sectionNames[i]);
 
+        for (int i = 0; i < relocCnt; i++) {
+                if (relocInfo[i].kind == SECTION_CODE) {
+                        int symbolIdx = relocInfo[i].symbol;  // XXX
+                        int x = relaTextCnt++;
+                        BUF_RESERVE(&relaText, &relaTextAlloc, relaTextCnt);
+                        relaText[x].r_info = ELF64_R_INFO(symbolIdx, 0);
+                        relaText[x].r_offset = relocInfo[i].offset;
+                        relaText[x].r_addend = 0;
+                }
+        }
+
         sh[ES_SYMTAB  ].sh_type = SHT_SYMTAB;
         sh[ES_TEXT    ].sh_type = SHT_PROGBITS;
+        sh[ES_RELATEXT].sh_type = SHT_RELA;
         sh[ES_STRTAB  ].sh_type = SHT_STRTAB;
         sh[ES_SHSTRTAB].sh_type = SHT_STRTAB;
 
         sh[ES_SYMTAB  ].sh_size = (symDefCnt + 1) * sizeof (struct Elf64_Sym);  // XXX sizeof? symDefCnt + 1, because there is one dummy symbol upfront
         sh[ES_TEXT    ].sh_size = codeSectionCnt;
+        sh[ES_RELATEXT].sh_size = relaTextCnt * sizeof (struct Elf64_Rela);  // ditto
         sh[ES_STRTAB  ].sh_size = strtabStrings.size;
         sh[ES_SHSTRTAB].sh_size = shstrtabStrings.size;
 
         /* XXX: Alignment? */
         sh[ES_SYMTAB  ].sh_offset = eh.e_shoff + eh.e_shnum * sizeof (struct Elf64_Shdr);
-        sh[ES_TEXT    ].sh_offset = sh[ES_SYMTAB].sh_offset + sh[ES_SYMTAB].sh_size;
-        sh[ES_STRTAB  ].sh_offset = sh[ES_TEXT  ].sh_offset + sh[ES_TEXT  ].sh_size;
-        sh[ES_SHSTRTAB].sh_offset = sh[ES_STRTAB].sh_offset + sh[ES_STRTAB].sh_size;
+        sh[ES_TEXT    ].sh_offset = sh[ES_SYMTAB  ].sh_offset + sh[ES_SYMTAB  ].sh_size;
+        sh[ES_RELATEXT].sh_offset = sh[ES_TEXT    ].sh_offset + sh[ES_TEXT    ].sh_size;
+        sh[ES_STRTAB  ].sh_offset = sh[ES_RELATEXT].sh_offset + sh[ES_RELATEXT].sh_size;
+        sh[ES_SHSTRTAB].sh_offset = sh[ES_STRTAB  ].sh_offset + sh[ES_STRTAB  ].sh_size;
 
         /* XXX: ??? */
         sh[ES_SYMTAB  ].sh_addralign = 1;
         sh[ES_TEXT    ].sh_addralign = 16;
+        sh[ES_RELATEXT].sh_addralign = 16;
         sh[ES_STRTAB  ].sh_addralign = 1;
         sh[ES_SHSTRTAB].sh_addralign = 1;
 
         sh[ES_SYMTAB].sh_flags = SHF_ALLOC;
         sh[ES_TEXT  ].sh_flags = SHF_ALLOC | SHF_EXECINSTR;
 
-        sh[ES_SYMTAB].sh_entsize = sizeof (struct Elf64_Sym);  // ???
-        sh[ES_SYMTAB].sh_link = ES_STRTAB;  // index of .strtab
+        sh[ES_SYMTAB  ].sh_entsize = sizeof (struct Elf64_Sym);  // ???
+        sh[ES_RELATEXT].sh_entsize = sizeof (struct Elf64_Rela);  // ???
+
+        sh[ES_SYMTAB  ].sh_link = ES_STRTAB;  // index of .strtab
+        sh[ES_RELATEXT].sh_link = ES_SYMTAB;  // index of .symtab
+
         sh[ES_SYMTAB].sh_info = 1;  /* XXX not sure what to put here. See Table 11,
                                        "Index of first non-local symbol (i.e.,
                                        number of local symbols)" */
+        sh[ES_RELATEXT].sh_info = ES_TEXT;  // index of .text
 
         /*
         fprintf(stderr, "the size of a section header is %d\n", (int) sizeof (struct Elf64_Shdr));
@@ -651,6 +684,9 @@ void write_elf64_object(const char *outfilepath)
         }
         /* .text */
         fwrite(codeSection, codeSectionCnt, 1, f);
+        /* .rela.text */
+        for (int i = 0; i < relaTextCnt; i++)
+                write_Elf64_Rela(&relaText[i], f);
         /* .strtab */
         fwrite(strtabStrings.buf, strtabStrings.size, 1, f);
         /* .shstrtab */
@@ -666,4 +702,5 @@ void write_elf64_object(const char *outfilepath)
         exit_ElfStringTable(&shstrtabStrings);
         exit_ElfStringTable(&strtabStrings);
         BUF_EXIT(&elfsyms, &elfsymsAlloc);
+        BUF_EXIT(&relaText, &relaTextAlloc);
 }
