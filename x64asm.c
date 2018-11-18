@@ -288,7 +288,7 @@ void emit_mov_64_imm_reg(Imm64 imm, int r1)
 }
 
 /* Like emit_mov_64_imm_reg(), but always use the 8-byte version */
-INTERNAL
+INTERNAL UNUSED
 void emit_mov_64_address_reg(Imm64 imm, int r1)
 {
         emit(REX_BASE|REX_W);
@@ -471,7 +471,7 @@ void x64asm_proc(IrProc irp)
                         */
                         emit_mov_64_stack_reg(l1, X64_RAX);
                         emit_mov_64_stack_reg(l2, X64_RCX);
-                        emit_mov_64_address_reg(0x007, X64_RDX);
+                        emit_mov_64_reloc_reg((Symbol) 1, X64_RDX);
                         emit_call_reg(X64_RDX);
                         emit_mov_64_reg_stack(X64_RAX, l3);
 			break;

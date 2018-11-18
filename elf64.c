@@ -379,46 +379,75 @@ void write_Elf64_Uchar(Elf64_Uchar x, FILE *f)
         fputc(x, f);
 }
 
+#define BYTE(x, n) ((unsigned char) ((uint64_t) (x) >> ((n)*8)))
 void write_Elf64_Addr(Elf64_Addr x, FILE *f)
 {
-        // XXX: endianness?
-        fwrite(&x, sizeof x, 1, f);
+        fputc(BYTE(x, 0), f);
+        fputc(BYTE(x, 1), f);
+        fputc(BYTE(x, 2), f);
+        fputc(BYTE(x, 3), f);
+        fputc(BYTE(x, 4), f);
+        fputc(BYTE(x, 5), f);
+        fputc(BYTE(x, 6), f);
+        fputc(BYTE(x, 7), f);
 }
 
 void write_Elf64_Off(Elf64_Off x, FILE *f)
 {
-        // XXX: endianness?
-        fwrite(&x, sizeof x, 1, f);
+        fputc(BYTE(x, 0), f);
+        fputc(BYTE(x, 1), f);
+        fputc(BYTE(x, 2), f);
+        fputc(BYTE(x, 3), f);
+        fputc(BYTE(x, 4), f);
+        fputc(BYTE(x, 5), f);
+        fputc(BYTE(x, 6), f);
+        fputc(BYTE(x, 7), f);
 }
 
 void write_Elf64_Half(Elf64_Half x, FILE *f)
 {
-        // XXX: endianness?
-        fwrite(&x, sizeof x, 1, f);
+        fputc(BYTE(x, 0), f);
+        fputc(BYTE(x, 1), f);
 }
 
 void write_Elf64_Word(Elf64_Word x, FILE *f)
 {
-        // XXX: endianness?
-        fwrite(&x, sizeof x, 1, f);
+        fputc(BYTE(x, 0), f);
+        fputc(BYTE(x, 1), f);
+        fputc(BYTE(x, 2), f);
+        fputc(BYTE(x, 3), f);
 }
 
 void write_Elf64_Sword(Elf64_Sword x, FILE *f)
 {
-        // XXX: endianness?
-        fwrite(&x, sizeof x, 1, f);
+        fputc(BYTE(x, 0), f);
+        fputc(BYTE(x, 1), f);
+        fputc(BYTE(x, 2), f);
+        fputc(BYTE(x, 3), f);
 }
 
 void write_Elf64_Xword(Elf64_Xword x, FILE *f)
 {
-        // XXX: endianness?
-        fwrite(&x, sizeof x, 1, f);
+        fputc(BYTE(x, 0), f);
+        fputc(BYTE(x, 1), f);
+        fputc(BYTE(x, 2), f);
+        fputc(BYTE(x, 3), f);
+        fputc(BYTE(x, 4), f);
+        fputc(BYTE(x, 5), f);
+        fputc(BYTE(x, 6), f);
+        fputc(BYTE(x, 7), f);
 }
 
 void write_Elf64_Sxword(Elf64_Sxword x, FILE *f)
 {
-        // XXX: endianness?
-        fwrite(&x, sizeof x, 1, f);
+        fputc(BYTE(x, 0), f);
+        fputc(BYTE(x, 1), f);
+        fputc(BYTE(x, 2), f);
+        fputc(BYTE(x, 3), f);
+        fputc(BYTE(x, 4), f);
+        fputc(BYTE(x, 5), f);
+        fputc(BYTE(x, 6), f);
+        fputc(BYTE(x, 7), f);
 }
 
 void write_Elf64_Ehdr(const struct Elf64_Ehdr *h, FILE *f)
@@ -605,10 +634,12 @@ void write_elf64_object(const char *outfilepath)
 
         for (int i = 0; i < relocCnt; i++) {
                 if (relocInfo[i].kind == SECTION_CODE) {
-                        Elf64_Addr symbolIdx = 0;  // XXX: relocInfo[i].symbol to internal idx
+                        Elf64_Addr symbolIdx = 1;  // XXX: relocInfo[i].symbol to internal idx
                         int x = relaTextCnt++;
                         BUF_RESERVE(&relaText, &relaTextAlloc, relaTextCnt);
-                        relaText[x].r_info = ELF64_R_INFO(symbolIdx, 0);
+                        /* XXX: I got this from another place: "1" stands for a
+                         * "Segment + Offset" kind of calculation */
+                        relaText[x].r_info = ELF64_R_INFO(symbolIdx, 1);
                         relaText[x].r_offset = relocInfo[i].offset;
                         relaText[x].r_addend = 0;
                 }
@@ -636,7 +667,7 @@ void write_elf64_object(const char *outfilepath)
         /* XXX: ??? */
         sh[ES_SYMTAB  ].sh_addralign = 1;
         sh[ES_TEXT    ].sh_addralign = 16;
-        sh[ES_RELATEXT].sh_addralign = 16;
+        sh[ES_RELATEXT].sh_addralign = 1;
         sh[ES_STRTAB  ].sh_addralign = 1;
         sh[ES_SHSTRTAB].sh_addralign = 1;
 
