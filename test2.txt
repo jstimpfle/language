@@ -28,5 +28,5 @@ proc int h()
 
 proc int main()
 {
-    return 18;
+    return 18 + 1;
 }

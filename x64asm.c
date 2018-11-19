@@ -385,7 +385,7 @@ void emit_call_reg(int r1)
         int R = (r1 & ~7) ? REX_R : 0;
         emit(REX_BASE|REX_W|R);
         emit(0xff);
-        emit(make_modrm_byte(0x00, 0x02, r1 & 7));
+        emit(make_modrm_byte(0x3, 0x02, r1 & 7));
 }
 
 INTERNAL
@@ -393,7 +393,7 @@ void emit_function_prologue(void)
 {
         emit(0x55);  // push rbp
         emit_mov_64_reg_reg(X64_RSP, X64_RBP);
-        emit_add_imm32_reg(-0x1000 /*XXX*/, X64_RSP);
+        emit_add_imm32_reg(-0x100 /*XXX*/, X64_RSP);
 }
 
 INTERNAL
@@ -450,30 +450,30 @@ void x64asm_proc(IrProc irp)
 			break;
                 }
                 case IRSTMT_CALL: {
-                        //XXX assume for now that the called function is add()
-                        IrCallArg a1 = irStmtInfo[irs].tCall.firstIrCallArg;
-                        IrCallArg a2 = irStmtInfo[irs].tCall.firstIrCallArg + 1;
+                        IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
+                        static const int cc[] = { /* "calling convention" */
+                                X64_RDI, X64_RSI, X64_RDX,
+                                X64_RCX, X64_R8, X64_R9
+                        };
+                        for (int i = 0; ; i++) {
+                                IrCallArg a = firstArg + i;
+                                if (!(a < irCallArgCnt
+                                      && irCallArgInfo[a].callStmt == irs))
+                                        break;
+                                IrReg r = irCallArgInfo[a].srcreg;
+                                X64StackLoc loc = find_stack_loc(r);
+                                // move to appropriate register
+                                // XXX: this is of course ad-hoc and wrong. For
+                                // instance, we do not even check if that
+                                // register is free
+                                emit_mov_64_stack_reg(loc, cc[i]);
+                        }
                         IrCallResult cr0 = irStmtInfo[irs].tCall.firstIrCallResult;
-                        assert(a1 < irCallArgCnt);
-                        assert(a2 < irCallArgCnt);
-                        assert(cr0 < irCallResultCnt);
-                        IrReg r1 = irCallArgInfo[a1].srcreg;
-                        IrReg r2 = irCallArgInfo[a2].srcreg;
-                        IrReg r3 = irCallResultInfo[cr0].tgtreg;
-                        X64StackLoc l1 = find_stack_loc(r1);
-                        X64StackLoc l2 = find_stack_loc(r2);
-                        X64StackLoc l3 = find_stack_loc(r3);
-                        /*
-                        emit_mov_64_stack_reg(l1, X64_RAX);
-                        emit_mov_64_stack_reg(l2, X64_RCX);
-                        emit_add_64_reg_reg(X64_RAX, X64_RCX);
-                        emit_mov_64_reg_stack(X64_RCX, l3);
-                        */
-                        emit_mov_64_stack_reg(l1, X64_RAX);
-                        emit_mov_64_stack_reg(l2, X64_RCX);
-                        emit_mov_64_reloc_reg((Symbol) 1, X64_RDX);
-                        emit_call_reg(X64_RDX);
-                        emit_mov_64_reg_stack(X64_RAX, l3);
+                        IrReg rreg = irCallResultInfo[cr0].tgtreg;
+                        X64StackLoc rloc = find_stack_loc(rreg);
+                        emit_mov_64_reloc_reg((Symbol) 1, X64_R11);
+                        emit_call_reg(X64_R11);
+                        emit_mov_64_reg_stack(X64_RAX, rloc);
 			break;
                 }
                 case IRSTMT_CONDGOTO:
