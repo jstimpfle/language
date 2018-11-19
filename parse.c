@@ -672,8 +672,7 @@ INTERNAL
 Stmt parse_expr_or_compound_stmt(void)
 {
         PARSE_LOG();
-        Token tok = look_next_token();
-        if (tokenInfo[tok].kind == TOKTYPE_LEFTBRACE)
+        if (look_token_kind(TOKTYPE_LEFTBRACE) != -1)
                 return parse_compound_stmt();
         else
                 return parse_expr_stmt();
@@ -798,10 +797,12 @@ Proc parse_proc(void)
         Scope pscope = scopeCnt++;
         Proc proc = procCnt++;
         Symbol psym = symbolCnt++;
+        Type ptype = typeCnt++;
 
         RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
         RESIZE_GLOBAL_BUFFER(procInfo, procCnt);
         RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
 
         currentProc = proc;
         push_scope(pscope);
@@ -838,7 +839,7 @@ Proc parse_proc(void)
         scopeInfo[pscope].numSymbols = 0;
         scopeInfo[pscope].kind = SCOPE_PROC;
         scopeInfo[pscope].tProc.proc = proc;
-        procInfo[proc].tp = rettp;
+        procInfo[proc].tp = ptype;
         procInfo[proc].sym = psym;
         procInfo[proc].scope = pscope;
         procInfo[proc].firstParam = -1;
@@ -848,6 +849,10 @@ Proc parse_proc(void)
         symbolInfo[psym].scope = parentScope;
         symbolInfo[psym].kind = SYMBOL_PROC;
         symbolInfo[psym].tProc = proc;
+        typeInfo[ptype].kind = TYPE_PROC;
+        typeInfo[ptype].tProc.rettp = rettp;
+        typeInfo[ptype].tProc.nargs = -1; // TODO
+        typeInfo[ptype].tProc.firstParamtype = -1; // TODO
         return proc;
 }
 
@@ -891,6 +896,17 @@ int compare_CallArgInfo(const void *a, const void *b)
 
 void parse_global_scope(void)
 {
+        /* add a few undefined symbols that can be linked with an external
+         * object file, for now */
+        {
+                Symbol sym = symbolCnt++;
+                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+                symbolInfo[sym].name = intern_cstring("print64");
+                symbolInfo[sym].scope = (Scope) 0;
+                symbolInfo[sym].kind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
+                symbolInfo[sym].tProc = -1;  // TODO
+        }
+
         PARSE_LOG();
         globalScope = add_global_scope();
         push_scope(globalScope);

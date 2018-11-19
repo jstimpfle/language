@@ -561,7 +561,7 @@ struct ScopeInfo {
 };
 
 struct ProcInfo {
-        Type tp;
+        Type tp;  // type of kind TYPE_PROC
         Symbol sym;
         Scope scope;
         int nparams;
