@@ -139,7 +139,7 @@ int look_char(void)
                 return savedChar;
         if (currentOffset < fileInfo[currentFile].size) {
                 int c = fileInfo[currentFile].buf[currentOffset];
-                if (c < 32 && c != ' ' && c != '\n')
+                if (c < 32 && c != '\n')
                         FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
                                              "Invalid byte %d\n", c);
                 haveSavedChar = 1;
