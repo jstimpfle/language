@@ -162,6 +162,7 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         MAKE( paramInfo ),
         MAKE( symrefInfo ),
         MAKE( exprInfo ),
+        MAKE( exprType ),
         MAKE( stmtInfo ),
         MAKE( childStmtInfo ),
         MAKE( callArgInfo ),

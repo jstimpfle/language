@@ -160,6 +160,7 @@ enum {
         BUFFER_paramInfo,
         BUFFER_symrefInfo,
         BUFFER_exprInfo,
+        BUFFER_exprType,
         BUFFER_stmtInfo,
         BUFFER_childStmtInfo,
         BUFFER_callArgInfo,
@@ -636,7 +637,6 @@ struct ExprInfo {
                 struct MemberExprInfo tMember;
                 struct SubscriptExprInfo tSubscript;
         };
-        Type tp;
 };
 
 struct CompoundStmtInfo {
@@ -742,7 +742,7 @@ struct IrStoreStmtInfo {
 };
 
 struct IrCallStmtInfo {
-        IrReg callee;
+        IrReg calleeReg;
         IrCallArg firstIrCallArg;  // speed-up
         IrCallResult firstIrCallResult;  // speed-up
 };
@@ -893,6 +893,7 @@ DATA struct ProcInfo *procInfo;
 DATA struct ParamInfo *paramInfo;
 DATA struct SymrefInfo *symrefInfo;
 DATA struct ExprInfo *exprInfo;
+DATA Type *exprType;
 DATA struct StmtInfo *stmtInfo;
 DATA struct ChildStmtInfo *childStmtInfo;
 DATA struct CallArgInfo *callArgInfo;

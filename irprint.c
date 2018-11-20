@@ -64,7 +64,7 @@ void irp_proc(IrProc p)
                         break;
                 case IRSTMT_CALL: {
                         outs("CALL  ");
-                        irp_reg(irStmtInfo[i].tCall.callee);
+                        irp_reg(irStmtInfo[i].tCall.calleeReg);
                         outs(", ");
                         outs("(");
                         int arg = irStmtInfo[i].tCall.firstIrCallArg;

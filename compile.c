@@ -148,7 +148,7 @@ Type check_literal_expr_type(Expr x)
 {
         //XXX
         Type tp = 0;
-        exprInfo[x].tp = tp;
+        exprType[x] = tp;
         return tp;
 }
 
@@ -188,7 +188,7 @@ Type check_symref_expr_type(Expr x)
                         break;
         }
 out:
-        exprInfo[x].tp = tp;
+        exprType[x] = tp;
         return tp;
 }
 
@@ -221,7 +221,7 @@ Type check_unop_expr_type(Expr x)
                         UNHANDLED_CASE();
                 }
         }
-        exprInfo[x].tp = tp;
+        exprType[x] = tp;
         return tp;
 }
 
@@ -253,7 +253,7 @@ Type check_binop_expr_type(Expr x)
                         UNHANDLED_CASE();
                 }
         }
-        exprInfo[x].tp = tp;
+        exprType[x] = tp;
         return tp;
 }
 
@@ -267,7 +267,7 @@ Type check_member_expr_type(Expr x)
         */
         // TODO: lookup member and infer type
         Type tp = -1;
-        exprInfo[x].tp = tp;
+        exprType[x] = tp;
         return tp;
 }
 
@@ -299,7 +299,7 @@ Type check_subscript_expr_type(Expr x)
         DEBUG("t1=%d, t2=%d, idxtp=%d, valuetp=%d, tp=%d\n",
             t1, t2, typeInfo[t1].tArray.idxtp, typeInfo[t1].tArray.valuetp, tp);
             */
-        exprInfo[x].tp = tp;
+        exprType[x] = tp;
         return tp;
 }
 
@@ -325,16 +325,18 @@ Type check_expr_type(Expr x)
         case EXPR_CALL:         tp = check_call_expr_type(x); break;
         default:                UNHANDLED_CASE();
         }
-        exprInfo[x].tp = tp;
+        exprType[x] = tp;
         return tp;
 }
 
 void check_types(void)
 {
+        assert(globalBufferAlloc[BUFFER_exprType].cap == 0);
+        RESIZE_GLOBAL_BUFFER(exprType, exprCnt);
         for (Expr x = 0; x < exprCnt; x++)
                 check_expr_type(x);
         for (Expr x = 0; x < exprCnt; x++) {
-                if (exprInfo[x].tp == -1)
+                if (exprType[x] == -1)
                         LOG_TYPE_ERROR_EXPR(
                                 x, "Type check of expression failed\n");
         }
@@ -374,7 +376,7 @@ void compile_expr(Expr x)
                 irStmtInfo[y].proc = proc;
                 // XXX: We "call" the binop operation. This is very inefficient.
                 irStmtInfo[y].kind = IRSTMT_CALL;
-                irStmtInfo[y].tCall.callee = 0;  //XXX TODO: need register holding address of binop operation
+                irStmtInfo[y].tCall.calleeReg = exprToIrReg[x];
                 irStmtInfo[y].tCall.firstIrCallArg = arg1;
                 irStmtInfo[y].tCall.firstIrCallResult = ret;
                 break;
@@ -422,7 +424,7 @@ void compile_expr(Expr x)
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[y].proc = proc;
                 irStmtInfo[y].kind = IRSTMT_CALL;
-                irStmtInfo[y].tCall.callee = exprToIrReg[calleeExpr];
+                irStmtInfo[y].tCall.calleeReg = exprToIrReg[calleeExpr];
                 irStmtInfo[y].tCall.firstIrCallArg = irCallArgCnt; // XXX: Achtung!
                 irStmtInfo[y].tCall.firstIrCallResult = irCallResultCnt; // XXX: Achtung!
                 /*
@@ -573,7 +575,7 @@ void compile_to_IR(void)
                 irRegInfo[r].proc = procToIrProc[p];
                 irRegInfo[r].name = intern_cstring("(tmp)") /*XXX*/;
                 irRegInfo[r].sym = -1; // registers from Expr's are unnamed
-                irRegInfo[r].tp = exprInfo[x].tp; // for now
+                irRegInfo[r].tp = exprType[x]; // for now
         }
 
         DEBUG("For each proc add appropriate IrStmts\n");
