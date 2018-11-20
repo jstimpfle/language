@@ -5,10 +5,8 @@
 INTERNAL
 int compute_lineno(File file, int offset)
 {
-        int i;
         int line = 1;
-
-        for (i = 0; i < offset; i++)
+        for (int i = 0; i < offset; i++)
                 if (fileInfo[file].buf[i] == '\n')
                         line++;
         return line;
@@ -18,10 +16,8 @@ int compute_lineno(File file, int offset)
 INTERNAL
 int compute_colno(File file, int offset)
 {
-        int i;
         int column = 1;
-
-        for (i = 0; i < offset; i++)
+        for (int i = 0; i < offset; i++)
                 if (fileInfo[file].buf[i] == '\n')
                         column = 1;
                 else
@@ -109,8 +105,6 @@ void _msg_at_expr(const char *srcfilename, int srcline,
         va_list ap;
         File file;
         int offset;
-
-        DEBUG("_msg_at_expr(%s, %d, )\n", srcfilename, srcline);
 
         find_expr_position(expr, &file, &offset);
         va_start(ap, fmt);

@@ -6,13 +6,11 @@
 INTERNAL
 Symbol find_symbol_in_scope(String name, Scope scope)
 {
-        //DEBUG("RESOLVE %s\n", string_buffer(name));
         for (; scope != -1; scope = scopeInfo[scope].parentScope) {
                 Symbol first = scopeInfo[scope].firstSymbol;
                 Symbol last = first + scopeInfo[scope].numSymbols;
                 for (Symbol i = first; i < last; i++) {
                         if (symbolInfo[i].name == name) {
-                                //DEBUG("FOUND symbol %s\n", string_buffer(name));
                                 return i;
                         }
                 }
@@ -297,10 +295,6 @@ Type check_subscript_expr_type(Expr x)
                             "in subscript expression\n");
         else
                 tp = typeInfo[t1].tArray.valuetp;
-        /*
-        DEBUG("t1=%d, t2=%d, idxtp=%d, valuetp=%d, tp=%d\n",
-            t1, t2, typeInfo[t1].tArray.idxtp, typeInfo[t1].tArray.valuetp, tp);
-            */
         exprType[x] = tp;
         return tp;
 }

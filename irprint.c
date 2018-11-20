@@ -82,9 +82,6 @@ void irp_proc(IrProc p)
                         outs("(");
                         int ret = irStmtInfo[i].tCall.firstIrCallResult;
                         for (;;) {
-                                /*DEBUG("\nret=%d tgtreg=%d, irCallResultCnt=%d\n",
-                                        ret, irCallResultInfo[ret].tgtreg, irCallResultCnt);
-                                        */
                                 irp_reg(irCallResultInfo[ret].tgtreg);
                                 ret++;
                                 if (ret == irCallResultCnt)
@@ -137,8 +134,7 @@ void irp_proc(IrProc p)
 
 void irprint(void)
 {
-        outs("\n");
-        DEBUG("Fixing indices\n");
+        MSG(lvl_info, "Fixing indices\n");
         for (IrStmt i = irStmtCnt; i --> 0;) {
                 IrProc irp = irStmtInfo[i].proc;
                 irProcInfo[irp].firstIrStmt = i;
@@ -147,7 +143,7 @@ void irprint(void)
                 IrProc irp = irRegInfo[i].proc;
                 irProcInfo[irp].firstIrReg = i;
         }
-        DEBUG("Printing procs\n");
+        MSG(lvl_info, "Printing procs\n");
         outs("\n");
         for (IrProc p = 0; p < irProcCnt; p++) {
                 irp_proc(p);

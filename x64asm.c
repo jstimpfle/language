@@ -418,7 +418,6 @@ void x64asm_proc(IrProc irp)
                         Symbol sym = irStmtInfo[irs].tLoadSymbolAddr.sym;
                         IrReg irreg = irStmtInfo[irs].tLoadSymbolAddr.tgtreg;
                         X64StackLoc loc = find_stack_loc(irreg);
-                        DEBUG("symbol address for %s is %d\n", SS(sym), loc);
                         emit_load_symaddr_stack(sym, loc);
 			break;
                 }
@@ -449,7 +448,6 @@ void x64asm_proc(IrProc irp)
                         };
                         IrReg calleeReg = irStmtInfo[irs].tCall.calleeReg;
                         X64StackLoc calleeloc = find_stack_loc(calleeReg);
-                        DEBUG("symbol address for callee is %d\n", calleeloc);
                         IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
                         for (int i = 0; ; i++) {
                                 IrCallArg a = firstArg + i;
