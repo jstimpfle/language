@@ -592,7 +592,7 @@ struct LiteralExprInfo {
 
 struct CallExprInfo {
         Expr callee;
-        Expr firstArgIdx;  // speed-up
+        int firstArgIdx;  // speed-up
         int nargs;
 };
 
@@ -717,7 +717,6 @@ struct IrRegInfo {
         to the Symbols on the language level */
         String name;
         Symbol sym;
-
         Type tp; //XXX
 };
 
@@ -1001,9 +1000,6 @@ void _msg_at_expr(const char *srcfilename, int srcline,
 #define MSG_AT_TOK(...) _msg_at_tok(__FILE__, __LINE__, __VA_ARGS__)
 #define MSG_AT_EXPR(...) _msg_at_expr(__FILE__, __LINE__, __VA_ARGS__)
 
-#define LOG_TYPE_ERROR_EXPR(...) MSG_AT_EXPR(lvl_error, __VA_ARGS__)
-#define LOG_TYPE_ERROR_EXPR(...) MSG_AT_EXPR(lvl_error, __VA_ARGS__)
-
 #define PARSE_LOG() do { \
         if (doDebug) \
                 MSG_AT(lvl_debug, currentFile, currentOffset, \
@@ -1096,11 +1092,15 @@ void parse_global_scope(void);
 void prettyprint(void);
 
 /*
- * compile.c
+ * typecheck.c
  */
 void resolve_symbol_references(void);
 void resolve_type_references(void);
 void check_types(void);
+
+/*
+ * compile.c
+ */
 void compile_to_IR(void);
 
 /*

@@ -351,23 +351,10 @@ void emit_mov_64_stack_reg(X64StackLoc loc, int reg)
 INTERNAL
 void emit_load_constant_stack(Imm64 imm, X64StackLoc loc)
 {
-#if 0  /* doesn't work for indirect addressing, since memory is not zero extended! */
-        if (is_imm32(imm)) {
-                /* shorter sequence: 32-bit immediate loads directly to stack
-                 * variable using mod=0x01 register+displacement addressing. */
-                emit(0xc7);  // "C7 /0 iw", mov immediate 32
-                emit_modrmreg_and_displacement_bytes(0x00, X64_RBP, loc);
-                emit32(0x07070707);
-        }
-        else {
-#endif
-                /* 64-bit immediate loads to stack variable only via imm64
-                 * register load */
-                emit_mov_64_imm_reg(imm, X64_RAX);
-                emit_mov_64_reg_stack(X64_RAX, loc);
-#if 0
-        }
-#endif
+        /* 64-bit immediate loads to stack variable only via imm64
+         * register load */
+        emit_mov_64_imm_reg(imm, X64_RAX);
+        emit_mov_64_reg_stack(X64_RAX, loc);
 }
 
 INTERNAL
@@ -377,8 +364,8 @@ void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
         if (symbolInfo[symbol].scope == SCOPE_GLOBAL)
                 emit_mov_64_reloc_reg(symbol, r1);
         else
-                // for now. TODO: get proper register or memory location where
-                // symbol is
+                /* for now. TODO: get proper register or memory location where
+                 * symbol is */
                 emit_mov_64_address_reg(0, r1);
         emit_mov_64_reg_stack(r1, loc);
 }
@@ -431,6 +418,7 @@ void x64asm_proc(IrProc irp)
                         Symbol sym = irStmtInfo[irs].tLoadSymbolAddr.sym;
                         IrReg irreg = irStmtInfo[irs].tLoadSymbolAddr.tgtreg;
                         X64StackLoc loc = find_stack_loc(irreg);
+                        DEBUG("symbol address for %s is %d\n", SS(sym), loc);
                         emit_load_symaddr_stack(sym, loc);
 			break;
                 }
@@ -455,12 +443,14 @@ void x64asm_proc(IrProc irp)
 			break;
                 }
                 case IRSTMT_CALL: {
-                        IrReg callee = irStmtInfo[irs].tCall.callee;
-                        IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
                         static const int cc[] = { /* "calling convention" */
                                 X64_RDI, X64_RSI, X64_RDX,
                                 X64_RCX, X64_R8, X64_R9
                         };
+                        IrReg calleeReg = irStmtInfo[irs].tCall.calleeReg;
+                        X64StackLoc calleeloc = find_stack_loc(calleeReg);
+                        DEBUG("symbol address for callee is %d\n", calleeloc);
+                        IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
                         for (int i = 0; ; i++) {
                                 IrCallArg a = firstArg + i;
                                 if (!(a < irCallArgCnt
@@ -476,7 +466,6 @@ void x64asm_proc(IrProc irp)
                         }
                         IrCallResult cr0 = irStmtInfo[irs].tCall.firstIrCallResult;
                         IrReg rreg = irCallResultInfo[cr0].tgtreg;
-                        X64StackLoc calleeloc = find_stack_loc(callee);
                         X64StackLoc rloc = find_stack_loc(rreg);
                         emit_mov_64_stack_reg(calleeloc, X64_R11);
                         emit_call_reg(X64_R11);

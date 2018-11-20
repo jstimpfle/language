@@ -45,7 +45,7 @@ void pp_type(Type tp)
                 outs("*");
                 break;
         case TYPE_PROC:
-                outs("(proc type)");
+                pp_type(typeInfo[tp].tProc.rettp); //XXX
                 break;
         case TYPE_REFERENCE:
                 outs(SRS(typeInfo[tp].tRef.ref));

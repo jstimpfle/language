@@ -1,33 +1,5 @@
-entity int Foobar;
-
-data int z;
-
-proc int f(Foobar x)
-{
-    /* test comment */
-    data int* x;
-    array int a[Foobar];
-    if (3)
-        g(3, 5*4);
-    while (0)
-        1;
-    return 1;
-}
-
-proc int g()
-{
-    data int a;
-    a = 41;
-    return a + 1;
-}
-
-proc int h()
-{
-    1 + 1;
-}
-
 proc int main()
 {
-    print64(3);
-    return 18 + 1;
+    print64(3, 5);
+    return 18;
 }

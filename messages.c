@@ -107,8 +107,10 @@ void _msg_at_expr(const char *srcfilename, int srcline,
         const char *fmt, ...)
 {
         va_list ap;
-        int file;
+        File file;
         int offset;
+
+        DEBUG("_msg_at_expr(%s, %d, )\n", srcfilename, srcline);
 
         find_expr_position(expr, &file, &offset);
         va_start(ap, fmt);

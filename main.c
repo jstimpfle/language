@@ -9,6 +9,8 @@ void free_buffers(void)
                 BUF_EXIT(globalBufferInfo[i].ptr, &globalBufferAlloc[i]);
 }
 
+#include <stdlib.h>
+#include <stdio.h>
 int main(int argc, const char **argv)
 {
         const char *fileToParse;
@@ -53,6 +55,7 @@ int main(int argc, const char **argv)
         MSG(lvl_info, "A little codegen test...\n");
         codegen_x64();
 
+        MSG(lvl_info, "Write elf object file\n");
         write_elf64_object("out.o");
 
         MSG(lvl_info, "Freeing allocated buffers...\n");
