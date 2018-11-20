@@ -56,7 +56,7 @@ void compile_expr(Expr x)
                 irStmtInfo[s].proc = proc;
                 irStmtInfo[s].kind = IRSTMT_LOADSYMBOLADDR;
                 irStmtInfo[s].tLoadSymbolAddr.sym = sym;
-                irStmtInfo[s].tLoadSymbolAddr.tgtreg = exprToIrReg[reg];
+                irStmtInfo[s].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
                 break;
         }
         case EXPR_CALL: {
