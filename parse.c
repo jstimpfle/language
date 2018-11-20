@@ -895,6 +895,24 @@ int compare_CallArgInfo(const void *a, const void *b)
         return x->rank - y->rank;
 }
 
+void add_external_function(const char *name)
+{
+        Type tp = typeCnt++;
+        Symbol sym = symbolCnt++;
+
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+        typeInfo[tp].kind = TYPE_PROC;
+        typeInfo[tp].tProc.rettp = (Type) 0; //XXX
+        typeInfo[tp].tProc.nargs = 0;
+
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+        symbolInfo[sym].name = intern_cstring(name);
+        symbolInfo[sym].scope = (Scope) 0;
+        symbolInfo[sym].kind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
+        symbolInfo[sym].tProc.tp = tp;
+        symbolInfo[sym].tProc.optionalproc = -1;
+}
+
 void parse_global_scope(void)
 {
         _msg_at(__FILE__, __LINE__, lvl_debug, currentFile, currentOffset,
@@ -904,22 +922,8 @@ void parse_global_scope(void)
 
         /* add a few undefined symbols that can be linked with an external
          * object file, for now */
-        {
-                Type tp = typeCnt++;
-                Symbol sym = symbolCnt++;
-
-                RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-                typeInfo[tp].kind = TYPE_PROC;
-                typeInfo[tp].tProc.rettp = (Type) 0; //XXX
-                typeInfo[tp].tProc.nargs = 0;
-
-                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-                symbolInfo[sym].name = intern_cstring("print64");
-                symbolInfo[sym].scope = (Scope) 0;
-                symbolInfo[sym].kind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
-                symbolInfo[sym].tProc.tp = tp;
-                symbolInfo[sym].tProc.optionalproc = -1;
-        }
+        add_external_function("add64");
+        add_external_function("print64");
 
         globalScope = add_global_scope();
         push_scope(globalScope);

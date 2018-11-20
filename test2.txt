@@ -1,5 +1,11 @@
 proc int main()
 {
-    print64(3, 5);
+    data int x;
+
+    x = add64(3, 5);
+    print64(x);
+/*
+*/
+    print64(add64(3, 6));
     return 18;
 }

@@ -509,6 +509,7 @@ void codegen_x64(void)
         emit_mov_64_reg_indirect(X64_RSP, X64_RSP, 0x7);
         */
 
+        /*
         for (int i = 0; i < codeSectionCnt; i++) {
                 if (i & 7)
                         outf(" ");
@@ -517,4 +518,5 @@ void codegen_x64(void)
                 outf("%.2x", codeSection[i]);
         }
         outs("\n");
+        */
 }

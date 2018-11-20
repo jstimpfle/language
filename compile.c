@@ -102,8 +102,7 @@ void compile_expr(Expr x)
                 break;
         }
         default:
-                // UNHANDLED_CASE();
-                break;
+                UNHANDLED_CASE();
         }
 }
 

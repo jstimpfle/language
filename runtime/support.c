@@ -6,9 +6,13 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-uint64_t print64(uint64_t x, uint64_t y)
+uint64_t add64(uint64_t x, uint64_t y)
 {
-        uint64_t r = x + y;
-        printf("%" PRId64 "\n", r);
-        return r;
+        return x + y;
+}
+
+uint64_t print64(uint64_t x)
+{
+        printf("%" PRId64 "\n", x);
+        return 0;
 }
