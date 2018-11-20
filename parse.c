@@ -848,7 +848,8 @@ Proc parse_proc(void)
         symbolInfo[psym].name = pname;
         symbolInfo[psym].scope = parentScope;
         symbolInfo[psym].kind = SYMBOL_PROC;
-        symbolInfo[psym].tProc = proc;
+        symbolInfo[psym].tProc.tp = ptype;
+        symbolInfo[psym].tProc.optionalproc = proc;
         typeInfo[ptype].kind = TYPE_PROC;
         typeInfo[ptype].tProc.rettp = rettp;
         typeInfo[ptype].tProc.nargs = -1; // TODO
@@ -904,7 +905,8 @@ void parse_global_scope(void)
                 symbolInfo[sym].name = intern_cstring("print64");
                 symbolInfo[sym].scope = (Scope) 0;
                 symbolInfo[sym].kind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
-                symbolInfo[sym].tProc = -1;  // TODO
+                symbolInfo[sym].tProc.tp = -1337;  // TODO
+                symbolInfo[sym].tProc.optionalproc = -1;
         }
 
         PARSE_LOG();
@@ -930,7 +932,7 @@ void parse_global_scope(void)
         for (Data x = 0; x < dataCnt; x++)
                 symbolInfo[dataInfo[x].sym].tData = x;
         for (Proc x = 0; x < procCnt; x++)
-                symbolInfo[procInfo[x].sym].tProc = x;
+                symbolInfo[procInfo[x].sym].tProc.optionalproc = x;
 
         {
                 /* permute Symbol array so they are grouped by defining scope */

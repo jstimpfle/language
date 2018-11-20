@@ -566,40 +566,97 @@ void write_elf64_object(const char *outfilepath)
 {
         struct ElfStringTable shstrtabStrings;
         struct ElfStringTable strtabStrings;
-        struct Elf64_Sym *elfsyms;
+
+        struct Elf64_Sym *elfsym;
         struct Elf64_Rela *relaText;
-        struct Alloc elfsymsAlloc;
+        int *symbolToElfsym;
+
+        struct Alloc elfsymAlloc;
         struct Alloc relaTextAlloc;
+        struct Alloc symbolToElfsymAlloc;
+
+        int elfsymCnt = 0;
         int relaTextCnt = 0;
 
         init_ElfStringTable(&shstrtabStrings);
         init_ElfStringTable(&strtabStrings);
-        BUF_INIT(&elfsyms, &elfsymsAlloc);
+        BUF_INIT(&elfsym, &elfsymAlloc);
         BUF_INIT(&relaText, &relaTextAlloc);
+        BUF_INIT(&symbolToElfsym, &symbolToElfsymAlloc);
 
         /* Make sure that string index 0 points to an empty string */
         append_to_ElfStringTable(&shstrtabStrings, "");
         append_to_ElfStringTable(&strtabStrings, "");
 
-        /* Make symbol strings and symbol table */
-        BUF_RESERVE(&elfsyms, &elfsymsAlloc, symDefCnt);
+        /*
+         * Make symbol strings and symbol table
+         */
+        BUF_RESERVE(&symbolToElfsym, &symbolToElfsymAlloc, symbolCnt);
+        for (int i = 0; i < symbolCnt; i++)
+                symbolToElfsym[i] = -1;
+        /* one dummy symbol required */
+        {
+                int x = elfsymCnt++;
+                BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
+                CLEAR(elfsym[x]);
+        }
+        /* defined symbols */
         for (int i = 0; i < symDefCnt; i++) {
-                elfsyms[i].st_name = append_to_ElfStringTable(
-                                                &strtabStrings,
-                                                SS(symDefInfo[i].symbol));
-                elfsyms[i].st_info = (STB_GLOBAL << 4) | STT_FUNC;
-                elfsyms[i].st_other = 0;
-                elfsyms[i].st_shndx = ES_TEXT; // symbol references the .text section
-                elfsyms[i].st_value = symDefInfo[i].offset;
-                elfsyms[i].st_size = symDefInfo[i].size;
+                Symbol sym = symDefInfo[i].symbol;
+                int x = elfsymCnt++;
+                BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
+                elfsym[x].st_name = append_to_ElfStringTable(
+                                                &strtabStrings, SS(sym));
+                elfsym[x].st_info = (STB_GLOBAL << 4) | STT_FUNC;
+                elfsym[x].st_other = 0;
+                elfsym[x].st_shndx = ES_TEXT; // symbol references the .text section
+                elfsym[x].st_value = symDefInfo[i].offset;
+                elfsym[x].st_size = symDefInfo[i].size;
+                symbolToElfsym[sym] = x;
+        }
+        /* undefined symbols */
+        for (Symbol sym = 0; sym < symbolCnt; sym++) {
+                if (scopeInfo[symbolInfo[sym].scope].kind != SCOPE_GLOBAL)
+                        continue;
+                if (symbolInfo[sym].kind != SYMBOL_PROC)
+                        continue;
+                if (symbolInfo[sym].tProc.optionalproc != -1)
+                        continue;
+                int x = elfsymCnt++;
+                BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
+                elfsym[x].st_name = append_to_ElfStringTable(
+                                                &strtabStrings, SS(sym));
+                elfsym[x].st_info = (STB_GLOBAL << 4) | STT_FUNC;
+                elfsym[x].st_other = 0;
+                elfsym[x].st_shndx = SHN_UNDEF; // undefined symbol
+                elfsym[x].st_value = 0;
+                elfsym[x].st_size = 0;
+                symbolToElfsym[sym] = x;
         }
 
-        struct Elf64_Ehdr eh = {0};
-        struct Elf64_Shdr sh[NUM_ESS] = {0};
+        /*
+         * initialize Relocations
+         */
+
+        for (int i = 0; i < relocCnt; i++) {
+                if (relocInfo[i].kind == SECTION_CODE) {
+                        Symbol sym = relocInfo[i].symbol;
+                        int offset = relocInfo[i].offset;
+                        int es = symbolToElfsym[sym];
+                        int x = relaTextCnt++;
+                        BUF_RESERVE(&relaText, &relaTextAlloc, relaTextCnt);
+                        /* XXX: I got this from another place: "1" stands for a
+                         * "Segment + Offset" kind of calculation */
+                        relaText[x].r_info = ELF64_R_INFO(es, 1);
+                        relaText[x].r_offset = offset;
+                        relaText[x].r_addend = 0;
+                }
+        }
 
         /*
          * initialize File header
          */
+        struct Elf64_Ehdr eh = {0};
 
         eh.e_ident[EI_MAG0] = 0x7f;
         eh.e_ident[EI_MAG1] = 'E';
@@ -627,23 +684,11 @@ void write_elf64_object(const char *outfilepath)
         /*
          * Initialize section headers
          */
+        struct Elf64_Shdr sh[NUM_ESS] = {0};
 
         for (int i = 0; i < NUM_ESS; i++)
                 sh[i].sh_name = append_to_ElfStringTable(
                                         &shstrtabStrings, sectionNames[i]);
-
-        for (int i = 0; i < relocCnt; i++) {
-                if (relocInfo[i].kind == SECTION_CODE) {
-                        Elf64_Addr symbolIdx = 1;  // XXX: relocInfo[i].symbol to internal idx
-                        int x = relaTextCnt++;
-                        BUF_RESERVE(&relaText, &relaTextAlloc, relaTextCnt);
-                        /* XXX: I got this from another place: "1" stands for a
-                         * "Segment + Offset" kind of calculation */
-                        relaText[x].r_info = ELF64_R_INFO(symbolIdx, 1);
-                        relaText[x].r_offset = relocInfo[i].offset;
-                        relaText[x].r_addend = 0;
-                }
-        }
 
         sh[ES_SYMTAB  ].sh_type = SHT_SYMTAB;
         sh[ES_TEXT    ].sh_type = SHT_PROGBITS;
@@ -651,7 +696,7 @@ void write_elf64_object(const char *outfilepath)
         sh[ES_STRTAB  ].sh_type = SHT_STRTAB;
         sh[ES_SHSTRTAB].sh_type = SHT_STRTAB;
 
-        sh[ES_SYMTAB  ].sh_size = (symDefCnt + 1) * sizeof (struct Elf64_Sym);  // XXX sizeof? symDefCnt + 1, because there is one dummy symbol upfront
+        sh[ES_SYMTAB  ].sh_size = elfsymCnt * sizeof (struct Elf64_Sym);  // XXX sizeof?
         sh[ES_TEXT    ].sh_size = codeSectionCnt;
         sh[ES_RELATEXT].sh_size = relaTextCnt * sizeof (struct Elf64_Rela);  // ditto
         sh[ES_STRTAB  ].sh_size = strtabStrings.size;
@@ -705,14 +750,8 @@ void write_elf64_object(const char *outfilepath)
                 write_Elf64_Shdr(&sh[i], f);
 
         /* .symtab */
-        {
-                /* one dummy symbol required */
-                struct Elf64_Sym esym = {0};
-                write_Elf64_Sym(&esym, f);
-        }
-        for (int i = 0; i < symDefCnt; i++) {
-                write_Elf64_Sym(&elfsyms[i], f);
-        }
+        for (int i = 0; i < elfsymCnt; i++)
+                write_Elf64_Sym(&elfsym[i], f);
         /* .text */
         fwrite(codeSection, codeSectionCnt, 1, f);
         /* .rela.text */
@@ -732,6 +771,7 @@ void write_elf64_object(const char *outfilepath)
 
         exit_ElfStringTable(&shstrtabStrings);
         exit_ElfStringTable(&strtabStrings);
-        BUF_EXIT(&elfsyms, &elfsymsAlloc);
+        BUF_EXIT(&elfsym, &elfsymAlloc);
         BUF_EXIT(&relaText, &relaTextAlloc);
+        BUF_EXIT(&symbolToElfsym, &symbolToElfsymAlloc);
 }

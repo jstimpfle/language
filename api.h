@@ -462,6 +462,11 @@ struct TokenInfo {
         };
 };
 
+struct ProcsymbolInfo {
+        Type tp;  // TYPE_PROC, must match with type of optionalproc (if exists)
+        Proc optionalproc;  // may be -1 if external linkage
+};
+
 struct SymbolInfo {
         String name;
         Scope scope;
@@ -470,7 +475,7 @@ struct SymbolInfo {
                 Type tType;
                 Data tData;
                 Array tArray;
-                Proc tProc;
+                struct ProcsymbolInfo tProc;
                 Param tParam;
         };
 };

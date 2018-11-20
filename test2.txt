@@ -28,5 +28,6 @@ proc int h()
 
 proc int main()
 {
+    print64(3);
     return 18 + 1;
 }

@@ -178,7 +178,7 @@ Type check_symref_expr_type(Expr x)
                         tp = arrayInfo[symbolInfo[sym].tArray].tp;
                         break;
                 case SYMBOL_PROC:
-                        tp = procInfo[symbolInfo[sym].tProc].tp;
+                        tp = symbolInfo[sym].tProc.tp;
                         break;
                 case SYMBOL_PARAM:
                         tp = paramInfo[symbolInfo[sym].tParam].tp;
@@ -306,23 +306,8 @@ Type check_subscript_expr_type(Expr x)
 INTERNAL
 Type check_call_expr_type(Expr x)
 {
-        //XXX total mess and incomplete and wrong
-        Expr callee = exprInfo[x].tCall.callee;
-        Type calleeTp = check_expr_type(callee);
-        if (calleeTp == -1)
-                return -1;
-        int calleeTpKind = typeInfo[calleeTp].kind;
-        if (calleeTpKind != TYPE_PROC)
-                LOG_TYPE_ERROR_EXPR(callee,
-                    "Called expression: Expected proc type but found %s\n",
-                    typeKindString[calleeTpKind]);
-        int first = exprInfo[x].tCall.firstArgIdx;
-        int last = first + exprInfo[x].tCall.nargs;
-        for (int i = first; i < last; i++) {
-                Expr argx = callArgInfo[i].argExpr;
-                check_expr_type(argx);
-                // TODO: check that argument type matches param of called proc
-        }
+        // Proc types are not really implemented yet
+        (void) x;
         return -1;
 }
 

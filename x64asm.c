@@ -122,16 +122,6 @@ void emit64(uint32_t c)
 }
 
 INTERNAL
-void emit_code_relocation(Symbol symbol, int offset)
-{
-        Reloc reloc = relocCnt++;
-        RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
-        relocInfo[reloc].symbol = symbol;
-        relocInfo[reloc].kind = SECTION_CODE;
-        relocInfo[reloc].offset = offset;
-}
-
-INTERNAL
 int make_modrm_byte(unsigned mod, unsigned reg, unsigned rm)
 {
         assert(mod < 4);
@@ -291,7 +281,8 @@ void emit_mov_64_imm_reg(Imm64 imm, int r1)
 INTERNAL UNUSED
 void emit_mov_64_address_reg(Imm64 imm, int r1)
 {
-        emit(REX_BASE|REX_W);
+        int B = (r1 & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|B);
         emit(0xb8 | r1);
         emit64(imm);
 }
@@ -300,9 +291,17 @@ void emit_mov_64_address_reg(Imm64 imm, int r1)
 INTERNAL
 void emit_mov_64_reloc_reg(Symbol symbol, int r1)
 {
-        emit(REX_BASE|REX_W);
+        int B = (r1 & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|B);
         emit(0xb8 | r1);
-        emit_code_relocation(symbol, codeSectionCnt);
+        {
+                int offset = codeSectionCnt;
+                Reloc reloc = relocCnt++;
+                RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
+                relocInfo[reloc].symbol = symbol;
+                relocInfo[reloc].kind = SECTION_CODE;
+                relocInfo[reloc].offset = offset;
+        }
         emit64(0x00);
 }
 
@@ -374,16 +373,22 @@ void emit_load_constant_stack(Imm64 imm, X64StackLoc loc)
 INTERNAL
 void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
 {
-        emit_mov_64_reloc_reg(symbol, X64_RAX);
-        emit_mov_64_reg_stack(X64_RAX, loc);
+        int r1 = X64_RAX;
+        if (symbolInfo[symbol].scope == SCOPE_GLOBAL)
+                emit_mov_64_reloc_reg(symbol, r1);
+        else
+                // for now. TODO: get proper register or memory location where
+                // symbol is
+                emit_mov_64_address_reg(0, r1);
+        emit_mov_64_reg_stack(r1, loc);
 }
 
 INTERNAL
 void emit_call_reg(int r1)
 {
         /* FF /2 */
-        int R = (r1 & ~7) ? REX_R : 0;
-        emit(REX_BASE|REX_W|R);
+        int B = (r1 & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|B);
         emit(0xff);
         emit(make_modrm_byte(0x3, 0x02, r1 & 7));
 }
@@ -450,6 +455,7 @@ void x64asm_proc(IrProc irp)
 			break;
                 }
                 case IRSTMT_CALL: {
+                        IrReg callee = irStmtInfo[irs].tCall.callee;
                         IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
                         static const int cc[] = { /* "calling convention" */
                                 X64_RDI, X64_RSI, X64_RDX,
@@ -470,8 +476,9 @@ void x64asm_proc(IrProc irp)
                         }
                         IrCallResult cr0 = irStmtInfo[irs].tCall.firstIrCallResult;
                         IrReg rreg = irCallResultInfo[cr0].tgtreg;
+                        X64StackLoc calleeloc = find_stack_loc(callee);
                         X64StackLoc rloc = find_stack_loc(rreg);
-                        emit_mov_64_reloc_reg((Symbol) 1, X64_R11);
+                        emit_mov_64_stack_reg(calleeloc, X64_R11);
                         emit_call_reg(X64_R11);
                         emit_mov_64_reg_stack(X64_RAX, rloc);
 			break;
