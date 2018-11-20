@@ -1,7 +1,7 @@
-/* Implementation of ELF64. Closely following the spec, with lots of comments
- * pulled from it ("ELF-64 Object File Format, Version 1.5 Draft 2"). We try to
- * be independent of the rest of the infrastructure in the project, so this file
- * will be reusable as a baseline in other projects with only small changes. */
+/* ELF-64 writer. Lots of comments pulled from the spec ("ELF-64 Object File
+ * Format, Version 1.5 Draft 2"). We try to be independent of the rest of the
+ * infrastructure in the project, so this file will be reusable as a baseline in
+ * other projects with only small changes. */
 
 #include "defs.h"
 #include "api.h"
@@ -643,6 +643,8 @@ void write_elf64_object(const char *outfilepath)
                         Symbol sym = relocInfo[i].symbol;
                         int offset = relocInfo[i].offset;
                         int es = symbolToElfsym[sym];
+                        if (es == -1)
+                                FATAL("There is a relocation for a symbol that is not in .symtab (is this an internal error?)\n");
                         int x = relaTextCnt++;
                         BUF_RESERVE(&relaText, &relaTextAlloc, relaTextCnt);
                         /* XXX: I got this from another place: "1" stands for a
@@ -738,6 +740,10 @@ void write_elf64_object(const char *outfilepath)
         fprintf(stderr, "start / size of .strtab section is %d / %d\n", (int) strtabhdr.sh_offset, (int) strtabhdr.sh_size);
         fprintf(stderr, "start / size of .shstrtab section is %d / %d\n", (int) shstrtabhdr.sh_offset, (int) shstrtabhdr.sh_size);
         */
+
+        /*
+         * Serialize to object file on the filesystem.
+         */
 
         FILE *f = fopen(outfilepath, "wb");
         if (f == NULL) {
