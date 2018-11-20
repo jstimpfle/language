@@ -31,22 +31,22 @@ int main(int argc, const char **argv)
         read_whole_file(x);
         }
 
-        MSG(lvl_info, "Parsing file %s\n", fileToParse);
+        MSG(lvl_info, "Parse file %s\n", fileToParse);
         parse_global_scope();
 
-        MSG(lvl_info, "Resolving symbol references...\n");
+        MSG(lvl_info, "Resolve symbol references...\n");
         resolve_symbol_references();
 
-        MSG(lvl_info, "Resolving type references...\n");
+        MSG(lvl_info, "Resolve type references...\n");
         resolve_type_references();
 
-        MSG(lvl_info, "Checking types...\n");
+        MSG(lvl_info, "Check types...\n");
         check_types();
 
-        MSG(lvl_info, "Pretty printing input...\n\n");
+        MSG(lvl_info, "Pretty print input...\n\n");
         prettyprint();
 
-        MSG(lvl_info, "Compiling to IR...\n");
+        MSG(lvl_info, "Compile to IR...\n");
         compile_to_IR();
 
         MSG(lvl_info, "Test IR pretty printer...\n");
@@ -55,12 +55,12 @@ int main(int argc, const char **argv)
         MSG(lvl_info, "A little codegen test...\n");
         codegen_x64();
 
-        MSG(lvl_info, "Write elf object file\n");
+        MSG(lvl_info, "Write elf object file...\n");
         write_elf64_object("out.o");
 
-        MSG(lvl_info, "Freeing allocated buffers...\n");
+        MSG(lvl_info, "Free allocated buffers...\n");
         free_buffers();
 
-        MSG(lvl_info, "Exiting successfully.\n");
+        MSG(lvl_info, "Exit successfully.\n");
         return 0;
 }
