@@ -487,7 +487,8 @@ Data parse_data(void)
         symbolInfo[sym].name = name;
         symbolInfo[sym].scope = scope;
         symbolInfo[sym].kind = SYMBOL_DATA;
-        symbolInfo[sym].tData = data;
+        symbolInfo[sym].tData.tp = -1; //XXX
+        symbolInfo[sym].tData.optionaldata = data;
         return data;
 }
 
@@ -944,8 +945,10 @@ void parse_global_scope(void)
         }
 
         /* fix up symbolInfo table: add references to various entities */
-        for (Data x = 0; x < dataCnt; x++)
-                symbolInfo[dataInfo[x].sym].tData = x;
+        for (Data x = 0; x < dataCnt; x++) {
+                symbolInfo[dataInfo[x].sym].tData.tp = -1; //XXX: fill after typechecking of data?
+                symbolInfo[dataInfo[x].sym].tData.optionaldata = x;
+        }
         for (Proc x = 0; x < procCnt; x++)
                 symbolInfo[procInfo[x].sym].tProc.optionalproc = x;
 

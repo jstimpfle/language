@@ -100,7 +100,7 @@ struct Elf64_Shdr {
         /* sh_flags identifies the attributes of the section. Table 9 lists the
          * processor independent values for these flags. */
         /* sh_addr contains the virtual address of the beginning of the section
-         * in memory. If the section is not allocated to the emory image of the
+         * in memory. If the section is not allocated to the memory image of the
          * program, this field should be zero. */
         /* sh_offset contains the offset, in bytes, of the beginning of the
          * section contents in the file. */
@@ -500,6 +500,7 @@ enum {
         ES_DUMMY,
         ES_SYMTAB,
         ES_TEXT,
+        ES_BSS,
         ES_RELATEXT,
         ES_STRTAB,
         ES_SHSTRTAB,
@@ -510,6 +511,7 @@ const char *sectionNames[NUM_ESS] = {
         [ES_DUMMY   ] = "",
         [ES_SYMTAB  ] = ".symtab",
         [ES_TEXT    ] = ".text",
+        [ES_BSS     ] = ".bss",
         [ES_RELATEXT] = ".rela.text",
         [ES_STRTAB  ] = ".strtab",
         [ES_SHSTRTAB] = ".symstrtab",
@@ -555,14 +557,29 @@ void write_elf64_object(const char *outfilepath)
         }
         /* defined symbols */
         for (int i = 0; i < symDefCnt; i++) {
+                int sttKind;
+                int shndx;
                 Symbol sym = symDefInfo[i].symbol;
+                if (symbolInfo[sym].kind == SYMBOL_PROC) {
+                        assert(symbolInfo[sym].tProc.optionalproc != -1);
+                        sttKind = STT_FUNC;
+                        shndx = ES_TEXT; // symbol references the .text section
+                }
+                else if (symbolInfo[sym].kind == SYMBOL_DATA) {
+                        assert(symbolInfo[sym].tData.optionaldata != -1);
+                        sttKind = STT_OBJECT;
+                        shndx = ES_BSS;  // for now all data is in .bss
+                }
+                else {
+                        UNHANDLED_CASE();
+                }
                 int x = elfsymCnt++;
                 BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
                 elfsym[x].st_name = append_to_ElfStringTable(
                                                 &strtabStrings, SS(sym));
-                elfsym[x].st_info = (STB_GLOBAL << 4) | STT_FUNC;
+                elfsym[x].st_info = (STB_GLOBAL << 4) | sttKind;
                 elfsym[x].st_other = 0;
-                elfsym[x].st_shndx = ES_TEXT; // symbol references the .text section
+                elfsym[x].st_shndx = shndx;
                 elfsym[x].st_value = symDefInfo[i].offset;
                 elfsym[x].st_size = symDefInfo[i].size;
                 symbolToElfsym[sym] = x;
@@ -571,15 +588,25 @@ void write_elf64_object(const char *outfilepath)
         for (Symbol sym = 0; sym < symbolCnt; sym++) {
                 if (scopeInfo[symbolInfo[sym].scope].kind != SCOPE_GLOBAL)
                         continue;
-                if (symbolInfo[sym].kind != SYMBOL_PROC)
+                int sttKind;
+                if (symbolInfo[sym].kind == SYMBOL_PROC) {
+                        if (symbolInfo[sym].tProc.optionalproc != -1)
+                                continue;  // the proc is defined
+                        sttKind = STT_FUNC;
+                }
+                else if (symbolInfo[sym].kind == SYMBOL_DATA) {
+                        if (symbolInfo[sym].tData.optionaldata != -1)
+                                continue;  // the data is defined
+                        sttKind = STT_OBJECT;
+                }
+                else {
                         continue;
-                if (symbolInfo[sym].tProc.optionalproc != -1)
-                        continue;
+                }
                 int x = elfsymCnt++;
                 BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
                 elfsym[x].st_name = append_to_ElfStringTable(
                                                 &strtabStrings, SS(sym));
-                elfsym[x].st_info = (STB_GLOBAL << 4) | STT_FUNC;
+                elfsym[x].st_info = (STB_GLOBAL << 4) | sttKind;
                 elfsym[x].st_other = 0;
                 elfsym[x].st_shndx = SHN_UNDEF; // undefined symbol
                 elfsym[x].st_value = 0;
@@ -592,20 +619,18 @@ void write_elf64_object(const char *outfilepath)
          */
 
         for (int i = 0; i < relocCnt; i++) {
-                if (relocInfo[i].kind == SECTION_CODE) {
-                        Symbol sym = relocInfo[i].symbol;
-                        int offset = relocInfo[i].offset;
-                        int es = symbolToElfsym[sym];
-                        if (es == -1)
-                                FATAL("There is a relocation for symbol %s which is not in .symtab (is this an internal error?)\n", SS(sym));
-                        int x = relaTextCnt++;
-                        BUF_RESERVE(&relaText, &relaTextAlloc, relaTextCnt);
-                        /* XXX: I got this from another place: "1" stands for a
-                         * "Segment + Offset" kind of calculation */
-                        relaText[x].r_info = ELF64_R_INFO(es, 1);
-                        relaText[x].r_offset = offset;
-                        relaText[x].r_addend = 0;
-                }
+                Symbol sym = relocInfo[i].symbol;
+                int offset = relocInfo[i].offset;
+                int es = symbolToElfsym[sym];
+                if (es == -1)
+                        FATAL("There is a relocation for symbol %s which is not in .symtab (is this an internal error?)\n", SS(sym));
+                int x = relaTextCnt++;
+                BUF_RESERVE(&relaText, &relaTextAlloc, relaTextCnt);
+                /* XXX: I got this from another place: "1" stands for a
+                 * "Segment + Offset" kind of calculation */
+                relaText[x].r_info = ELF64_R_INFO(es, 1);
+                relaText[x].r_offset = offset;
+                relaText[x].r_addend = 0;
         }
 
         /*
@@ -647,12 +672,14 @@ void write_elf64_object(const char *outfilepath)
 
         sh[ES_SYMTAB  ].sh_type = SHT_SYMTAB;
         sh[ES_TEXT    ].sh_type = SHT_PROGBITS;
+        sh[ES_BSS     ].sh_type = SHT_NOBITS;
         sh[ES_RELATEXT].sh_type = SHT_RELA;
         sh[ES_STRTAB  ].sh_type = SHT_STRTAB;
         sh[ES_SHSTRTAB].sh_type = SHT_STRTAB;
 
         sh[ES_SYMTAB  ].sh_size = elfsymCnt * sizeof (struct Elf64_Sym);  // XXX sizeof?
         sh[ES_TEXT    ].sh_size = codeSectionCnt;
+        sh[ES_BSS     ].sh_size = zerodataSectionCnt;
         sh[ES_RELATEXT].sh_size = relaTextCnt * sizeof (struct Elf64_Rela);  // ditto
         sh[ES_STRTAB  ].sh_size = strtabStrings.size;
         sh[ES_SHSTRTAB].sh_size = shstrtabStrings.size;
@@ -660,19 +687,22 @@ void write_elf64_object(const char *outfilepath)
         /* XXX: Alignment? */
         sh[ES_SYMTAB  ].sh_offset = eh.e_shoff + eh.e_shnum * sizeof (struct Elf64_Shdr);
         sh[ES_TEXT    ].sh_offset = sh[ES_SYMTAB  ].sh_offset + sh[ES_SYMTAB  ].sh_size;
+        sh[ES_BSS     ].sh_offset = sh[ES_TEXT].sh_offset; // special case: the sh_size and the offset in the file do not correlate
         sh[ES_RELATEXT].sh_offset = sh[ES_TEXT    ].sh_offset + sh[ES_TEXT    ].sh_size;
         sh[ES_STRTAB  ].sh_offset = sh[ES_RELATEXT].sh_offset + sh[ES_RELATEXT].sh_size;
         sh[ES_SHSTRTAB].sh_offset = sh[ES_STRTAB  ].sh_offset + sh[ES_STRTAB  ].sh_size;
 
         /* XXX: ??? */
-        sh[ES_SYMTAB  ].sh_addralign = 1;
-        sh[ES_TEXT    ].sh_addralign = 16;
-        sh[ES_RELATEXT].sh_addralign = 1;
+        sh[ES_SYMTAB  ].sh_addralign = 8;
+        sh[ES_TEXT    ].sh_addralign = 8;
+        sh[ES_BSS     ].sh_addralign = 8;
+        sh[ES_RELATEXT].sh_addralign = 8;
         sh[ES_STRTAB  ].sh_addralign = 1;
         sh[ES_SHSTRTAB].sh_addralign = 1;
 
         sh[ES_SYMTAB].sh_flags = SHF_ALLOC;
         sh[ES_TEXT  ].sh_flags = SHF_ALLOC | SHF_EXECINSTR;
+        sh[ES_BSS   ].sh_flags = SHF_ALLOC | SHF_WRITE;
 
         sh[ES_SYMTAB  ].sh_entsize = sizeof (struct Elf64_Sym);  // ???
         sh[ES_RELATEXT].sh_entsize = sizeof (struct Elf64_Rela);  // ???

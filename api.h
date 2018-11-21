@@ -465,6 +465,11 @@ struct TokenInfo {
         };
 };
 
+struct DatasymbolInfo {
+        Type tp;  // TODO: what kind of type?
+        Data optionaldata;
+};
+
 struct ProcsymbolInfo {
         Type tp;  // TYPE_PROC, must match with type of optionalproc (if exists)
         Proc optionalproc;  // may be -1 if external linkage
@@ -476,7 +481,7 @@ struct SymbolInfo {
         int kind;  // SYMBOL_
         union {
                 Type tType;
-                Data tData;
+                struct DatasymbolInfo tData;
                 Array tArray;
                 struct ProcsymbolInfo tProc;
                 Param tParam;
@@ -930,6 +935,12 @@ DATA struct IrReturnResultInfo *irReturnResultInfo;
 DATA struct IrProcInfo *irProcInfo;
 DATA struct IrLabelInfo *irLabelInfo;
 
+DATA int zerodataSectionCnt;  /* This is the size of zero-initialized data in
+                                 bytes.  It's what goes into e.g. the BSS
+                                 section in an ELF file.  There's no further
+                                 data associated with it, except from the
+                                 symbols that point into that virtual region
+                                 (symDefInfo) */
 DATA int dataSectionCnt;
 DATA int codeSectionCnt;
 DATA int symDefCnt;

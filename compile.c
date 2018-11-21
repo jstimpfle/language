@@ -28,7 +28,8 @@ void compile_expr(Expr x)
                         Symbol sym = symrefInfo[ref].sym;
                         if (symbolInfo[sym].kind == SYMBOL_DATA &&
                             symbolInfo[sym].scope == SCOPE_PROC) {
-                                Data data = symbolInfo[sym].tData;
+                                Data data = symbolInfo[sym].tData.optionaldata;
+                                assert(data != (Data) -1);  // proc-local data must exist
                                 IrReg srcreg = exprToIrReg[e2];
                                 IrReg tgtreg = dataToIrReg[data];
                                 IrStmt y = irStmtCnt++;
@@ -40,7 +41,25 @@ void compile_expr(Expr x)
                                 // TODO: move to exprToIrReg[x] ?
                         }
                         else {
-                                FATAL("Can't assign to non-local variables yet.\n");
+                                /* non-local variable */
+                                IrReg reg = irRegCnt++;
+                                IrStmt s1 = irStmtCnt++;
+                                IrStmt s2 = irStmtCnt++;
+                                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                                irRegInfo[reg].proc = proc;
+                                irRegInfo[reg].name = intern_cstring("(reg)"); //XXX
+                                irRegInfo[reg].sym = sym; //XXX
+                                irRegInfo[reg].tp = exprType[x];
+                                irStmtInfo[s1].proc = proc;
+                                irStmtInfo[s1].kind = IRSTMT_LOADSYMBOLADDR;
+                                irStmtInfo[s1].tLoadSymbolAddr.sym = sym;
+                                irStmtInfo[s1].tLoadSymbolAddr.tgtreg = reg;
+                                irStmtInfo[s2].proc = proc;
+                                irStmtInfo[s2].kind = IRSTMT_STORE;
+                                irStmtInfo[s2].tStore.srcreg = exprToIrReg[e2];
+                                irStmtInfo[s2].tStore.tgtaddrreg = reg;
+                                // TODO: move to exprToIrReg[x]?
                         }
                 }
                 else {
@@ -73,7 +92,8 @@ void compile_expr(Expr x)
                 assert(sym >= 0);
                 if (symbolInfo[sym].kind == SYMBOL_DATA &&
                     symbolInfo[sym].scope == SCOPE_PROC) {
-                        Data data = symbolInfo[sym].tData;
+                        Data data = symbolInfo[sym].tData.optionaldata;
+                        assert(data != (Data) -1);  // proc-local data must exist
                         IrStmt y = irStmtCnt++;
                         IrReg srcreg = dataToIrReg[data];
                         IrReg tgtreg = exprToIrReg[x];
@@ -85,17 +105,23 @@ void compile_expr(Expr x)
                 }
                 else {
                         IrReg reg = irRegCnt++;
-                        IrStmt s = irStmtCnt++;
+                        IrStmt s0 = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irRegInfo[reg].proc = proc;
                         irRegInfo[reg].name = intern_cstring("(reg)"); //XXX
                         irRegInfo[reg].sym = sym; //XXX
                         irRegInfo[reg].tp = symTp;
-                        irStmtInfo[s].proc = proc;
-                        irStmtInfo[s].kind = IRSTMT_LOADSYMBOLADDR;
-                        irStmtInfo[s].tLoadSymbolAddr.sym = sym;
-                        irStmtInfo[s].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
+                        irStmtInfo[s0].proc = proc;
+                        irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
+                        irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
+                        irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
+                        IrStmt s1 = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[s1].proc = proc;
+                        irStmtInfo[s1].kind = IRSTMT_LOAD;
+                        irStmtInfo[s1].tLoad.srcaddrreg = exprToIrReg[x];
+                        irStmtInfo[s1].tLoad.tgtreg = exprToIrReg[x];
                 }
                 break;
         }
@@ -108,10 +134,29 @@ void compile_expr(Expr x)
                 for (int i = firstCallArg; i < lastCallArg; i++)
                         compile_expr(callArgInfo[i].argExpr);
                 /*
-                 * Evaluate function to call
+                 * Evaluate function to call. The usual case is also a special
+                 * case: If we call an EXPR_SYMREF, that symbol's value is not
+                 * loaded, but only its address.
                  */
                 Expr calleeExpr = exprInfo[x].tCall.callee;
-                compile_expr(calleeExpr);
+                if (exprInfo[calleeExpr].kind == EXPR_SYMREF) {
+                        Symref ref = exprInfo[calleeExpr].tSymref.ref;
+                        Symbol sym = symrefInfo[ref].sym;
+                        if (sym == (Symbol) -1) {
+                                DEBUG("FATAL ERROR: symbol for ref %d (%s) is unresolved\n",
+                                      ref, string_buffer(symrefInfo[ref].name));
+                                assert(sym != (Symbol) -1);
+                        }
+                        IrStmt s0 = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[s0].proc = proc;
+                        irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
+                        irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
+                        irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[calleeExpr];
+                }
+                else {
+                        compile_expr(calleeExpr);
+                }
                 /*
                  * Emit calling code
                  */

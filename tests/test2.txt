@@ -1,0 +1,10 @@
+data int y;
+data int a;
+data int b;
+
+proc int main()
+{
+    y = 3;
+    a = 4;
+    print64(add64(a, add64(y, 8)));
+}

@@ -15,7 +15,7 @@ int main(int argc, const char **argv)
 {
         const char *fileToParse;
 
-        fileToParse = "test2.txt";
+        fileToParse = "tests/test2.txt";
         for (int i = 1; i < argc; i++) {
                 if (cstr_equal(argv[i], "-debug"))
                         doDebug = 1;

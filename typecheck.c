@@ -172,7 +172,7 @@ Type check_symref_expr_type(Expr x)
                         UNHANDLED_CASE();
                         break;
                 case SYMBOL_DATA:
-                        tp = dataInfo[symbolInfo[sym].tData].tp;
+                        tp = dataInfo[symbolInfo[sym].tData.optionaldata].tp;
                         break;
                 case SYMBOL_ARRAY:
                         tp = arrayInfo[symbolInfo[sym].tArray].tp;

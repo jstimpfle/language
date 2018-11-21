@@ -64,6 +64,10 @@ int is_imm32(Imm64 imm)
         return imm < (1ull << 32);
 }
 
+/* TODO: The approach with begin_symbol() / end_symbol() is too complicated. We
+ * should rather emit the symDefs for procs mostly independently of the machine
+ * code generation for the procs, filling in only the size of the proc code
+ * after the proc code is generated. */
 INTERNAL
 void begin_symbol(Symbol sym)
 {
@@ -80,6 +84,24 @@ void end_symbol(void)
 {
         SymDef sd = symDefCnt - 1;
         symDefInfo[sd].size = codeSectionCnt - symDefInfo[sd].offset;
+}
+
+/* BSS is unix/ELF/whatever speak for "uninitialized" data (data that gets
+ * zeroed at startup). TODO: what about the offset? */
+INTERNAL
+void make_bss_data_symbol(Symbol sym)
+{
+        int size = 8; //XXX: size of the data object the symbol points to
+        int offset = zerodataSectionCnt;
+        zerodataSectionCnt += size;
+
+        assert(symbolInfo[sym].kind == SYMBOL_DATA);
+        SymDef sd = symDefCnt++;
+        RESIZE_GLOBAL_BUFFER(symDefInfo, symDefCnt);
+        symDefInfo[sd].symbol = sym;
+        symDefInfo[sd].kind = SECTION_DATA;
+        symDefInfo[sd].offset = offset;
+        symDefInfo[sd].size = size;
 }
 
 INTERNAL
@@ -281,6 +303,12 @@ void emit_mov_64_address_reg(Imm64 imm, int r1)
 INTERNAL
 void emit_mov_64_reloc_reg(Symbol symbol, int r1)
 {
+        int sectionKind = SECTION_CODE; /* Note: the sectionKind means the
+                                           section where the relocation (change)
+                                           is made, not where the symbol that is
+                                           referenced lives. For now, we only
+                                           have relocations in the code section
+                                           */
         int B = (r1 & ~7) ? REX_B : 0;
         emit(REX_BASE|REX_W|B);
         emit(0xb8 | r1);
@@ -289,7 +317,7 @@ void emit_mov_64_reloc_reg(Symbol symbol, int r1)
                 Reloc reloc = relocCnt++;
                 RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
                 relocInfo[reloc].symbol = symbol;
-                relocInfo[reloc].kind = SECTION_CODE;
+                relocInfo[reloc].kind = sectionKind;
                 relocInfo[reloc].offset = offset;
         }
         emit64(0x00);
@@ -351,12 +379,8 @@ INTERNAL
 void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
 {
         int r1 = X64_RAX;
-        if (symbolInfo[symbol].scope == SCOPE_GLOBAL)
-                emit_mov_64_reloc_reg(symbol, r1);
-        else
-                /* for now. TODO: get proper register or memory location where
-                 * symbol is */
-                emit_mov_64_address_reg(0, r1);
+        assert(symbolInfo[symbol].scope == SCOPE_GLOBAL);
+        emit_mov_64_reloc_reg(symbol, r1);
         emit_mov_64_reg_stack(r1, loc);
 }
 
@@ -496,6 +520,10 @@ void x64asm_proc(IrProc irp)
 
 void codegen_x64(void)
 {
+        /* TODO: do we need an "IrData" type? */
+        for (Data x = 0; x < dataCnt; x++)
+                make_bss_data_symbol(dataInfo[x].sym);
+
         for (IrProc x = 0; x < irProcCnt; x++)
                 x64asm_proc(x);
 
