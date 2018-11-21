@@ -379,76 +379,29 @@ void write_Elf64_Uchar(Elf64_Uchar x, FILE *f)
         fputc(x, f);
 }
 
-#define BYTE(x, n) ((unsigned char) ((uint64_t) (x) >> ((n)*8)))
-void write_Elf64_Addr(Elf64_Addr x, FILE *f)
-{
-        fputc(BYTE(x, 0), f);
-        fputc(BYTE(x, 1), f);
-        fputc(BYTE(x, 2), f);
-        fputc(BYTE(x, 3), f);
-        fputc(BYTE(x, 4), f);
-        fputc(BYTE(x, 5), f);
-        fputc(BYTE(x, 6), f);
-        fputc(BYTE(x, 7), f);
+/* I *hope* this is portable serialization. To make sure we're serializing in
+ * little-endian order, we're writing byte-by-byte. And since shifting signed
+ * integers is implementation defined, we cast to the unsigned type uint64_t.
+ * Which also means that we can't serialize values that are not representable in
+ * uint64_t. */
+#define DEFINE_WRITE_FUNCTION(n, t) \
+void n(t x, FILE *f) \
+{ \
+        uint64_t y = x; \
+        assert((t) y == x); \
+        for (size_t i = 0; i < sizeof (x); i++) { \
+                fputc(y, f); \
+                y >>= 8; \
+        } \
 }
 
-void write_Elf64_Off(Elf64_Off x, FILE *f)
-{
-        fputc(BYTE(x, 0), f);
-        fputc(BYTE(x, 1), f);
-        fputc(BYTE(x, 2), f);
-        fputc(BYTE(x, 3), f);
-        fputc(BYTE(x, 4), f);
-        fputc(BYTE(x, 5), f);
-        fputc(BYTE(x, 6), f);
-        fputc(BYTE(x, 7), f);
-}
-
-void write_Elf64_Half(Elf64_Half x, FILE *f)
-{
-        fputc(BYTE(x, 0), f);
-        fputc(BYTE(x, 1), f);
-}
-
-void write_Elf64_Word(Elf64_Word x, FILE *f)
-{
-        fputc(BYTE(x, 0), f);
-        fputc(BYTE(x, 1), f);
-        fputc(BYTE(x, 2), f);
-        fputc(BYTE(x, 3), f);
-}
-
-void write_Elf64_Sword(Elf64_Sword x, FILE *f)
-{
-        fputc(BYTE(x, 0), f);
-        fputc(BYTE(x, 1), f);
-        fputc(BYTE(x, 2), f);
-        fputc(BYTE(x, 3), f);
-}
-
-void write_Elf64_Xword(Elf64_Xword x, FILE *f)
-{
-        fputc(BYTE(x, 0), f);
-        fputc(BYTE(x, 1), f);
-        fputc(BYTE(x, 2), f);
-        fputc(BYTE(x, 3), f);
-        fputc(BYTE(x, 4), f);
-        fputc(BYTE(x, 5), f);
-        fputc(BYTE(x, 6), f);
-        fputc(BYTE(x, 7), f);
-}
-
-void write_Elf64_Sxword(Elf64_Sxword x, FILE *f)
-{
-        fputc(BYTE(x, 0), f);
-        fputc(BYTE(x, 1), f);
-        fputc(BYTE(x, 2), f);
-        fputc(BYTE(x, 3), f);
-        fputc(BYTE(x, 4), f);
-        fputc(BYTE(x, 5), f);
-        fputc(BYTE(x, 6), f);
-        fputc(BYTE(x, 7), f);
-}
+DEFINE_WRITE_FUNCTION(write_Elf64_Addr, Elf64_Addr)
+DEFINE_WRITE_FUNCTION(write_Elf64_Off, Elf64_Off)
+DEFINE_WRITE_FUNCTION(write_Elf64_Half, Elf64_Half)
+DEFINE_WRITE_FUNCTION(write_Elf64_Word, Elf64_Word)
+DEFINE_WRITE_FUNCTION(write_Elf64_Sword, Elf64_Sword)
+DEFINE_WRITE_FUNCTION(write_Elf64_Xword, Elf64_Xword)
+DEFINE_WRITE_FUNCTION(write_Elf64_Sxword, Elf64_Sxword)
 
 void write_Elf64_Ehdr(const struct Elf64_Ehdr *h, FILE *f)
 {
