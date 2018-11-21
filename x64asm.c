@@ -46,13 +46,13 @@ int find_stack_loc(IrReg irreg)
         return -r;
 }
 
-INTERNAL UNUSED
+INTERNAL UNUSEDFUNC
 int is_imm8(Imm64 imm)
 {
         return imm < (1u << 8);
 }
 
-INTERNAL UNUSED
+INTERNAL UNUSEDFUNC
 int is_imm16(Imm64 imm)
 {
         return imm < (1u << 16);
@@ -228,7 +228,7 @@ static inline void emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
         }
 }
 
-INTERNAL UNUSED
+INTERNAL UNUSEDFUNC
 void emit_add_64_reg_indirect(int r1, int r2, long d)
 {
         int R = (r1 & ~7) ? REX_R : 0;
@@ -238,7 +238,7 @@ void emit_add_64_reg_indirect(int r1, int r2, long d)
         emit_modrmreg_and_displacement_bytes(r1, r2, d);
 }
 
-INTERNAL UNUSED
+INTERNAL UNUSEDFUNC
 void emit_add_64_indirect_reg(int r1, int r2, long d)
 {
         int R = (r2 & ~7) ? REX_R : 0;
@@ -248,7 +248,7 @@ void emit_add_64_indirect_reg(int r1, int r2, long d)
         emit_modrmreg_and_displacement_bytes(r2, r1, d);
 }
 
-INTERNAL UNUSED
+INTERNAL UNUSEDFUNC
 void emit_add_64_reg_reg(int r1, int r2)
 {
         int R = (r1 & ~7) ? REX_R : 0;
@@ -290,7 +290,7 @@ void emit_mov_64_imm_reg(Imm64 imm, int r1)
 }
 
 /* Like emit_mov_64_imm_reg(), but always use the 8-byte version */
-INTERNAL UNUSED
+INTERNAL UNUSEDFUNC
 void emit_mov_64_address_reg(Imm64 imm, int r1)
 {
         int B = (r1 & ~7) ? REX_B : 0;
