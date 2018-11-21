@@ -849,6 +849,8 @@ DATA String constStr[NUM_CONSTSTRS];  // has initializer
 /**/
 
 DATA int doDebug;
+DATA int doPrettyPrintAst;
+DATA int doDumpIr;
 
 DATA File currentFile;
 DATA int currentOffset;
@@ -947,8 +949,6 @@ void read_whole_file(File file);
 void clear_mem(void *ptr, int size);
 void copy_mem(void *dst, const void *src, int size);
 int compare_mem(const void *m1, const void *m2, int size);
-int cstr_length(const char *s);
-int cstr_compare(const char *s1, const char *m2);
 void sort_array(void *ptr, int nelems, int elemsize,
                 int (*compare)(const void*, const void*));
 
@@ -961,6 +961,14 @@ void sort_array(void *ptr, int nelems, int elemsize,
 /*
  * io.c
  */
+
+int cstr_length(const char *s);
+int cstr_compare(const char *s1, const char *m2);
+
+static inline int cstr_equal(const char *a, const char *b)
+{
+        return cstr_compare(a, b) == 0;
+}
 
 void outs(const char *s);
 void outf(const char *fmt, ...);

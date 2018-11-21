@@ -22,18 +22,16 @@ void compile_expr(Expr x)
                          * value but assign to it. This is lvalue vs rvalue
                          * here, TODO: think of a cleaner way to do assignments,
                          * or at least structure the code better. */
+                        compile_expr(e2);
                         assert(exprInfo[e1].kind == EXPR_SYMREF);
                         Symref ref = exprInfo[e1].tSymref.ref;
                         Symbol sym = symrefInfo[ref].sym;
                         if (symbolInfo[sym].kind == SYMBOL_DATA &&
                             symbolInfo[sym].scope == SCOPE_PROC) {
                                 Data data = symbolInfo[sym].tData;
-                                DEBUG("compile e2...\n");
-                                compile_expr(e2);
-                                DEBUG("ok\n");
-                                IrStmt y = irStmtCnt++;
                                 IrReg srcreg = exprToIrReg[e2];
                                 IrReg tgtreg = dataToIrReg[data];
+                                IrStmt y = irStmtCnt++;
                                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                                 irStmtInfo[y].proc = proc;
                                 irStmtInfo[y].kind = IRSTMT_REGREG;

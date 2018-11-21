@@ -17,8 +17,12 @@ int main(int argc, const char **argv)
 
         fileToParse = "test2.txt";
         for (int i = 1; i < argc; i++) {
-                if (cstr_compare(argv[i], "-debug") == 0)
+                if (cstr_equal(argv[i], "-debug"))
                         doDebug = 1;
+                else if (cstr_equal(argv[i], "-prettyprint-ast"))
+                        doPrettyPrintAst = 1;
+                else if (cstr_equal(argv[i], "-dump-ir"))
+                        doDumpIr = 1;
                 else
                         fileToParse = argv[i];
         }
@@ -43,14 +47,18 @@ int main(int argc, const char **argv)
         MSG(lvl_info, "Check types...\n");
         check_types();
 
-        MSG(lvl_info, "Pretty print input...\n\n");
-        prettyprint();
+        if (doPrettyPrintAst) {
+                MSG(lvl_info, "Pretty print input...\n\n");
+                prettyprint();
+        }
 
         MSG(lvl_info, "Compile to IR...\n");
         compile_to_IR();
 
-        MSG(lvl_info, "Test IR pretty printer...\n");
-        irprint();
+        if (doDumpIr) {
+                MSG(lvl_info, "Test IR pretty printer...\n");
+                irprint();
+        }
 
         MSG(lvl_info, "A little codegen test...\n");
         codegen_x64();
