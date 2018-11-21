@@ -166,6 +166,7 @@ enum {
         BUFFER_callArgInfo,
         /* AST -> IR */
         BUFFER_procToIrProc,
+        BUFFER_dataToIrReg,
         BUFFER_exprToIrReg,
         /* IR */
         BUFFER_irSymbolInfo,
@@ -302,6 +303,7 @@ enum {
         IRSTMT_LOADSYMBOLADDR,
         IRSTMT_LOAD,
         IRSTMT_STORE,
+        IRSTMT_REGREG,
         IRSTMT_CALL,
         IRSTMT_CONDGOTO,
         IRSTMT_GOTO,
@@ -740,6 +742,11 @@ struct IrStoreStmtInfo {
         IrReg tgtaddrreg;
 };
 
+struct IrRegregStmtInfo {
+        IrReg srcreg;
+        IrReg tgtreg;
+};
+
 struct IrCallStmtInfo {
         IrReg calleeReg;
         IrCallArg firstIrCallArg;  // speed-up
@@ -770,6 +777,7 @@ struct IrStmtInfo {
                 struct IrLoadSymbolAddrStmtInfo tLoadSymbolAddr;
                 struct IrLoadStmtInfo tLoad;
                 struct IrStoreStmtInfo tStore;
+                struct IrRegregStmtInfo tRegreg;
                 struct IrCallStmtInfo tCall;
                 struct IrCondGotoStmtInfo tCondGoto;
                 struct IrGotoStmtInfo tGoto;
@@ -898,6 +906,7 @@ DATA struct ChildStmtInfo *childStmtInfo;
 DATA struct CallArgInfo *callArgInfo;
 
 DATA IrProc *procToIrProc;
+DATA IrReg *dataToIrReg;
 DATA IrReg *exprToIrReg;
 
 

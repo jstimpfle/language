@@ -62,6 +62,12 @@ void irp_proc(IrProc p)
                         outs(", ");
                         irp_reg(irStmtInfo[i].tStore.tgtaddrreg);
                         break;
+                case IRSTMT_REGREG:
+                        outs("MOV   ");
+                        irp_reg(irStmtInfo[i].tRegreg.srcreg);
+                        outs(", ");
+                        irp_reg(irStmtInfo[i].tRegreg.tgtreg);
+                        break;
                 case IRSTMT_CALL: {
                         outs("CALL  ");
                         irp_reg(irStmtInfo[i].tCall.calleeReg);

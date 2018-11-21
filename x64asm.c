@@ -105,7 +105,6 @@ void emit16(uint32_t c)
         emit_bytes(bs, LENGTH(bs));
 }
 
-#define BYTE(x, n) ((unsigned long long) (x) >> (8*(n)))
 void emit32(uint32_t c)
 {
         uchar bs[] = { BYTE(c, 0), BYTE(c, 1), BYTE(c, 2), BYTE(c, 3) };
@@ -155,21 +154,12 @@ int make_sib_byte(unsigned scale, unsigned r1, unsigned r2)
 
 /* Emit the MOD-REG-R/M byte and the optional SIB and displacement byte(s).
  *
- * r1 and r2 are interpreted without the 4th LSB,
- * such that they are always one of the low 8 registers. (The 4th LSB is encoded
- * in a different place in the x64 ISA).
+ * r1 and r2 are interpreted without the 4th LSB, such that they are always one
+ * of the low 8 registers. (The 4th LSB is encoded in a different place in the
+ * x64 ISA).
  *
  * d is the displacement (register relative offset, which applies to r1 or to r2
- * depending on the preceding opcode). The value of d determines the 2 MSB of
- * the MOD-REG-R/M byte (i.e., the MOD part).
- *
- * If d == 0, MOD = 0b00 (no displacement, and no displacement bytes following).
- *
- * Else if -128 <= d <= 127, MOD = 0b01 (8bit signed displacement, and 1
- * displacement byte following).
- *
- * Else MOD = 0b10 (32bit signed displacement, and 4 displacement bytes
- * following).
+ * depending on the preceding opcode).
  */
 static inline void emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
 {
@@ -400,9 +390,7 @@ INTERNAL
 void x64asm_proc(IrProc irp)
 {
         begin_symbol(irProcInfo[irp].symbol);
-
         emit_function_prologue();
-        /* for each variable, find a place on the stack */
         for (IrStmt irs = irProcInfo[irp].firstIrStmt;
              irs < irStmtCnt && irStmtInfo[irs].proc == irp;
              irs++) {
@@ -439,6 +427,15 @@ void x64asm_proc(IrProc irp)
                         emit_mov_64_stack_reg(srcloc, X64_RAX);
                         emit_mov_64_stack_reg(tgtloc, X64_RCX);
                         emit_mov_64_reg_indirect(X64_RAX, X64_RCX, 0);
+			break;
+                }
+                case IRSTMT_REGREG: {
+                        IrReg srcreg = irStmtInfo[irs].tRegreg.srcreg;
+                        IrReg tgtreg = irStmtInfo[irs].tRegreg.tgtreg;
+                        X64StackLoc srcloc = find_stack_loc(srcreg);
+                        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+                        emit_mov_64_stack_reg(srcloc, X64_RAX);
+                        emit_mov_64_reg_stack(X64_RAX, tgtloc);
 			break;
                 }
                 case IRSTMT_CALL: {
@@ -481,15 +478,18 @@ void x64asm_proc(IrProc irp)
                                 X64StackLoc loc = find_stack_loc(irreg);
                                 emit_mov_64_stack_reg(loc, X64_RAX);
                         }
-                        goto funcreturn;
+                        /* if it's not the last statement then emit an extra
+                         * return */
+                        if (irs+1 < irStmtCnt &&
+                            irStmtInfo[irs+1].proc == irStmtInfo[irs].proc) {
+                                emit_function_epilogue();
+                        }
 			break;
                 }
                 default:
                         UNHANDLED_CASE();
                 }
         }
-
-funcreturn:
         emit_function_epilogue();
         end_symbol();
 }

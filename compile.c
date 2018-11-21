@@ -17,27 +17,55 @@ void compile_expr(Expr x)
         case EXPR_BINOP: {
                 Expr e1 = exprInfo[x].tBinop.expr1;
                 Expr e2 = exprInfo[x].tBinop.expr2;
-                compile_expr(e1);
-                compile_expr(e2);
-                IrCallArg arg1 = irCallArgCnt++;
-                IrCallArg arg2 = irCallArgCnt++;
-                IrCallResult ret = irCallResultCnt++;
-                IrStmt y = irStmtCnt++;
-                RESIZE_GLOBAL_BUFFER(irCallArgInfo, irCallArgCnt);
-                RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irCallArgInfo[arg1].srcreg = exprToIrReg[e1];
-                irCallArgInfo[arg2].srcreg = exprToIrReg[e2];
-                irCallArgInfo[arg1].callStmt = y;
-                irCallArgInfo[arg2].callStmt = y;
-                irCallResultInfo[ret].callStmt = y;
-                irCallResultInfo[ret].tgtreg = exprToIrReg[x];
-                irStmtInfo[y].proc = proc;
-                // XXX: We "call" the binop operation. This is very inefficient.
-                irStmtInfo[y].kind = IRSTMT_CALL;
-                irStmtInfo[y].tCall.calleeReg = exprToIrReg[x];
-                irStmtInfo[y].tCall.firstIrCallArg = arg1;
-                irStmtInfo[y].tCall.firstIrCallResult = ret;
+                if (exprInfo[x].tBinop.kind == BINOP_ASSIGN) {
+                        /* need special handling: we do not compute the lefthand
+                         * value but assign to it. This is lvalue vs rvalue
+                         * here, TODO: think of a cleaner way to do assignments,
+                         * or at least structure the code better. */
+                        assert(exprInfo[e1].kind == EXPR_SYMREF);
+                        Symref ref = exprInfo[e1].tSymref.ref;
+                        Symbol sym = symrefInfo[ref].sym;
+                        if (symbolInfo[sym].kind == SYMBOL_DATA &&
+                            symbolInfo[sym].scope == SCOPE_PROC) {
+                                Data data = symbolInfo[sym].tData;
+                                DEBUG("compile e2...\n");
+                                compile_expr(e2);
+                                DEBUG("ok\n");
+                                IrStmt y = irStmtCnt++;
+                                IrReg srcreg = exprToIrReg[e2];
+                                IrReg tgtreg = dataToIrReg[data];
+                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                                irStmtInfo[y].proc = proc;
+                                irStmtInfo[y].kind = IRSTMT_REGREG;
+                                irStmtInfo[y].tRegreg.srcreg = srcreg;
+                                irStmtInfo[y].tRegreg.tgtreg = tgtreg;
+                                // TODO: move to exprToIrReg[x] ?
+                        }
+                        else {
+                                FATAL("Can't assign to non-local variables yet.\n");
+                        }
+                }
+                else {
+                        IrCallArg arg1 = irCallArgCnt++;
+                        IrCallArg arg2 = irCallArgCnt++;
+                        IrCallResult ret = irCallResultCnt++;
+                        IrStmt y = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irCallArgInfo, irCallArgCnt);
+                        RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irCallArgInfo[arg1].srcreg = exprToIrReg[e1];
+                        irCallArgInfo[arg2].srcreg = exprToIrReg[e2];
+                        irCallArgInfo[arg1].callStmt = y;
+                        irCallArgInfo[arg2].callStmt = y;
+                        irCallResultInfo[ret].callStmt = y;
+                        irCallResultInfo[ret].tgtreg = exprToIrReg[x];
+                        // XXX: We "call" the binop operation. This is very inefficient.
+                        irStmtInfo[y].proc = proc;
+                        irStmtInfo[y].kind = IRSTMT_CALL;
+                        irStmtInfo[y].tCall.calleeReg = exprToIrReg[x];
+                        irStmtInfo[y].tCall.firstIrCallArg = arg1;
+                        irStmtInfo[y].tCall.firstIrCallResult = ret;
+                }
                 break;
         }
         case EXPR_SYMREF: {
@@ -45,18 +73,32 @@ void compile_expr(Expr x)
                 Symref ref = exprInfo[x].tSymref.ref;
                 Symbol sym = symrefInfo[ref].sym;
                 assert(sym >= 0);
-                IrReg reg = irRegCnt++;
-                IrStmt s = irStmtCnt++;
-                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irRegInfo[reg].proc = proc;
-                irRegInfo[reg].name = intern_cstring("(reg)"); //XXX
-                irRegInfo[reg].sym = sym; //XXX
-                irRegInfo[reg].tp = symTp;
-                irStmtInfo[s].proc = proc;
-                irStmtInfo[s].kind = IRSTMT_LOADSYMBOLADDR;
-                irStmtInfo[s].tLoadSymbolAddr.sym = sym;
-                irStmtInfo[s].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
+                if (symbolInfo[sym].kind == SYMBOL_DATA &&
+                    symbolInfo[sym].scope == SCOPE_PROC) {
+                        Data data = symbolInfo[sym].tData;
+                        IrStmt y = irStmtCnt++;
+                        IrReg srcreg = dataToIrReg[data];
+                        IrReg tgtreg = exprToIrReg[x];
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[y].proc = proc;
+                        irStmtInfo[y].kind = IRSTMT_REGREG;
+                        irStmtInfo[y].tRegreg.srcreg = srcreg;
+                        irStmtInfo[y].tRegreg.tgtreg = tgtreg;
+                }
+                else {
+                        IrReg reg = irRegCnt++;
+                        IrStmt s = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irRegInfo[reg].proc = proc;
+                        irRegInfo[reg].name = intern_cstring("(reg)"); //XXX
+                        irRegInfo[reg].sym = sym; //XXX
+                        irRegInfo[reg].tp = symTp;
+                        irStmtInfo[s].proc = proc;
+                        irStmtInfo[s].kind = IRSTMT_LOADSYMBOLADDR;
+                        irStmtInfo[s].tLoadSymbolAddr.sym = sym;
+                        irStmtInfo[s].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
+                }
                 break;
         }
         case EXPR_CALL: {
@@ -205,12 +247,16 @@ void compile_to_IR(void)
         }
 
         DEBUG("For each local variable make an IrReg to hold it\n");
+        RESIZE_GLOBAL_BUFFER(dataToIrReg, dataCnt);
+        for (Data x = 0; x < dataCnt; x++)
+                dataToIrReg[x] = (IrReg) -1;
         for (Data x = 0; x < dataCnt; x++) {
                 Scope s = dataInfo[x].scope;
                 if (scopeInfo[s].kind == SCOPE_PROC) {
                         Proc p = scopeInfo[s].tProc.proc;
                         IrProc irp = procToIrProc[p];
                         IrReg r = irRegCnt++;
+                        dataToIrReg[x] = r;
                         RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
                         irRegInfo[r].proc = irp;
                         irRegInfo[r].name = symbolInfo[dataInfo[x].sym].name;

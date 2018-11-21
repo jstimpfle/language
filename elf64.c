@@ -644,7 +644,7 @@ void write_elf64_object(const char *outfilepath)
                         int offset = relocInfo[i].offset;
                         int es = symbolToElfsym[sym];
                         if (es == -1)
-                                FATAL("There is a relocation for a symbol that is not in .symtab (is this an internal error?)\n");
+                                FATAL("There is a relocation for symbol %s which is not in .symtab (is this an internal error?)\n", SS(sym));
                         int x = relaTextCnt++;
                         BUF_RESERVE(&relaText, &relaTextAlloc, relaTextCnt);
                         /* XXX: I got this from another place: "1" stands for a
