@@ -244,27 +244,6 @@ Token parse_next_token(void)
                 }
                 ans = add_integer_token(currentFile, off, x);
         }
-        else if (c == '(') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_LEFTPAREN);
-        }
-        else if (c == ')') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_RIGHTPAREN);
-        }
-        else if (c == '{') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_LEFTBRACE);
-        }
-        else if (c == '}') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_RIGHTBRACE);
-        }
-        else if (c == '[') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_LEFTBRACKET);
-        }
-        else if (c == ']') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_RIGHTBRACKET);
-        }
-        else if (c == '.') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_DOT);
-        }
         else if (c == '-') {
                 c = look_char();
                 if (c == '-') {
@@ -288,36 +267,6 @@ Token parse_next_token(void)
                         ans = add_bare_token(currentFile, off, TOKTYPE_PLUS);
                 }
         }
-        else if (c == '*') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_ASTERISK);
-        }
-        else if (c == '/') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_SLASH);
-        }
-        else if (c == ',') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_COMMA);
-        }
-        else if (c == ';') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_SEMICOLON);
-        }
-        else if (c == ':') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_COLON);
-        }
-        else if (c == '&') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_AMPERSAND);
-        }
-        else if (c == '|') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_PIPE);
-        }
-        else if (c == '^') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_CARET);
-        }
-        else if (c == '~') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_TILDE);
-        }
-        else if (c == '!') {
-                ans = add_bare_token(currentFile, off, TOKTYPE_BANG);
-        }
         else if (c == '=') {
                 c = look_char();
                 if (c == '=') {
@@ -331,8 +280,39 @@ Token parse_next_token(void)
                 }
         }
         else {
-                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-                                     "Failed to lex token\n");
+                static const struct { char c; int kind; } tt[] = {
+                        { '(', TOKTYPE_LEFTPAREN },
+                        { ')', TOKTYPE_RIGHTPAREN },
+                        { '{', TOKTYPE_LEFTBRACE },
+                        { '}', TOKTYPE_RIGHTBRACE },
+                        { '[', TOKTYPE_LEFTBRACKET },
+                        { ']', TOKTYPE_RIGHTBRACKET },
+                        { '.', TOKTYPE_DOT },
+                        { '*', TOKTYPE_ASTERISK },
+                        { '/', TOKTYPE_SLASH },
+                        { ',', TOKTYPE_COMMA },
+                        { ';', TOKTYPE_SEMICOLON },
+                        { ':', TOKTYPE_COLON },
+                        { '&', TOKTYPE_AMPERSAND },
+                        { '|', TOKTYPE_PIPE },
+                        { '^', TOKTYPE_CARET },
+                        { '~', TOKTYPE_TILDE },
+                        { '!', TOKTYPE_BANG },
+                };
+
+                ans = -1;
+
+                for (int i = 0; i < LENGTH(tt); i++) {
+                        if (c == tt[i].c) {
+                                ans = add_bare_token(currentFile, off, tt[i].kind);
+                                break;
+                        }
+                }
+
+                if (ans == -1) {
+                        FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
+                                             "Failed to lex token\n");
+                }
         }
 
         return ans;
