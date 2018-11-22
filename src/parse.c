@@ -173,7 +173,7 @@ void push_scope(Scope scope)
 INTERNAL
 void pop_scope(void)
 {
-        assert(scopeStackCnt > 1);
+        ASSERT(scopeStackCnt > 1);
         scopeStackCnt--;
         currentScope = scopeStack[scopeStackCnt-1];
 }
@@ -991,14 +991,14 @@ void parse_global_scope(void)
 
         for (int i = childStmtCnt; i --> 0;) {
                 Stmt parent = childStmtInfo[i].parent;
-                assert(stmtInfo[parent].kind == STMT_COMPOUND);
+                ASSERT(stmtInfo[parent].kind == STMT_COMPOUND);
                 stmtInfo[parent].tCompound.numStatements++;
                 stmtInfo[parent].tCompound.firstChildStmtIdx = i;
         }
 
         for (int i = callArgCnt; i --> 0;) {
                 Expr callee = callArgInfo[i].callExpr;
-                assert(exprInfo[callee].kind == EXPR_CALL);
+                ASSERT(exprInfo[callee].kind == EXPR_CALL);
                 exprInfo[callee].tCall.nargs++;
                 exprInfo[callee].tCall.firstArgIdx = i;
         }

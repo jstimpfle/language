@@ -983,15 +983,15 @@ static inline int cstr_equal(const char *a, const char *b)
 
 void outs(const char *s);
 void outf(const char *fmt, ...);
-void outfv(const char *fmt, va_list ap);
 void _msg(const char *filename, int line,
           const char *loglevel, const char *fmt, ...);
 void _msg_begin(const char *srcfilename, int srcline,
                 const char *loglevel);
 void _msg_printf(const char *fmt, ...);
-void _msg_printfv(const char *fmt, va_list ap);
 void _msg_end(void);
 void NORETURN _abort(void);
+void NORETURN _abort_on_failed_assertion(const char * assertion,
+                 const char * file, unsigned int line, const char * function);
 void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
 
 #define MSG(lvl, fmt, ...) _msg(__FILE__, __LINE__, (lvl), (fmt), ##__VA_ARGS__)
@@ -1003,14 +1003,15 @@ void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
                 _msg(__FILE__, __LINE__, "DEBUG", __VA_ARGS__); \
 } while (0)
 
+#define ASSERT(x) do { \
+        if (!(x)) \
+                _abort_on_failed_assertion(#x, __FILE__, __LINE__, __func__); \
+} while (0)
+
 
 /*
 * messages.c
 */
-
-void _msg_at_v(const char *srcfilename, int srcline,
-        const char *lvl, File file, int offset,
-        const char *fmt, va_list ap);
 
 void _msg_at(const char *srcfilename, int srcline,
         const char *lvl, File file, int offset,

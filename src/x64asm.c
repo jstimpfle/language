@@ -95,7 +95,7 @@ void make_bss_data_symbol(Symbol sym)
         int offset = zerodataSectionCnt;
         zerodataSectionCnt += size;
 
-        assert(symbolInfo[sym].kind == SYMBOL_DATA);
+        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
         SymDef sd = symDefCnt++;
         RESIZE_GLOBAL_BUFFER(symDefInfo, symDefCnt);
         symDefInfo[sd].symbol = sym;
@@ -145,9 +145,9 @@ void emit64(uint32_t c)
 INTERNAL
 int make_modrm_byte(unsigned mod, unsigned reg, unsigned rm)
 {
-        assert(mod < 4);
-        assert(reg < 8);
-        assert(rm < 8);
+        ASSERT(mod < 4);
+        ASSERT(reg < 8);
+        ASSERT(rm < 8);
         return (mod << 6) | (reg << 3) | rm;
 }
 
@@ -162,9 +162,9 @@ enum {
 INTERNAL
 int make_sib_byte(unsigned scale, unsigned r1, unsigned r2)
 {
-        assert(scale < 4);
-        assert(r1 < 8);
-        assert(r2 < 8);
+        ASSERT(scale < 4);
+        ASSERT(r1 < 8);
+        ASSERT(r2 < 8);
         return (scale << 6) | (r1 << 3) | r2;
 }
 
@@ -202,8 +202,8 @@ static inline void emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
                 mod = 0x01;
         }
         else {
-                assert(-(1LL << 31) <= d);
-                assert(d < (1LL << 31));
+                ASSERT(-(1LL << 31) <= d);
+                ASSERT(d < (1LL << 31));
                 mod = 0x02;
         }
 
@@ -379,7 +379,7 @@ INTERNAL
 void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
 {
         int r1 = X64_RAX;
-        assert(symbolInfo[symbol].scope == SCOPE_GLOBAL);
+        ASSERT(symbolInfo[symbol].scope == SCOPE_GLOBAL);
         emit_mov_64_reloc_reg(symbol, r1);
         emit_mov_64_reg_stack(r1, loc);
 }

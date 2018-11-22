@@ -78,7 +78,7 @@ String intern_string(const void *buf, int len)
                 }
         }
         // MUST BE POWER OF 2 !!!!
-        assert((strBucketCnt & (strBucketCnt-1)) == 0);
+        ASSERT((strBucketCnt & (strBucketCnt-1)) == 0);
 
         hsh = hash_string(buf, len);
         s = lookup_string_with_hash(buf, len, hsh);

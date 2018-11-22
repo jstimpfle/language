@@ -87,19 +87,19 @@ void outs(const char *s)
         //fflush(stdout);
 }
 
+void outfv(const char *fmt, va_list ap)
+{
+        vfprintf(stdout, fmt, ap);
+        //XXX remove this later
+        //fflush(stdout);
+}
+
 void outf(const char *fmt, ...)
 {
         va_list ap;
         va_start(ap, fmt);
         outfv(fmt, ap);
         va_end(ap);
-}
-
-void outfv(const char *fmt, va_list ap)
-{
-        vfprintf(stdout, fmt, ap);
-        //XXX remove this later
-        //fflush(stdout);
 }
 
 void _msg_begin(const char *srcfilename, int srcline,
@@ -109,17 +109,17 @@ void _msg_begin(const char *srcfilename, int srcline,
         fprintf(stdout, "%s: ", loglevel);
 }
 
+void _msg_printfv(const char *fmt, va_list ap)
+{
+        vfprintf(stdout, fmt, ap);
+}
+
 void _msg_printf(const char *fmt, ...)
 {
         va_list ap;
         va_start(ap, fmt);
-        vfprintf(stdout, fmt, ap);
+        _msg_printfv(fmt, ap);
         va_end(ap);
-}
-
-void _msg_printfv(const char *fmt, va_list ap)
-{
-        vfprintf(stdout, fmt, ap);
 }
 
 void _msg_end(void)
@@ -147,6 +147,13 @@ void _msg(const char *srcfilename, int srcline,
 void _abort(void)
 {
         abort();
+}
+
+void NORETURN _abort_on_failed_assertion(const char * assertion,
+                 const char * file, unsigned int line, const char * function)
+{
+        _fatal(file, line, "In %s(): failed assertion %s\n",
+               function, assertion);
 }
 
 void NORETURN _fatal(const char *srcfilename, int srcline,

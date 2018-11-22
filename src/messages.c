@@ -1,5 +1,6 @@
 #include "defs.h"
 #include "api.h"
+#include <stdarg.h>
 
 /* offset may be 1 past the end of file (i.e., equal to file size) */
 INTERNAL
@@ -58,7 +59,7 @@ void find_expr_position(Expr x, File *file, int *offset)
                 }
                 break;
         }
-        assert(tok != -1);
+        ASSERT(tok != -1);
         *file = tokenInfo[tok].file;
         *offset = tokenInfo[tok].offset;
 }

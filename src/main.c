@@ -14,8 +14,6 @@ void free_buffers(void)
                           globalBufferInfo[i].elemsize, __FILE__, __LINE__);
 }
 
-#include <stdlib.h>
-#include <stdio.h>
 int main(int argc, const char **argv)
 {
         const char *fileToParse;

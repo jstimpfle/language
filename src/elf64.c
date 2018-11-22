@@ -388,7 +388,7 @@ void write_Elf64_Uchar(Elf64_Uchar x, FILE *f)
 void n(t x, FILE *f) \
 { \
         uint64_t y = x; \
-        assert((t) y == x); \
+        ASSERT((t) y == x); \
         for (size_t i = 0; i < sizeof (x); i++) { \
                 fputc(y, f); \
                 y >>= 8; \
@@ -561,12 +561,12 @@ void write_elf64_object(const char *outfilepath)
                 int shndx;
                 Symbol sym = symDefInfo[i].symbol;
                 if (symbolInfo[sym].kind == SYMBOL_PROC) {
-                        assert(symbolInfo[sym].tProc.optionalproc != -1);
+                        ASSERT(symbolInfo[sym].tProc.optionalproc != -1);
                         sttKind = STT_FUNC;
                         shndx = ES_TEXT; // symbol references the .text section
                 }
                 else if (symbolInfo[sym].kind == SYMBOL_DATA) {
-                        assert(symbolInfo[sym].tData.optionaldata != -1);
+                        ASSERT(symbolInfo[sym].tData.optionaldata != -1);
                         sttKind = STT_OBJECT;
                         shndx = ES_BSS;  // for now all data is in .bss
                 }

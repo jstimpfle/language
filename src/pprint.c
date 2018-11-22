@@ -259,7 +259,7 @@ void pp_stmt(Stmt stmt)
                 pp_array_stmt(stmt);
                 break;
         default:
-                assert(0 && "Unhandled!\n");
+                ASSERT(0 && "Unhandled!\n");
         }
 }
 

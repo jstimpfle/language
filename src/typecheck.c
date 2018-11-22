@@ -90,7 +90,7 @@ void resolve_ref_type(Type t)
         default:
                 UNHANDLED_CASE();
         }
-        assert(isComplete != unassigned);
+        ASSERT(isComplete != unassigned);
         typeInfo[t].isComplete = isComplete;
 }
 
@@ -107,7 +107,7 @@ void resolve_type_references(void)
                 if (typeInfo[t].isComplete == -2)
                         resolve_ref_type(t);
         for (Type t = 0; t < typeCnt; t++) {
-                assert(typeInfo[t].isComplete == 1 ||
+                ASSERT(typeInfo[t].isComplete == 1 ||
                        typeInfo[t].isComplete == 0);
         }
 }
@@ -121,7 +121,7 @@ int is_integral_type(Type t)
 INTERNAL
 int is_bad_type(Type t)
 {
-        assert(t >= 0);  // is this really true?
+        ASSERT(t >= 0);  // is this really true?
         return ! typeInfo[t].isComplete;
 }
 
@@ -134,11 +134,11 @@ int type_equal(Type a, Type b)
                 return 0;
         while (typeInfo[a].kind == TYPE_REFERENCE) {
                 a = typeInfo[a].tRef.resolvedTp;
-                assert(a != -1);
+                ASSERT(a != -1);
         }
         while (typeInfo[b].kind == TYPE_REFERENCE) {
                 b = typeInfo[b].tRef.resolvedTp;
-                assert(a != -1);
+                ASSERT(a != -1);
         }
         return a == b;
 }
@@ -338,7 +338,7 @@ Type check_expr_type(Expr x)
 
 void check_types(void)
 {
-        assert(globalBufferAlloc[BUFFER_exprType].cap == 0);
+        ASSERT(globalBufferAlloc[BUFFER_exprType].cap == 0);
         RESIZE_GLOBAL_BUFFER(exprType, exprCnt);
         for (Expr x = 0; x < exprCnt; x++)
                 check_expr_type(x);

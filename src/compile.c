@@ -23,13 +23,13 @@ void compile_expr(Expr x)
                          * here, TODO: think of a cleaner way to do assignments,
                          * or at least structure the code better. */
                         compile_expr(e2);
-                        assert(exprInfo[e1].kind == EXPR_SYMREF);
+                        ASSERT(exprInfo[e1].kind == EXPR_SYMREF);
                         Symref ref = exprInfo[e1].tSymref.ref;
                         Symbol sym = symrefInfo[ref].sym;
                         if (symbolInfo[sym].kind == SYMBOL_DATA &&
                             symbolInfo[sym].scope == SCOPE_PROC) {
                                 Data data = symbolInfo[sym].tData.optionaldata;
-                                assert(data != (Data) -1);  // proc-local data must exist
+                                ASSERT(data != (Data) -1);  // proc-local data must exist
                                 IrReg srcreg = exprToIrReg[e2];
                                 IrReg tgtreg = dataToIrReg[data];
                                 IrStmt y = irStmtCnt++;
@@ -89,11 +89,11 @@ void compile_expr(Expr x)
                 Type symTp = exprType[x];
                 Symref ref = exprInfo[x].tSymref.ref;
                 Symbol sym = symrefInfo[ref].sym;
-                assert(sym >= 0);
+                ASSERT(sym >= 0);
                 if (symbolInfo[sym].kind == SYMBOL_DATA &&
                     symbolInfo[sym].scope == SCOPE_PROC) {
                         Data data = symbolInfo[sym].tData.optionaldata;
-                        assert(data != (Data) -1);  // proc-local data must exist
+                        ASSERT(data != (Data) -1);  // proc-local data must exist
                         IrStmt y = irStmtCnt++;
                         IrReg srcreg = dataToIrReg[data];
                         IrReg tgtreg = exprToIrReg[x];
@@ -145,7 +145,7 @@ void compile_expr(Expr x)
                         if (sym == (Symbol) -1) {
                                 DEBUG("FATAL ERROR: symbol for ref %d (%s) is unresolved\n",
                                       ref, string_buffer(symrefInfo[ref].name));
-                                assert(sym != (Symbol) -1);
+                                ASSERT(sym != (Symbol) -1);
                         }
                         IrStmt s0 = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
