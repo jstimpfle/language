@@ -155,3 +155,13 @@ void _msg_at_expr(const char *srcfilename, int srcline,
         _msg_at_v(srcfilename, srcline, lvl, file, offset, fmt, ap);
         va_end(ap);
 }
+
+void NORETURN _fatal(const char *srcfilename, int srcline,
+                     const char *fmt, ...)
+{
+        va_list ap;
+        va_start(ap, fmt);
+        _vmsg(srcfilename, srcline, "FATAL", fmt, ap);
+        va_end(ap);
+        _abort();
+}

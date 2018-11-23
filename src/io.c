@@ -113,13 +113,3 @@ void NORETURN _abort_on_failed_assertion(const char * assertion,
         _fatal(file, line, "In %s(): failed assertion %s\n",
                function, assertion);
 }
-
-void NORETURN _fatal(const char *srcfilename, int srcline,
-                     const char *fmt, ...)
-{
-        va_list ap;
-        va_start(ap, fmt);
-        _vmsg(srcfilename, srcline, "FATAL", fmt, ap);
-        va_end(ap);
-        _abort();
-}
