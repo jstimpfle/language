@@ -63,13 +63,29 @@ void compile_expr(Expr x)
                         }
                 }
                 else {
+                        compile_expr(e1);
+                        compile_expr(e2);
+                        Symbol funcsym;
+                        switch (exprInfo[x].tBinop.kind) {
+                                //XXX lookup function symbols correctly.
+                        case BINOP_PLUS:  funcsym = 2; break;
+                        case BINOP_MINUS: funcsym = 3; break;
+                        case BINOP_MUL:   funcsym = 4; break;
+                        case BINOP_DIV:   funcsym = 5; break;
+                        default: UNHANDLED_CASE();
+                        }
                         IrCallArg arg1 = irCallArgCnt++;
                         IrCallArg arg2 = irCallArgCnt++;
                         IrCallResult ret = irCallResultCnt++;
+                        IrStmt loadStmt = irStmtCnt++;
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irCallArgInfo, irCallArgCnt);
                         RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[loadStmt].proc = proc;
+                        irStmtInfo[loadStmt].kind = IRSTMT_LOADSYMBOLADDR;
+                        irStmtInfo[loadStmt].tLoadSymbolAddr.sym = funcsym;
+                        irStmtInfo[loadStmt].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
                         irCallArgInfo[arg1].srcreg = exprToIrReg[e1];
                         irCallArgInfo[arg2].srcreg = exprToIrReg[e2];
                         irCallArgInfo[arg1].callStmt = y;

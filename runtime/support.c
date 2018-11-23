@@ -11,6 +11,21 @@ uint64_t add64(uint64_t x, uint64_t y)
         return x + y;
 }
 
+uint64_t sub64(uint64_t x, uint64_t y)
+{
+        return x - y;
+}
+
+uint64_t mul64(uint64_t x, uint64_t y)
+{
+        return x * y;
+}
+
+uint64_t div64(uint64_t x, uint64_t y)
+{
+        return x / y;
+}
+
 uint64_t print64(uint64_t x)
 {
         printf("%" PRId64 "\n", x);

@@ -5,6 +5,13 @@ data int b;
 proc int main()
 {
     y = 3;
-    a = 4;
+    a = 4 + 4;
+    print64(a);
+    a = a - 4;
+    print64(a);
+    a = a * 3;
+    print64(a);
+    a = a / 2;
+    print64(a);
     print64(add64(a, add64(y, 8)));
 }

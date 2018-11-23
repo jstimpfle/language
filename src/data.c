@@ -108,14 +108,14 @@ const struct UnopInfo unopInfo[NUM_UNOPS] = {
 const struct BinopInfo binopInfo[NUM_BINOPS] = {
 #define MAKE(x, y, z) [x] = { y, z }
         MAKE( BINOP_ASSIGN, 1,  "="  ),
-        MAKE( BINOP_EQUALS, 1,  "==" ),
-        MAKE( BINOP_MINUS,  1,  "-"  ),
-        MAKE( BINOP_PLUS,   1,  "+"  ),
-        MAKE( BINOP_MUL,    1,  "*"  ),
-        MAKE( BINOP_DIV,    1,  "/"  ),
-        MAKE( BINOP_BITAND, 1,  "&"  ),
-        MAKE( BINOP_BITOR,  1,  "|"  ),
-        MAKE( BINOP_BITXOR, 1,  "^"  ),
+        MAKE( BINOP_EQUALS, 2,  "==" ),
+        MAKE( BINOP_MINUS,  3,  "-"  ),
+        MAKE( BINOP_PLUS,   3,  "+"  ),
+        MAKE( BINOP_MUL,    4,  "*"  ),
+        MAKE( BINOP_DIV,    4,  "/"  ),
+        MAKE( BINOP_BITAND, 4,  "&"  ),
+        MAKE( BINOP_BITOR,  4,  "|"  ),
+        MAKE( BINOP_BITXOR, 4,  "^"  ),
 #undef MAKE
 };
 

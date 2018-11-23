@@ -892,6 +892,8 @@ void add_external_function(const char *name)
         symbolInfo[sym].kind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
         symbolInfo[sym].tProc.tp = tp;
         symbolInfo[sym].tProc.optionalproc = -1;
+
+        //DEBUG("added new external function #%d = %s\n", sym, SS(sym));
 }
 
 void parse_global_scope(void)
@@ -904,6 +906,9 @@ void parse_global_scope(void)
         /* add a few undefined symbols that can be linked with an external
          * object file, for now */
         add_external_function("add64");
+        add_external_function("sub64");
+        add_external_function("mul64");
+        add_external_function("div64");
         add_external_function("print64");
 
         globalScope = add_global_scope();
