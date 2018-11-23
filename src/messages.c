@@ -1,6 +1,7 @@
 #include "defs.h"
 #include "api.h"
 #include <stdarg.h>
+#include <stdio.h>
 
 /* offset may be 1 past the end of file (i.e., equal to file size) */
 INTERNAL
@@ -62,6 +63,48 @@ void find_expr_position(Expr x, File *file, int *offset)
         ASSERT(tok != -1);
         *file = tokenInfo[tok].file;
         *offset = tokenInfo[tok].offset;
+}
+
+void _msg_begin(const char *srcfilename, int srcline,
+                const char *loglevel)
+{
+        fprintf(stdout, "%s:%d:\t", srcfilename, srcline);
+        fprintf(stdout, "%s: ", loglevel);
+}
+
+void _msg_printfv(const char *fmt, va_list ap)
+{
+        vfprintf(stdout, fmt, ap);
+}
+
+void _msg_printf(const char *fmt, ...)
+{
+        va_list ap;
+        va_start(ap, fmt);
+        _msg_printfv(fmt, ap);
+        va_end(ap);
+}
+
+void _msg_end(void)
+{
+        fflush(stdout);
+}
+
+void _vmsg(const char *srcfilename, int srcline,
+           const char *loglevel, const char *fmt, va_list ap)
+{
+        _msg_begin(srcfilename, srcline, loglevel);
+        _msg_printfv(fmt, ap);
+        _msg_end();
+}
+
+void _msg(const char *srcfilename, int srcline,
+          const char *loglevel, const char *fmt, ...)
+{
+        va_list ap;
+        va_start(ap, fmt);
+        _vmsg(srcfilename, srcline, loglevel, fmt, ap);
+        va_end(ap);
 }
 
 void _msg_at_v(const char *srcfilename, int srcline,

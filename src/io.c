@@ -102,48 +102,6 @@ void outf(const char *fmt, ...)
         va_end(ap);
 }
 
-void _msg_begin(const char *srcfilename, int srcline,
-                const char *loglevel)
-{
-        fprintf(stdout, "%s:%d:\t", srcfilename, srcline);
-        fprintf(stdout, "%s: ", loglevel);
-}
-
-void _msg_printfv(const char *fmt, va_list ap)
-{
-        vfprintf(stdout, fmt, ap);
-}
-
-void _msg_printf(const char *fmt, ...)
-{
-        va_list ap;
-        va_start(ap, fmt);
-        _msg_printfv(fmt, ap);
-        va_end(ap);
-}
-
-void _msg_end(void)
-{
-        fflush(stdout);
-}
-
-void _vmsg(const char *srcfilename, int srcline,
-           const char *loglevel, const char *fmt, va_list ap)
-{
-        _msg_begin(srcfilename, srcline, loglevel);
-        _msg_printfv(fmt, ap);
-        _msg_end();
-}
-
-void _msg(const char *srcfilename, int srcline,
-          const char *loglevel, const char *fmt, ...)
-{
-        va_list ap;
-        va_start(ap, fmt);
-        _vmsg(srcfilename, srcline, loglevel, fmt, ap);
-        va_end(ap);
-}
-
 void _abort(void)
 {
         abort();

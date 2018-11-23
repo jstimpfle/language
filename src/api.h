@@ -983,12 +983,6 @@ static inline int cstr_equal(const char *a, const char *b)
 
 void outs(const char *s);
 void outf(const char *fmt, ...);
-void _msg(const char *filename, int line,
-          const char *loglevel, const char *fmt, ...);
-void _msg_begin(const char *srcfilename, int srcline,
-                const char *loglevel);
-void _msg_printf(const char *fmt, ...);
-void _msg_end(void);
 void NORETURN _abort(void);
 void NORETURN _abort_on_failed_assertion(const char * assertion,
                  const char * file, unsigned int line, const char * function);
@@ -1013,14 +1007,19 @@ void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
 * messages.c
 */
 
+void _msg(const char *filename, int line,
+        const char *loglevel, const char *fmt, ...);
+void _msg_begin(const char *srcfilename, int srcline,
+        const char *loglevel);
+void _msg_printf(const char *fmt, ...);
+void _msg_end(void);
+
 void _msg_at(const char *srcfilename, int srcline,
         const char *lvl, File file, int offset,
         const char *fmt, ...);
-
 void _msg_at_tok(const char *srcfilename, int srcline,
         const char *lvl, Token tok,
         const char *fmt, ...);
-
 void _msg_at_expr(const char *srcfilename, int srcline,
         const char *lvl, Expr expr,
         const char *fmt, ...);
