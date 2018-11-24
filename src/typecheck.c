@@ -237,7 +237,12 @@ Type check_binop_expr_type(Expr x)
         if (t1 != -1 && t2 != -1) {
                 switch (op) {
                 case BINOP_ASSIGN:
-                case BINOP_EQUALS:
+                case BINOP_GT:
+                case BINOP_LT:
+                case BINOP_GE:
+                case BINOP_LE:
+                case BINOP_EQ:
+                case BINOP_NE:
                 case BINOP_MINUS:
                 case BINOP_PLUS:
                 case BINOP_MUL:

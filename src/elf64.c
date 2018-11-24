@@ -620,6 +620,7 @@ void write_elf64_object(const char *outfilepath)
 
         for (int i = 0; i < relocCnt; i++) {
                 Symbol sym = relocInfo[i].symbol;
+                Elf64_Sxword addend = relocInfo[i].addend;
                 int offset = relocInfo[i].offset;
                 int es = symbolToElfsym[sym];
                 if (es == -1)
@@ -630,7 +631,7 @@ void write_elf64_object(const char *outfilepath)
                  * "Segment + Offset" kind of calculation */
                 relaText[x].r_info = ELF64_R_INFO(es, 1);
                 relaText[x].r_offset = offset;
-                relaText[x].r_addend = 0;
+                relaText[x].r_addend = addend;
         }
 
         /*

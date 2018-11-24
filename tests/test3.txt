@@ -1,0 +1,16 @@
+data int a;
+proc int main()
+{
+    a = 5;
+    if (0) {
+        print64(0);
+    }
+    if (1) {
+        print64(1);
+    }
+    while (a < 42) {
+        print64(a);
+        a = a + 1;
+    }
+    return 1;
+}

@@ -185,6 +185,12 @@ struct IrProcInfo {
         IrStmt firstIrReg; // speed-up
 };
 
+/* jump sources */
+struct IrOrigin {
+        IrStmt stmt;
+        IrStmt originStmt;
+};
+
 
 /*
  *
@@ -203,6 +209,7 @@ DATA int irCallResultCnt;
 DATA int irReturnResultCnt;
 DATA int irProcCnt;
 DATA int irLabelCnt;
+DATA int irOriginCnt;
 
 DATA struct IrSymbolInfo *irSymbolInfo;
 DATA struct IrRegInfo *irRegInfo;
@@ -212,3 +219,4 @@ DATA struct IrCallResultInfo *irCallResultInfo;
 DATA struct IrReturnResultInfo *irReturnResultInfo;
 DATA struct IrProcInfo *irProcInfo;
 DATA struct IrLabelInfo *irLabelInfo;
+DATA struct IrOrigin *irOrigin;

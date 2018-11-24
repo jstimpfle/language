@@ -21,10 +21,16 @@ struct SymDefInfo {
         int size;
 };
 
+struct GotoInfo {
+        int offset;  // place in the code where bytes should be edited
+        IrStmt tgtstmt;  // target IR statement of the goto
+};
+
 struct RelocInfo {
         Symbol symbol;
+        int addend;  // offset relative to position of symbol
         int kind; // SECTION_
-        int offset;
+        int offset;  // place in the code where bytes should be edited
 };
 
 DATA int zerodataSectionCnt;  /* This is the size of zero-initialized data in
@@ -36,8 +42,15 @@ DATA int zerodataSectionCnt;  /* This is the size of zero-initialized data in
 DATA int dataSectionCnt;
 DATA int codeSectionCnt;
 DATA int symDefCnt;
+DATA int gotoCnt;
 DATA int relocCnt;
 DATA unsigned char *dataSection;
 DATA unsigned char *codeSection;
 DATA struct SymDefInfo *symDefInfo;
+DATA struct GotoInfo *gotoInfo;
 DATA struct RelocInfo *relocInfo;
+DATA int *irstmtToCodepos;  /* map ir statement to the position in the generated
+                               machine code where that ir statement is
+                               implemented */
+DATA int *irprocToCodepos;  /* map ir proc to the position in the generated
+                               machine code where that ir proc is implemented */

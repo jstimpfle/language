@@ -272,7 +272,7 @@ Token parse_next_token(void)
                 if (c == '=') {
                         read_char();
                         ans = add_bare_token(currentFile, off,
-                                             TOKTYPE_DOUBLEEQUALS);
+                                             TOKTYPE_EQ);
                 }
                 else {
                         ans = add_bare_token(currentFile, off,
@@ -298,6 +298,8 @@ Token parse_next_token(void)
                         { '^', TOKTYPE_CARET },
                         { '~', TOKTYPE_TILDE },
                         { '!', TOKTYPE_BANG },
+                        { '>', TOKTYPE_GT },
+                        { '<', TOKTYPE_LT },
                 };
 
                 ans = -1;
@@ -909,6 +911,12 @@ void parse_global_scope(void)
         add_external_function("sub64");
         add_external_function("mul64");
         add_external_function("div64");
+        add_external_function("gt64");
+        add_external_function("lt64");
+        add_external_function("ge64");
+        add_external_function("le64");
+        add_external_function("eq64");
+        add_external_function("ne64");
         add_external_function("print64");
 
         globalScope = add_global_scope();

@@ -137,7 +137,12 @@ enum TokenKind {
         TOKTYPE_TILDE,
         TOKTYPE_BANG,
         TOKTYPE_ASSIGNEQUALS,
-        TOKTYPE_DOUBLEEQUALS,
+        TOKTYPE_GT,
+        TOKTYPE_LT,
+        TOKTYPE_GE,
+        TOKTYPE_LE,
+        TOKTYPE_EQ,
+        TOKTYPE_NE,
 };
 
 enum UnopKind {
@@ -156,7 +161,12 @@ enum UnopKind {
 
 enum BinopKind {
         BINOP_ASSIGN,
-        BINOP_EQUALS,
+        BINOP_GT,
+        BINOP_LT,
+        BINOP_LE,
+        BINOP_GE,
+        BINOP_EQ,
+        BINOP_NE,
         BINOP_MINUS,
         BINOP_PLUS,
         BINOP_MUL,

@@ -34,7 +34,12 @@ const char *const tokenKindString[] = {
         MAKE( TOKTYPE_TILDE ),
         MAKE( TOKTYPE_BANG ),
         MAKE( TOKTYPE_ASSIGNEQUALS ),
-        MAKE( TOKTYPE_DOUBLEEQUALS ),
+        MAKE( TOKTYPE_GT ),
+        MAKE( TOKTYPE_LT ),
+        MAKE( TOKTYPE_GE ),
+        MAKE( TOKTYPE_LE ),
+        MAKE( TOKTYPE_EQ ),
+        MAKE( TOKTYPE_NE ),
 #undef MAKE
 };
 
@@ -80,7 +85,12 @@ const struct ToktypeToPostfixUnop toktypeToPostfixUnop[] = {
 
 const struct ToktypeToBinop toktypeToBinop[] = {
         { TOKTYPE_ASSIGNEQUALS, BINOP_ASSIGN  },
-        { TOKTYPE_DOUBLEEQUALS, BINOP_EQUALS  },
+        { TOKTYPE_GT,           BINOP_GT      },
+        { TOKTYPE_LT,           BINOP_LT      },
+        { TOKTYPE_GE,           BINOP_GE      },
+        { TOKTYPE_LE,           BINOP_LE      },
+        { TOKTYPE_EQ,           BINOP_EQ      },
+        { TOKTYPE_NE,           BINOP_NE      },
         { TOKTYPE_MINUS,        BINOP_MINUS   },
         { TOKTYPE_PLUS,         BINOP_PLUS    },
         { TOKTYPE_ASTERISK,     BINOP_MUL     },
@@ -108,7 +118,12 @@ const struct UnopInfo unopInfo[NUM_UNOPS] = {
 const struct BinopInfo binopInfo[NUM_BINOPS] = {
 #define MAKE(x, y, z) [x] = { y, z }
         MAKE( BINOP_ASSIGN, 1,  "="  ),
-        MAKE( BINOP_EQUALS, 2,  "==" ),
+        MAKE( BINOP_GT, 2,  ">" ),
+        MAKE( BINOP_LT, 2,  "<" ),
+        MAKE( BINOP_GE, 2,  ">=" ),
+        MAKE( BINOP_LE, 2,  "<=" ),
+        MAKE( BINOP_EQ, 2,  "==" ),
+        MAKE( BINOP_NE, 2,  "!=" ),
         MAKE( BINOP_MINUS,  3,  "-"  ),
         MAKE( BINOP_PLUS,   3,  "+"  ),
         MAKE( BINOP_MUL,    4,  "*"  ),
@@ -179,11 +194,15 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         MAKE( irReturnResultInfo ),
         MAKE( irProcInfo ),
         MAKE( irLabelInfo ),
+        MAKE( irOrigin ),
         /* Codegen */
         MAKE( dataSection ),
         MAKE( codeSection ),
         MAKE( symDefInfo ),
+        MAKE( gotoInfo ),
         MAKE( relocInfo ),
+        MAKE( irstmtToCodepos ),
+        MAKE( irprocToCodepos ),
         /* X64 Asm */
         MAKE( x64StackLocInfo ),
         /* */

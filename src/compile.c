@@ -1,3 +1,7 @@
+/*
+ * Compile IR from parsed syntax
+ */
+
 #include "defs.h"
 #include "api.h"
 
@@ -72,6 +76,12 @@ void compile_expr(Expr x)
                         case BINOP_MINUS: funcsym = 3; break;
                         case BINOP_MUL:   funcsym = 4; break;
                         case BINOP_DIV:   funcsym = 5; break;
+                        case BINOP_GT:    funcsym = 6; break;
+                        case BINOP_LT:    funcsym = 7; break;
+                        case BINOP_GE:    funcsym = 8; break;
+                        case BINOP_LE:    funcsym = 9; break;
+                        case BINOP_EQ:    funcsym = 10; break;
+                        case BINOP_NE:    funcsym = 11; break;
                         default: UNHANDLED_CASE();
                         }
                         IrCallArg arg1 = irCallArgCnt++;
@@ -253,9 +263,9 @@ void compile_stmt(IrProc irp, Stmt stmt)
         case STMT_WHILE: {
                 Expr condExpr = stmtInfo[stmt].tIf.condExpr;
                 Stmt cldStmt = stmtInfo[stmt].tIf.childStmt;
+                IrStmt condStmt = irStmtCnt;
                 compile_expr(condExpr);
                 IrStmt irs = irStmtCnt++;
-                IrStmt firstStmtInBlock = irStmtCnt;
                 compile_stmt(irp, cldStmt);
                 IrStmt backJmp = irStmtCnt++;
                 IrStmt stmtAfterBlock = irStmtCnt;
@@ -267,7 +277,7 @@ void compile_stmt(IrProc irp, Stmt stmt)
                 irStmtInfo[irs].tCondGoto.isNeg = 1;
                 irStmtInfo[backJmp].proc = irp;
                 irStmtInfo[backJmp].kind = IRSTMT_GOTO;
-                irStmtInfo[backJmp].tGoto.tgtstmt = firstStmtInBlock;
+                irStmtInfo[backJmp].tGoto.tgtstmt = condStmt;
                 break;
         }
         case STMT_RETURN: {
@@ -343,5 +353,25 @@ void compile_to_IR(void)
                 IrProc irp = procToIrProc[p];
                 irProcInfo[irp].symbol = procInfo[p].sym;
                 compile_stmt(irp, procInfo[p].body);
+        }
+
+        DEBUG("Look for jump targets and sources and sort them by target)\n");
+        for (IrStmt stmt = 0; stmt < irStmtCnt; stmt++) {
+                Stmt tgtstmt;
+                switch (irStmtInfo[stmt].kind) {
+                case IRSTMT_CONDGOTO:
+                        tgtstmt = irStmtInfo[stmt].tCondGoto.tgtstmt;
+                        break;
+                case IRSTMT_GOTO:
+                        tgtstmt = irStmtInfo[stmt].tGoto.tgtstmt;
+                        break;
+                default:
+                        continue;
+                }
+                int x = irOriginCnt++;
+                RESIZE_GLOBAL_BUFFER(irOrigin, irOriginCnt);
+                irOrigin[x].stmt = tgtstmt;
+                irOrigin[x].originStmt = stmt;
+                break;
         }
 }

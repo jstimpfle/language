@@ -72,26 +72,20 @@ enum {
         BUFFER_irReturnResultInfo,
         BUFFER_irProcInfo,
         BUFFER_irLabelInfo,
+        BUFFER_irOrigin,
         /* Codegen */
         BUFFER_dataSection,
         BUFFER_codeSection,
         BUFFER_symDefInfo,
+        BUFFER_gotoInfo,
         BUFFER_relocInfo,
+        BUFFER_irstmtToCodepos,
+        BUFFER_irprocToCodepos,
         /* X64 Asm */
         BUFFER_x64StackLocInfo,
         /* */
         NUM_BUFFERS,
 };
-
-
-/*
- *
- */
-
-#include <syntax.h>
-#include <ir.h>
-#include <codegen.h>
-#include <x64.h>
 
 /**
  * \struct{StringToBeInterned} Static information used at program initialization
@@ -110,6 +104,15 @@ struct BasetypeToBeInitialized {
         const char *name;
         int size;
 };
+
+/*
+ *
+ */
+
+#include <syntax.h>
+#include <ir.h>
+#include <codegen.h>
+#include <x64.h>
 
 /*
  *

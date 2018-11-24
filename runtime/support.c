@@ -26,6 +26,36 @@ uint64_t div64(uint64_t x, uint64_t y)
         return x / y;
 }
 
+uint64_t gt64(uint64_t x, uint64_t y)
+{
+        return x > y;
+}
+
+uint64_t lt64(uint64_t x, uint64_t y)
+{
+        return x < y;
+}
+
+uint64_t ge64(uint64_t x, uint64_t y)
+{
+        return x >= y;
+}
+
+uint64_t le64(uint64_t x, uint64_t y)
+{
+        return x <= y;
+}
+
+uint64_t eq64(uint64_t x, uint64_t y)
+{
+        return x == y;
+}
+
+uint64_t ne64(uint64_t x, uint64_t y)
+{
+        return x != y;
+}
+
 uint64_t print64(uint64_t x)
 {
         printf("%" PRId64 "\n", x);

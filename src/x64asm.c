@@ -301,7 +301,7 @@ void emit_mov_64_address_reg(Imm64 imm, int r1)
 /* Like emit_mov_64_imm_reg(), but always use the 8-byte version and emit
  * a relocation */
 INTERNAL
-void emit_mov_64_reloc_reg(Symbol symbol, int r1)
+void emit_mov_64_reloc_reg(Symbol symbol, int addend, int r1)
 {
         int sectionKind = SECTION_CODE; /* Note: the sectionKind means the
                                            section where the relocation (change)
@@ -317,6 +317,7 @@ void emit_mov_64_reloc_reg(Symbol symbol, int r1)
                 Reloc reloc = relocCnt++;
                 RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
                 relocInfo[reloc].symbol = symbol;
+                relocInfo[reloc].addend = addend;
                 relocInfo[reloc].kind = sectionKind;
                 relocInfo[reloc].offset = offset;
         }
@@ -380,7 +381,7 @@ void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
 {
         int r1 = X64_RAX;
         ASSERT(symbolInfo[symbol].scope == SCOPE_GLOBAL);
-        emit_mov_64_reloc_reg(symbol, r1);
+        emit_mov_64_reloc_reg(symbol, 0, r1);
         emit_mov_64_reg_stack(r1, loc);
 }
 
@@ -392,6 +393,38 @@ void emit_call_reg(int r1)
         emit(REX_BASE|REX_W|B);
         emit(0xff);
         emit(make_modrm_byte(0x3, 0x02, r1 & 7));
+}
+
+INTERNAL
+void emit_local_jump(IrStmt tgtstmt)
+{
+        emit_mov_64_address_reg(0 /* relocation */, X64_RAX);
+        int relocpos = codeSectionCnt - 8; //XXX
+
+        // FF /4, Jump
+        emit(0xFF);
+        emit(make_modrm_byte(0x03 /* register value */, 0x04, X64_RAX));
+
+        int x = gotoCnt++;
+        RESIZE_GLOBAL_BUFFER(gotoInfo, gotoCnt);
+        gotoInfo[x].offset = relocpos;
+        gotoInfo[x].tgtstmt = tgtstmt;
+}
+
+INTERNAL
+void emit_local_conditional_jump(X64StackLoc condloc, IrStmt tgtstmt)
+{
+        emit_mov_64_stack_reg(condloc, X64_RAX);
+        // CMP AL, imm8
+        emit(0x3c);
+        emit(0x00);
+
+        // JNZ
+        emit(0x75);
+        int oldpos = codeSectionCnt;
+        emit(-1); // fix later
+        emit_local_jump(tgtstmt);
+        codeSection[oldpos] = codeSectionCnt - oldpos - 1; // this is the fix
 }
 
 INTERNAL
@@ -418,6 +451,9 @@ void x64asm_proc(IrProc irp)
         for (IrStmt irs = irProcInfo[irp].firstIrStmt;
              irs < irStmtCnt && irStmtInfo[irs].proc == irp;
              irs++) {
+                /* correct?*/
+                irstmtToCodepos[irs] = codeSectionCnt;
+                /**/
                 switch (irStmtInfo[irs].kind) {
                 case IRSTMT_LOADCONSTANT: {
                         Imm64 v = irStmtInfo[irs].tLoadConstant.constval;
@@ -491,10 +527,18 @@ void x64asm_proc(IrProc irp)
                         emit_mov_64_reg_stack(X64_RAX, rloc);
 			break;
                 }
-                case IRSTMT_CONDGOTO:
-			break;
-                case IRSTMT_GOTO:
-			break;
+                case IRSTMT_CONDGOTO: {
+                        IrReg condreg = irStmtInfo[irs].tCondGoto.condreg;
+                        X64StackLoc condloc = find_stack_loc(condreg);
+                        IrStmt tgtstmt = irStmtInfo[irs].tCondGoto.tgtstmt;
+                        emit_local_conditional_jump(condloc, tgtstmt);
+                        break;
+                }
+                case IRSTMT_GOTO: {
+                        IrStmt tgtstmt = irStmtInfo[irs].tGoto.tgtstmt;
+                        emit_local_jump(tgtstmt);
+                        break;
+                }
                 case IRSTMT_RETURN: {
                         IrReturnResult result = irStmtInfo[irs].tReturn.firstResult;
                         if (result != -1) {
@@ -520,12 +564,32 @@ void x64asm_proc(IrProc irp)
 
 void codegen_x64(void)
 {
+        RESIZE_GLOBAL_BUFFER(irstmtToCodepos, irStmtCnt);
+        RESIZE_GLOBAL_BUFFER(irprocToCodepos, irProcCnt);
+
         /* TODO: do we need an "IrData" type? */
         for (Data x = 0; x < dataCnt; x++)
                 make_bss_data_symbol(dataInfo[x].sym);
 
-        for (IrProc x = 0; x < irProcCnt; x++)
+        for (IrProc x = 0; x < irProcCnt; x++) {
+                irprocToCodepos[x] = codeSectionCnt;
                 x64asm_proc(x);
+        }
+
+        for (int i = 0; i < gotoCnt; i++) {
+                IrStmt irs = gotoInfo[i].tgtstmt;
+                int offset = gotoInfo[i].offset;
+                IrProc irp = irStmtInfo[irs].proc;
+                int x = relocCnt++;
+                RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
+                relocInfo[x].symbol = irProcInfo[irp].symbol;
+                relocInfo[x].addend = irstmtToCodepos[irs]
+                                                - irprocToCodepos[irp];
+                DEBUG("Jump to target statement %d\n", irs);
+                DEBUG("addend is %d, irs=%d, irp=%d, %d, %d\n", relocInfo[x].addend, irs, irp, irstmtToCodepos[irs], irprocToCodepos[irp]);
+                relocInfo[x].kind = SECTION_CODE;
+                relocInfo[x].offset = offset;
+        }
 
         /*
         emit_add_64_imm_RAX(0x31);
