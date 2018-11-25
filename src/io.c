@@ -5,6 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+NORETURN
+void exit_program(int exitcode)
+{
+        exit(exitcode);
+}
+
 void read_whole_file(File file)
 {
         FILE *f;

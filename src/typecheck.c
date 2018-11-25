@@ -20,16 +20,23 @@ Symbol find_symbol_in_scope(String name, Scope scope)
 
 void resolve_symbol_references(void)
 {
+        int bad = 0;
         for (Symref ref = 0; ref < symrefCnt; ref++) {
                 String name = symrefInfo[ref].name;
                 Scope refScope = symrefInfo[ref].refScope;
                 Symbol sym = find_symbol_in_scope(name, refScope);
                 if (sym < 0) {
-                        MSG_AT_TOK("ERROR", symrefInfo[ref].tok,
+                        MSG_AT_TOK(lvl_error, symrefInfo[ref].tok,
                                    "unresolved symbol reference %s\n",
                                    string_buffer(name));
+                        bad = 1;
                 }
                 symrefInfo[ref].sym = sym;
+        }
+        if (bad) {
+                MSG(lvl_info, "Symbol resolution failed. Terminating early.\n");
+                cleanup();
+                exit_program(1);
         }
 }
 
@@ -179,9 +186,6 @@ Type check_symref_expr_type(Expr x)
                         break;
                 case SYMBOL_PROC:
                         tp = symbolInfo[sym].tProc.tp;
-                        break;
-                case SYMBOL_PARAM:
-                        tp = paramInfo[symbolInfo[sym].tParam].tp;
                         break;
                 default:
                         UNHANDLED_CASE();
@@ -345,6 +349,7 @@ void check_types(void)
 {
         ASSERT(globalBufferAlloc[BUFFER_exprType].cap == 0);
         RESIZE_GLOBAL_BUFFER(exprType, exprCnt);
+
         for (Expr x = 0; x < exprCnt; x++)
                 check_expr_type(x);
         for (Expr x = 0; x < exprCnt; x++) {

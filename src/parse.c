@@ -625,7 +625,11 @@ Stmt parse_expr_stmt(void)
         return stmt;
 }
 
-INTERNAL Stmt parse_expr_or_compound_stmt(void);
+INTERNAL Stmt parse_imperative_statement(void);
+INTERNAL Stmt parse_if_stmt(void);
+INTERNAL Stmt parse_while_stmt(void);
+INTERNAL Stmt parse_for_stmt(void);
+INTERNAL Stmt parse_return_stmt(void);
 INTERNAL Stmt parse_stmt(void);
 
 INTERNAL
@@ -652,13 +656,35 @@ Stmt parse_compound_stmt(void)
 }
 
 INTERNAL
-Stmt parse_expr_or_compound_stmt(void)
+Stmt parse_imperative_statement(void)
 {
         PARSE_LOG();
-        if (look_token_kind(TOKTYPE_LEFTBRACE) != -1)
-                return parse_compound_stmt();
-        else
+        Token tok = look_next_token();
+        if (tokenInfo[tok].kind == TOKTYPE_WORD) {
+                String s = tokenInfo[tok].tWord.string;
+                if (s == constStr[CONSTSTR_IF]) {
+                        parse_next_token();
+                        return parse_if_stmt();
+                }
+                else if (s == constStr[CONSTSTR_WHILE]) {
+                        parse_next_token();
+                        return parse_while_stmt();
+                }
+                else if (s == constStr[CONSTSTR_FOR]) {
+                        parse_next_token();
+                        return parse_for_stmt();
+                }
+                else if (s == constStr[CONSTSTR_RETURN]) {
+                        parse_next_token();
+                        return parse_return_stmt();
+                }
+                else {
+                        return parse_expr_stmt();
+                }
+        }
+        else {
                 return parse_expr_stmt();
+        }
 }
 
 INTERNAL
@@ -669,7 +695,7 @@ Stmt parse_if_stmt(void)
         parse_token_kind(TOKTYPE_LEFTPAREN);
         Expr condExpr = parse_expr(0);
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-        Stmt childStmt = parse_expr_or_compound_stmt();
+        Stmt childStmt = parse_imperative_statement();
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_IF;
         stmtInfo[stmt].tIf.condExpr = condExpr;
@@ -684,7 +710,7 @@ Stmt parse_while_stmt(void)
         parse_token_kind(TOKTYPE_LEFTPAREN);
         Expr condExpr = parse_expr(0);
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-        Stmt childStmt = parse_expr_or_compound_stmt();
+        Stmt childStmt = parse_imperative_statement();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_WHILE;
@@ -704,7 +730,7 @@ Stmt parse_for_stmt(void)
         parse_token_kind(TOKTYPE_SEMICOLON);
         Stmt stepStmt = parse_expr_stmt();
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-        Stmt childStmt = parse_expr_or_compound_stmt();
+        Stmt childStmt = parse_imperative_statement();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_FOR;
@@ -791,24 +817,32 @@ Proc parse_proc(void)
         push_scope(pscope);
 
         parse_token_kind(TOKTYPE_LEFTPAREN);
+        int nparams = 0;
         for (;;) {
                 Token tok = look_next_token();
                 if (tokenInfo[tok].kind == TOKTYPE_RIGHTPAREN)
                         break;
+                nparams++;
                 Type paramtp = parse_type();
                 String paramname = parse_name();
                 Param param = paramCnt++;
                 Symbol paramsym = symbolCnt++;
+                Data paramdata = dataCnt++;
                 RESIZE_GLOBAL_BUFFER(paramInfo, paramCnt);
                 RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-                paramInfo[param].proc = proc;
-                paramInfo[param].sym = paramsym;
+                RESIZE_GLOBAL_BUFFER(dataInfo, dataCnt);
+                paramInfo[param].proctp = ptype;
                 paramInfo[param].tp = paramtp;
+                paramInfo[param].sym = paramsym;
                 paramInfo[param].rank = param;
                 symbolInfo[paramsym].name = paramname;
                 symbolInfo[paramsym].scope = pscope;
-                symbolInfo[paramsym].kind = SYMBOL_PARAM;
-                symbolInfo[paramsym].tParam = param;
+                symbolInfo[paramsym].kind = SYMBOL_DATA;
+                symbolInfo[paramsym].tData.tp = -1; //XXX
+                symbolInfo[paramsym].tData.optionaldata = paramdata;
+                dataInfo[paramdata].scope = pscope;
+                dataInfo[paramdata].tp = -1; //XXX
+                dataInfo[paramdata].sym = paramsym;
                 if (look_token_kind(TOKTYPE_COMMA) == -1)
                         break;
                 parse_next_token();
@@ -825,7 +859,6 @@ Proc parse_proc(void)
         procInfo[proc].tp = ptype;
         procInfo[proc].sym = psym;
         procInfo[proc].scope = pscope;
-        procInfo[proc].firstParam = -1;
         procInfo[proc].nparams = 0;
         procInfo[proc].body = pbody;
         symbolInfo[psym].name = pname;
@@ -835,8 +868,10 @@ Proc parse_proc(void)
         symbolInfo[psym].tProc.optionalproc = proc;
         typeInfo[ptype].kind = TYPE_PROC;
         typeInfo[ptype].tProc.rettp = rettp;
-        typeInfo[ptype].tProc.nargs = -1; // TODO
-        typeInfo[ptype].tProc.firstParamtype = -1; // TODO
+        typeInfo[ptype].tProc.nparams = nparams;
+        typeInfo[ptype].tProc.firstParam = 0; /* TODO: we can't do this here
+                                                  since param must be sorted
+                                                  first */
         return proc;
 }
 
@@ -853,8 +888,8 @@ int compare_ParamInfo(const void *a, const void *b)
 {
         const struct ParamInfo *x = a;
         const struct ParamInfo *y = b;
-        if (x->proc != y->proc)
-                return x->proc - y->proc;
+        if (x->proctp != y->proctp)
+                return x->proctp - y->proctp;
         return x->rank - y->rank;
 }
 
@@ -886,7 +921,7 @@ void add_external_function(const char *name)
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[tp].kind = TYPE_PROC;
         typeInfo[tp].tProc.rettp = (Type) 0; //XXX
-        typeInfo[tp].tProc.nargs = 0;
+        typeInfo[tp].tProc.nparams = 0;
 
         RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         symbolInfo[sym].name = intern_cstring(name);
@@ -894,8 +929,6 @@ void add_external_function(const char *name)
         symbolInfo[sym].kind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
         symbolInfo[sym].tProc.tp = tp;
         symbolInfo[sym].tProc.optionalproc = -1;
-
-        //DEBUG("added new external function #%d = %s\n", sym, SS(sym));
 }
 
 void parse_global_scope(void)
@@ -988,19 +1021,17 @@ void parse_global_scope(void)
         /* sort paramInfo array and fix symbols */
         sort_array(paramInfo, paramCnt, sizeof *paramInfo,
                    compare_ParamInfo);
-        for (Param i = 0; i < paramCnt; i++)
-                symbolInfo[paramInfo[i].sym].tParam = i;
+
+        for (Param param = paramCnt; param --> 0;) {
+                Type proctp = paramInfo[param].proctp;
+                ASSERT(typeInfo[proctp].kind == TYPE_PROC);
+                typeInfo[proctp].tProc.firstParam = param;
+        }
 
         sort_array(childStmtInfo, childStmtCnt, sizeof *childStmtInfo,
                    compare_ChildStmtInfo);
         sort_array(callArgInfo, callArgCnt, sizeof *callArgInfo,
                    compare_CallArgInfo);
-
-        for (Param param = paramCnt; param --> 0;) {
-                Proc proc = paramInfo[param].proc;
-                procInfo[proc].nparams++;
-                procInfo[proc].firstParam = param;
-        }
 
         for (int i = childStmtCnt; i --> 0;) {
                 Stmt parent = childStmtInfo[i].parent;

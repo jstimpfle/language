@@ -34,11 +34,16 @@ const char *x64regNames[NUM_X64REGS] = {
 #undef MAKE
 };
 
+const int cc[] = { /* "calling convention" */
+        X64_RDI, X64_RSI, X64_RDX,
+        X64_RCX, X64_R8, X64_R9
+};
+
 INTERNAL
 int find_stack_loc(IrReg irreg)
 {
         // XXX
-        int r = 0;
+        int r = 8;
         while (irreg > 0 && irRegInfo[irreg-1].proc == irRegInfo[irreg].proc) {
                 irreg--;
                 r += 8;
@@ -446,8 +451,26 @@ void emit_function_epilogue(void)
 INTERNAL
 void x64asm_proc(IrProc irp)
 {
-        begin_symbol(irProcInfo[irp].symbol);
+        Symbol psym = irProcInfo[irp].symbol;
+        ASSERT(symbolInfo[psym].kind == SYMBOL_PROC);
+        Type tp = symbolInfo[psym].tProc.tp;
+        ASSERT(tp != -1);
+        ASSERT(typeInfo[tp].kind == TYPE_PROC);
+
+        begin_symbol(psym);
         emit_function_prologue();
+
+        {
+                int j = 0;
+                X64StackLoc loc = -8; //XXX
+                for (Param i = typeInfo[tp].tProc.firstParam;
+                     i < paramCnt && paramInfo[i].proctp == tp;
+                     i++, j++) {
+                        emit_mov_64_reg_stack(cc[j], loc);;
+                        loc -= 8; //XXX
+                }
+        }
+
         for (IrStmt irs = irProcInfo[irp].firstIrStmt;
              irs < irStmtCnt && irStmtInfo[irs].proc == irp;
              irs++) {
@@ -499,10 +522,6 @@ void x64asm_proc(IrProc irp)
 			break;
                 }
                 case IRSTMT_CALL: {
-                        static const int cc[] = { /* "calling convention" */
-                                X64_RDI, X64_RSI, X64_RDX,
-                                X64_RCX, X64_R8, X64_R9
-                        };
                         IrReg calleeReg = irStmtInfo[irs].tCall.calleeReg;
                         X64StackLoc calleeloc = find_stack_loc(calleeReg);
                         IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
@@ -572,6 +591,7 @@ void codegen_x64(void)
                 make_bss_data_symbol(dataInfo[x].sym);
 
         for (IrProc x = 0; x < irProcCnt; x++) {
+                DEBUG("Generating code for proc #%d\n", x);
                 irprocToCodepos[x] = codeSectionCnt;
                 x64asm_proc(x);
         }
@@ -585,8 +605,6 @@ void codegen_x64(void)
                 relocInfo[x].symbol = irProcInfo[irp].symbol;
                 relocInfo[x].addend = irstmtToCodepos[irs]
                                                 - irprocToCodepos[irp];
-                DEBUG("Jump to target statement %d\n", irs);
-                DEBUG("addend is %d, irs=%d, irp=%d, %d, %d\n", relocInfo[x].addend, irs, irp, irstmtToCodepos[irs], irprocToCodepos[irp]);
                 relocInfo[x].kind = SECTION_CODE;
                 relocInfo[x].offset = offset;
         }

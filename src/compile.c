@@ -303,7 +303,7 @@ void compile_stmt(IrProc irp, Stmt stmt)
 void compile_to_IR(void)
 {
         DEBUG("For each expression find its proc.\n");
-        DEBUG("(TODO: think about adding this data already when parsing?\n");
+        DEBUG("(TODO: think about adding this data already when parsing)?\n");
         DEBUG("For each Proc make an IrProc\n");
         RESIZE_GLOBAL_BUFFER(procToIrProc, procCnt);
         for (Proc x = 0; x < procCnt; x++) {
@@ -354,6 +354,8 @@ void compile_to_IR(void)
                 irProcInfo[irp].symbol = procInfo[p].sym;
                 compile_stmt(irp, procInfo[p].body);
         }
+        for (IrStmt i = irStmtCnt; i --> 0;)
+                irProcInfo[irStmtInfo[i].proc].firstIrStmt = i;
 
         DEBUG("Look for jump targets and sources and sort them by target)\n");
         for (IrStmt stmt = 0; stmt < irStmtCnt; stmt++) {

@@ -168,7 +168,6 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         MAKE( fileInfo ),
         MAKE( tokenInfo ),
         MAKE( typeInfo ),
-        MAKE( paramtypeInfo ),
         MAKE( symbolInfo ),
         MAKE( dataInfo ),
         MAKE( arrayInfo ),

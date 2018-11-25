@@ -46,7 +46,6 @@ enum {
         BUFFER_fileInfo,
         BUFFER_tokenInfo,
         BUFFER_typeInfo,
-        BUFFER_paramtypeInfo,
         BUFFER_symbolInfo,
         BUFFER_dataInfo,
         BUFFER_arrayInfo,
@@ -150,9 +149,10 @@ extern const struct BasetypeToBeInitialized basetypesToBeInitialized[];
 
 
 /*
- *
+ * io.c
  */
 
+NORETURN void exit_program(int exitcode);
 
 void read_whole_file(File file);
 void clear_mem(void *ptr, int size);
@@ -165,11 +165,6 @@ void sort_array(void *ptr, int nelems, int elemsize,
 #define SORT(a, n, cmp) sort_array((a), (n), sizeof *(a), (cmp))
 #define CLEAR(x) clear_mem(&(x), sizeof (x))
 #define COPY(x, y) copy_mem((x), (y), sizeof (x))
-
-
-/*
- * io.c
- */
 
 int cstr_length(const char *s);
 int cstr_compare(const char *s1, const char *m2);
@@ -345,3 +340,8 @@ void write_elf64_object(const char *outfilepath);
  * x64asm.c
  */
 void codegen_x64(void);
+
+/*
+ * main.c
+ */
+void cleanup();

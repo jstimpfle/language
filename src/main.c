@@ -1,7 +1,7 @@
 #include "defs.h"
 #include "api.h"
 
-void free_buffers(void)
+void cleanup(void)
 {
         for (File i = 0; i < fileCnt; i++)
                 BUF_EXIT(&fileInfo[i].buf, &fileInfo[i].bufAlloc);
@@ -13,6 +13,7 @@ void free_buffers(void)
                 _buf_exit(globalBufferInfo[i].ptr, &globalBufferAlloc[i],
                           globalBufferInfo[i].elemsize, __FILE__, __LINE__);
 }
+
 
 int main(int argc, const char **argv)
 {
@@ -69,9 +70,8 @@ int main(int argc, const char **argv)
         MSG(lvl_info, "Write elf object file...\n");
         write_elf64_object("out.o");
 
-        MSG(lvl_info, "Free allocated buffers...\n");
-        free_buffers();
+        MSG(lvl_info, "Success. Cleanup and terminate program.\n");
+        cleanup();
 
-        MSG(lvl_info, "Exit successfully.\n");
         return 0;
 }

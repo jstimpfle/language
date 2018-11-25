@@ -208,7 +208,6 @@ enum SymbolKind {
         SYMBOL_DATA,
         SYMBOL_ARRAY,
         SYMBOL_PROC,
-        SYMBOL_PARAM,
 };
 
 enum TypeKind {
@@ -352,7 +351,6 @@ struct SymbolInfo {
                 struct DatasymbolInfo tData;
                 Array tArray;
                 struct ProcsymbolInfo tProc;
-                Param tParam;
         };
 };
 
@@ -384,13 +382,14 @@ struct PointertypeInfo {
 
 struct ProctypeInfo {
         Type rettp;
-        int nargs;
-        int firstParamtype; // speed-up
+        int nparams; // XXX: needed?
+        int firstParam; // speed-up
 };
 
-struct ParamtypeInfo {  // helper for ProctypeInfo
+struct ParamInfo {
         Type proctp;
-        Type argtp;
+        Type tp;
+        Symbol sym; // should this be part of the "type"?
         int rank;
 };
 
@@ -446,15 +445,7 @@ struct ProcInfo {
         Symbol sym;
         Scope scope;
         int nparams;
-        Param firstParam;  // speed-up
         Stmt body;
-};
-
-struct ParamInfo {
-        Proc proc;
-        Symbol sym;
-        Type tp;
-        int rank;
 };
 
 struct SymrefExprInfo {
@@ -612,7 +603,6 @@ DATA int callArgCnt;
 DATA char *lexbuf;
 DATA struct TokenInfo *tokenInfo;
 DATA struct TypeInfo *typeInfo;
-DATA struct ParamtypeInfo *paramtypeInfo;
 DATA struct SymbolInfo *symbolInfo;
 DATA struct DataInfo *dataInfo;
 DATA struct ArrayInfo *arrayInfo;
