@@ -21,14 +21,21 @@ int main(int argc, const char **argv)
 
         fileToParse = "tests/test2.txt";
         for (int i = 1; i < argc; i++) {
-                if (cstr_equal(argv[i], "-debug"))
-                        doDebug = 1;
-                else if (cstr_equal(argv[i], "-prettyprint-ast"))
-                        doPrettyPrintAst = 1;
-                else if (cstr_equal(argv[i], "-dump-ir"))
-                        doDumpIr = 1;
-                else
+                if (argv[i][0] == '-') {
+                        if (cstr_equal(argv[i], "-debug"))
+                                doDebug = 1;
+                        else if (cstr_equal(argv[i], "-prettyprint-ast"))
+                                doPrettyPrintAst = 1;
+                        else if (cstr_equal(argv[i], "-dump-ir"))
+                                doDumpIr = 1;
+                        else {
+                                FATAL("Failed to parse command-line argument #%d: %s\n",
+                                      i, argv[i]);
+                        }
+                }
+                else {
                         fileToParse = argv[i];
+                }
         }
 
         initialize_pseudo_constant_data();

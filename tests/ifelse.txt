@@ -1,0 +1,12 @@
+proc int main()
+{
+    if (0 == 1)
+        print64(0);
+    else if (1 == 2)
+        print64(1);
+    else if (2 == 2)
+        print64(2);
+    else if (3 == 3)
+        print64(3);
+    return 7;
+}
