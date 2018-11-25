@@ -110,6 +110,12 @@ void make_bss_data_symbol(Symbol sym)
 }
 
 INTERNAL
+void make_rodata_symbol(Symbol sym, const void *buf, int size)
+{
+
+}
+
+INTERNAL
 void emit_bytes(uchar *buf, int len)
 {
         int pos = codeSectionCnt;
@@ -588,6 +594,14 @@ void codegen_x64(void)
 {
         RESIZE_GLOBAL_BUFFER(irstmtToCodepos, irStmtCnt);
         RESIZE_GLOBAL_BUFFER(irprocToCodepos, irProcCnt);
+
+        for (Expr x = 0; x < exprCnt; x++) {
+                if (exprInfo[x].kind == EXPR_LITERAL) {
+                        if (exprInfo[x].tLiteral.kind == LITERAL_STRING) {
+                                String s = exprInfo[x].tLiteral.tString;
+                        }
+                }
+        }
 
         /* TODO: do we need an "IrData" type? */
         for (Data x = 0; x < dataCnt; x++)

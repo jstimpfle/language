@@ -54,7 +54,7 @@ struct ProctypeInfo {
 struct ParamInfo {
         Type proctp;
         Type tp;
-        Symbol sym; // should this be part of the "type"?
+        Symbol sym;
         int rank;
 };
 
@@ -80,6 +80,19 @@ struct TypeInfo {
          */
         int isComplete;
 };
+
+/**
+ * \struct{BasetypeToBeInitialized}: Static information used at program
+ * initialization time when base types get registered.
+ */
+
+struct BasetypeToBeInitialized {
+        const char *name;
+        int size;
+};
+
+extern const struct BasetypeToBeInitialized basetypesToBeInitialized[];
+extern const int basetypesToBeInitializedCnt;
 
 /**
  */

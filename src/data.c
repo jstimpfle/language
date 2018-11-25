@@ -152,6 +152,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
 const struct BasetypeToBeInitialized basetypesToBeInitialized[] = {
         { "void", -42 },
         { "int", 4 },
+        { "char", 1 },
 };
 
 const int toktypeToPrefixUnopCnt = LENGTH(toktypeToPrefixUnop);
@@ -200,6 +201,7 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         MAKE( irLabelInfo ),
         MAKE( irOrigin ),
         /* Codegen */
+        MAKE( rodataSection ),
         MAKE( dataSection ),
         MAKE( codeSection ),
         MAKE( symDefInfo ),

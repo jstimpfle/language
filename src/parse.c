@@ -989,23 +989,25 @@ int compare_CallArgInfo(const void *a, const void *b)
         return x->rank - y->rank;
 }
 
-void add_external_function(const char *name)
-{
-        Type tp = typeCnt++;
-        Symbol sym = symbolCnt++;
 
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[tp].kind = TYPE_PROC;
-        typeInfo[tp].tProc.rettp = (Type) 0; //XXX
-        typeInfo[tp].tProc.nparams = 0;
 
-        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        symbolInfo[sym].name = intern_cstring(name);
-        symbolInfo[sym].scope = (Scope) 0;
-        symbolInfo[sym].kind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
-        symbolInfo[sym].tProc.tp = tp;
-        symbolInfo[sym].tProc.optionalproc = -1;
-}
+
+const char *const extsymname[NUM_EXTSYMS] = {
+#define MAKE(name) [EXTSYM_##name] = #name
+        MAKE( add64 ),
+        MAKE( sub64 ),
+        MAKE( mul64 ),
+        MAKE( div64 ),
+        MAKE( gt64 ),
+        MAKE( lt64 ),
+        MAKE( ge64 ),
+        MAKE( le64 ),
+        MAKE( eq64 ),
+        MAKE( ne64 ),
+        MAKE( print64 ),
+        MAKE( prints ),
+#undef MAKE
+};
 
 void parse_global_scope(void)
 {
@@ -1014,20 +1016,27 @@ void parse_global_scope(void)
 
         PARSE_LOG();
 
-        /* add a few undefined symbols that can be linked with an external
-         * object file, for now */
-        add_external_function("add64");
-        add_external_function("sub64");
-        add_external_function("mul64");
-        add_external_function("div64");
-        add_external_function("gt64");
-        add_external_function("lt64");
-        add_external_function("ge64");
-        add_external_function("le64");
-        add_external_function("eq64");
-        add_external_function("ne64");
-        add_external_function("print64");
-        add_external_function("prints");
+        for (int i = 0; i < NUM_EXTSYMS; i++) {
+                const char *name = extsymname[i];
+
+                Type tp = typeCnt++;
+                Symbol sym = symbolCnt++;
+
+                RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+                typeInfo[tp].kind = TYPE_PROC;
+                typeInfo[tp].tProc.rettp = (Type) 0; //XXX
+                typeInfo[tp].tProc.nparams = 0;
+
+                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+                symbolInfo[sym].name = intern_cstring(name);
+                symbolInfo[sym].scope = (Scope) 0;
+                symbolInfo[sym].kind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
+                symbolInfo[sym].tProc.tp = tp;
+                symbolInfo[sym].tProc.optionalproc = -1;
+
+                extsym[i] = sym;
+        }
+
 
         globalScope = add_global_scope();
         push_scope(globalScope);

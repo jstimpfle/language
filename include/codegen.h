@@ -2,9 +2,29 @@
 #error This file must be included only from api.h !
 #endif
 
+/**
+ * \data{rodataSection}, \data{rodataSectionCnt}: This is the read-only data
+ * section (.rodata in ELF).
+ *
+ * \data{zerodataSectionCnt}: this is the size of zero-initialized data in
+ * bytes (.bss in ELF). There's no further data associated with it, except from
+ * the symbols that point into that virtual region (symDefInfo)
+ *
+ * \data{codeSection}, \data{codeSectionCnt}: This is the program code data
+ * section (.text in ELF).
+ */
+
+DATA int rodataSectionCnt;
+DATA int zerodataSectionCnt;
+DATA int dataSectionCnt;
+DATA int codeSectionCnt;
+DATA unsigned char *rodataSection;
+DATA unsigned char *dataSection;
+DATA unsigned char *codeSection;
+
 
 /*
- * Machine code generation
+ * Relocation stuff
  */
 
 typedef int SymDef;  // symbol definition position in code
@@ -34,24 +54,25 @@ struct RelocInfo {
         int offset;  // place in the code where bytes should be edited
 };
 
-DATA int zerodataSectionCnt;  /* This is the size of zero-initialized data in
-                                 bytes.  It's what goes into e.g. the BSS
-                                 section in an ELF file.  There's no further
-                                 data associated with it, except from the
-                                 symbols that point into that virtual region
-                                 (symDefInfo) */
-DATA int dataSectionCnt;
-DATA int codeSectionCnt;
+/**
+ * \data{symDefInfo}, \data{symDefCnt}: Symbol definitions.
+ *
+ * \data{gotoInfo}, \data{gotoCnt}: relocations for absolute jumps.
+ *
+ * \data{relocInfo}, \data{relocCnt}: relocations for symbol references.
+ *
+ * \data{irstmtToCodepos}: map ir statement to the position in the generated
+ * machine code where that ir statement is implemented.
+ *
+ * \data{irprocToCodepos}: map ir proc to the position in the generated machine
+ * code where that ir proc is implemented.
+ */
+
 DATA int symDefCnt;
 DATA int gotoCnt;
 DATA int relocCnt;
-DATA unsigned char *dataSection;
-DATA unsigned char *codeSection;
 DATA struct SymDefInfo *symDefInfo;
 DATA struct GotoInfo *gotoInfo;
 DATA struct RelocInfo *relocInfo;
-DATA int *irstmtToCodepos;  /* map ir statement to the position in the generated
-                               machine code where that ir statement is
-                               implemented */
-DATA int *irprocToCodepos;  /* map ir proc to the position in the generated
-                               machine code where that ir proc is implemented */
+DATA int *irstmtToCodepos;
+DATA int *irprocToCodepos;

@@ -71,21 +71,30 @@ void compile_expr(Expr x)
                          * inefficient. */
                         compile_expr(e1);
                         compile_expr(e2);
-                        Symbol funcsym;
-                        switch (exprInfo[x].tBinop.kind) {
-                                //XXX lookup function symbols correctly.
-                        case BINOP_PLUS:  funcsym = 2; break;
-                        case BINOP_MINUS: funcsym = 3; break;
-                        case BINOP_MUL:   funcsym = 4; break;
-                        case BINOP_DIV:   funcsym = 5; break;
-                        case BINOP_GT:    funcsym = 6; break;
-                        case BINOP_LT:    funcsym = 7; break;
-                        case BINOP_GE:    funcsym = 8; break;
-                        case BINOP_LE:    funcsym = 9; break;
-                        case BINOP_EQ:    funcsym = 10; break;
-                        case BINOP_NE:    funcsym = 11; break;
-                        default: UNHANDLED_CASE();
-                        }
+
+                        static const struct {
+                                int binop;
+                                int extsym;
+                        } opmap[] = {
+                                { BINOP_PLUS,  EXTSYM_add64 },
+                                { BINOP_MINUS, EXTSYM_sub64 },
+                                { BINOP_MUL,   EXTSYM_mul64 },
+                                { BINOP_DIV,   EXTSYM_div64 },
+                                { BINOP_GT,    EXTSYM_gt64 },
+                                { BINOP_LT,    EXTSYM_lt64 },
+                                { BINOP_GE,    EXTSYM_ge64 },
+                                { BINOP_LE,    EXTSYM_le64 },
+                                { BINOP_EQ,    EXTSYM_eq64 },
+                                { BINOP_NE,    EXTSYM_ne64 },
+                        };
+
+                        Symbol funcsym = -1;
+                        for (int i = 0; i < LENGTH(opmap); i++)
+                                if (exprInfo[x].tBinop.kind == opmap[i].binop)
+                                        funcsym = extsym[opmap[i].extsym];
+                        if (funcsym == -1)
+                                UNHANDLED_CASE();
+
                         IrStmt loadStmt = irStmtCnt++;
                         IrStmt callStmt = irStmtCnt++;
                         IrCallArg arg1 = irCallArgCnt++;

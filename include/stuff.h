@@ -82,19 +82,11 @@ DATA struct StringBucketInfo *strBucketInfo;
 /**
  * \struct{StringToBeInterned} Static information used at program initialization
  * time when constant strings get interned.
- *
- * \struct{BasetypeToBeInitialized}: Static information used at program
- * initialization time when base types get registered.
  */
 
 struct StringToBeInterned {
         int constant;  // CONSTSTR_
         const char *string;
-};
-
-struct BasetypeToBeInitialized {
-        const char *name;
-        int size;
 };
 
 
@@ -142,6 +134,7 @@ enum {
         BUFFER_irLabelInfo,
         BUFFER_irOrigin,
         /* Codegen */
+        BUFFER_rodataSection,
         BUFFER_dataSection,
         BUFFER_codeSection,
         BUFFER_symDefInfo,
@@ -171,6 +164,3 @@ DATA struct Alloc globalBufferAlloc[NUM_BUFFERS];
 
 extern const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS];
 DATA String constStr[NUM_CONSTSTRS];  // has initializer
-
-extern const struct BasetypeToBeInitialized basetypesToBeInitialized[];
-extern const int basetypesToBeInitializedCnt;
