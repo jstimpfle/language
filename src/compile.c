@@ -247,10 +247,10 @@ void compile_stmt(IrProc irp, Stmt stmt)
         }
         case STMT_IF: {
                 Expr condExpr = stmtInfo[stmt].tIf.condExpr;
-                Stmt cldStmt = stmtInfo[stmt].tIf.childStmt;
+                Stmt ifbody = stmtInfo[stmt].tIf.ifbody;
                 compile_expr(condExpr);
                 IrStmt irs = irStmtCnt++;
-                compile_stmt(irp, cldStmt);
+                compile_stmt(irp, ifbody);
                 IrStmt stmtAfterBlock = irStmtCnt;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[irs].proc = irp;
@@ -260,13 +260,35 @@ void compile_stmt(IrProc irp, Stmt stmt)
                 irStmtInfo[irs].tCondGoto.isNeg = 1;
                 break;
         }
+        case STMT_IFELSE: {
+                Expr condExpr = stmtInfo[stmt].tIfelse.condExpr;
+                Stmt ifbody = stmtInfo[stmt].tIfelse.ifbody;
+                Stmt elsebody = stmtInfo[stmt].tIfelse.elsebody;
+                compile_expr(condExpr);
+                IrStmt j0 = irStmtCnt++;
+                compile_stmt(irp, ifbody);
+                IrStmt j1 = irStmtCnt++;
+                IrStmt firstinelse = irStmtCnt;
+                compile_stmt(irp, elsebody);
+                IrStmt firstafterelse = irStmtCnt;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irStmtInfo[j0].proc = irp;
+                irStmtInfo[j0].kind = IRSTMT_CONDGOTO;
+                irStmtInfo[j0].tCondGoto.condreg = exprToIrReg[condExpr];
+                irStmtInfo[j0].tCondGoto.tgtstmt = firstinelse;
+                irStmtInfo[j0].tCondGoto.isNeg = 1;
+                irStmtInfo[j1].proc = irp;
+                irStmtInfo[j1].kind = IRSTMT_GOTO;
+                irStmtInfo[j1].tGoto.tgtstmt = firstafterelse;
+                break;
+        }
         case STMT_WHILE: {
-                Expr condExpr = stmtInfo[stmt].tIf.condExpr;
-                Stmt cldStmt = stmtInfo[stmt].tIf.childStmt;
+                Expr condExpr = stmtInfo[stmt].tWhile.condExpr;
+                Stmt whilebody = stmtInfo[stmt].tWhile.whilebody;
                 IrStmt condStmt = irStmtCnt;
                 compile_expr(condExpr);
                 IrStmt irs = irStmtCnt++;
-                compile_stmt(irp, cldStmt);
+                compile_stmt(irp, whilebody);
                 IrStmt backJmp = irStmtCnt++;
                 IrStmt stmtAfterBlock = irStmtCnt;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);

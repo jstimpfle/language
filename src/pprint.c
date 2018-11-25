@@ -195,28 +195,45 @@ void pp_array_stmt(Stmt stmt)
 }
 
 INTERNAL
+void pp_childstmt(Stmt stmt)
+{
+        int isCompound = stmtInfo[stmt].kind == STMT_COMPOUND;
+        if (isCompound) {
+                outs(" ");
+                pp_stmt(stmt);
+        }
+        else {
+                add_indent();
+                pp_stmt(stmt);
+                remove_indent();
+        }
+}
+
+INTERNAL
 void pp_stmt(Stmt stmt)
 {
         switch (stmtInfo[stmt].kind) {
         case STMT_IF: {
-                Stmt child = stmtInfo[stmt].tIf.childStmt;
-                int isCompound = stmtInfo[child].kind == STMT_COMPOUND;
+                Stmt ifbody = stmtInfo[stmt].tIf.ifbody;
                 pp_newline();
                 outs("if (");
                 pp_expr(stmtInfo[stmt].tIf.condExpr);
                 outs(")");
-                if (isCompound) {
-                        outs(" ");
-                        pp_stmt(child);
-                }
-                else {
-                        add_indent();
-                        pp_stmt(child);
-                        remove_indent();
-                }
+                pp_childstmt(ifbody);
                 break;
         }
-        case STMT_FOR:
+        case STMT_IFELSE: {
+                pp_newline();
+                outs("if (");
+                pp_expr(stmtInfo[stmt].tIfelse.condExpr);
+                outs(")");
+                pp_childstmt(stmtInfo[stmt].tIfelse.ifbody);
+                pp_newline();
+                outs("else");
+                pp_childstmt(stmtInfo[stmt].tIfelse.elsebody);
+                break;
+        }
+        case STMT_FOR: {
                 pp_newline();
                 outs("for (");
                 pp_stmt(stmtInfo[stmt].tFor.initStmt);
@@ -225,20 +242,15 @@ void pp_stmt(Stmt stmt)
                 outs("; ");
                 pp_expr_stmt(stmtInfo[stmt].tFor.stepStmt);
                 outs(")");
-                add_indent();
-                pp_newline();
-                pp_stmt(stmtInfo[stmt].tFor.childStmt);
-                remove_indent();
-                pp_newline();
+                pp_childstmt(stmtInfo[stmt].tFor.forbody);
                 break;
+        }
         case STMT_WHILE:
                 pp_newline();
                 outs("while (");
                 pp_expr(stmtInfo[stmt].tWhile.condExpr);
                 outs(")");
-                add_indent();
-                pp_stmt(stmtInfo[stmt].tWhile.childStmt);
-                remove_indent();
+                pp_childstmt(stmtInfo[stmt].tWhile.whilebody);
                 break;
         case STMT_RETURN:
                 pp_newline();

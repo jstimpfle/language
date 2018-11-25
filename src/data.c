@@ -137,6 +137,7 @@ const struct BinopInfo binopInfo[NUM_BINOPS] = {
 const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
 #define MAKE(x, y) [x] = { x, y }
         MAKE( CONSTSTR_IF,     "if"     ),
+        MAKE( CONSTSTR_ELSE,   "else"   ),
         MAKE( CONSTSTR_WHILE,  "while"  ),
         MAKE( CONSTSTR_FOR,    "for"    ),
         MAKE( CONSTSTR_RETURN, "return" ),

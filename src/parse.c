@@ -682,6 +682,9 @@ Stmt parse_imperative_statement(void)
                         return parse_expr_stmt();
                 }
         }
+        else if (tokenInfo[tok].kind == TOKTYPE_LEFTBRACE) {
+                return parse_compound_stmt();
+        }
         else {
                 return parse_expr_stmt();
         }
@@ -691,15 +694,37 @@ INTERNAL
 Stmt parse_if_stmt(void)
 {
         PARSE_LOG();
-        Stmt stmt = stmtCnt++;
+
+        Stmt stmt;
+        Expr condExpr;
+        Stmt ifbody;
+
+        stmt = stmtCnt++;
         parse_token_kind(TOKTYPE_LEFTPAREN);
-        Expr condExpr = parse_expr(0);
+        condExpr = parse_expr(0);
+        DEBUG("1\n");
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-        Stmt childStmt = parse_imperative_statement();
-        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_IF;
-        stmtInfo[stmt].tIf.condExpr = condExpr;
-        stmtInfo[stmt].tIf.childStmt = childStmt;
+        DEBUG("2\n");
+        ifbody = parse_imperative_statement();
+
+        Token tok;
+        if ((tok = look_token_kind(TOKTYPE_WORD)) != -1 &&
+            tokenInfo[tok].tWord.string == constStr[CONSTSTR_ELSE]) {
+                parse_next_token();
+                Stmt elsebody = parse_imperative_statement();
+                RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+                stmtInfo[stmt].kind = STMT_IFELSE;
+                stmtInfo[stmt].tIfelse.condExpr = condExpr;
+                stmtInfo[stmt].tIfelse.ifbody = ifbody;
+                stmtInfo[stmt].tIfelse.elsebody = elsebody;
+        }
+        else {
+                RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+                stmtInfo[stmt].kind = STMT_IF;
+                stmtInfo[stmt].tIf.condExpr = condExpr;
+                stmtInfo[stmt].tIf.ifbody = ifbody;
+        }
+
         return stmt;
 }
 
@@ -710,12 +735,12 @@ Stmt parse_while_stmt(void)
         parse_token_kind(TOKTYPE_LEFTPAREN);
         Expr condExpr = parse_expr(0);
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-        Stmt childStmt = parse_imperative_statement();
+        Stmt whilebody = parse_imperative_statement();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_WHILE;
         stmtInfo[stmt].tWhile.condExpr = condExpr;
-        stmtInfo[stmt].tWhile.childStmt = childStmt;
+        stmtInfo[stmt].tWhile.whilebody = whilebody;
         return stmt;
 }
 
@@ -730,14 +755,14 @@ Stmt parse_for_stmt(void)
         parse_token_kind(TOKTYPE_SEMICOLON);
         Stmt stepStmt = parse_expr_stmt();
         parse_token_kind(TOKTYPE_RIGHTPAREN);
-        Stmt childStmt = parse_imperative_statement();
+        Stmt forbody = parse_imperative_statement();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_FOR;
         stmtInfo[stmt].tFor.initStmt = initStmt;
         stmtInfo[stmt].tFor.condExpr = condExpr;
         stmtInfo[stmt].tFor.stepStmt = stepStmt;
-        stmtInfo[stmt].tFor.childStmt = childStmt;
+        stmtInfo[stmt].tFor.forbody = forbody;
         return stmt;
 }
 

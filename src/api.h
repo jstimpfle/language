@@ -26,6 +26,7 @@ typedef int String;
 
 enum ConstStrKind {
         CONSTSTR_IF,
+        CONSTSTR_ELSE,
         CONSTSTR_WHILE,
         CONSTSTR_FOR,
         CONSTSTR_RETURN,

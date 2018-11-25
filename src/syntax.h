@@ -189,6 +189,7 @@ enum ExprKind {
 
 enum StmtKind {
         STMT_IF,
+        STMT_IFELSE,
         STMT_FOR,
         STMT_WHILE,
         STMT_RETURN,
@@ -516,19 +517,25 @@ struct ExprStmtInfo {
 
 struct IfStmtInfo {
         Expr condExpr;
-        Stmt childStmt;
+        Stmt ifbody;
+};
+
+struct IfelseStmtInfo {
+        Expr condExpr;
+        Stmt ifbody;
+        Stmt elsebody;
 };
 
 struct ForStmtInfo {
         Stmt initStmt;
         Expr condExpr;
         Stmt stepStmt;
-        Stmt childStmt;
+        Stmt forbody;
 };
 
 struct WhileStmtInfo {
         Expr condExpr;
-        Stmt childStmt;
+        Stmt whilebody;
 };
 
 struct ReturnStmtInfo {
@@ -541,6 +548,7 @@ struct StmtInfo {
                 struct CompoundStmtInfo tCompound;
                 struct ExprStmtInfo tExpr;
                 struct IfStmtInfo tIf;
+                struct IfelseStmtInfo tIfelse;
                 struct WhileStmtInfo tWhile;
                 struct ForStmtInfo tFor;
                 struct ReturnStmtInfo tReturn;
