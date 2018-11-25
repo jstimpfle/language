@@ -67,6 +67,8 @@ void compile_expr(Expr x)
                         }
                 }
                 else {
+                        /* XXX: Here we "call" the binop operation. This is very
+                         * inefficient. */
                         compile_expr(e1);
                         compile_expr(e2);
                         Symbol funcsym;
@@ -84,30 +86,29 @@ void compile_expr(Expr x)
                         case BINOP_NE:    funcsym = 11; break;
                         default: UNHANDLED_CASE();
                         }
+                        IrStmt loadStmt = irStmtCnt++;
+                        IrStmt callStmt = irStmtCnt++;
                         IrCallArg arg1 = irCallArgCnt++;
                         IrCallArg arg2 = irCallArgCnt++;
                         IrCallResult ret = irCallResultCnt++;
-                        IrStmt loadStmt = irStmtCnt++;
-                        IrStmt y = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         RESIZE_GLOBAL_BUFFER(irCallArgInfo, irCallArgCnt);
                         RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
-                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[loadStmt].proc = proc;
                         irStmtInfo[loadStmt].kind = IRSTMT_LOADSYMBOLADDR;
                         irStmtInfo[loadStmt].tLoadSymbolAddr.sym = funcsym;
                         irStmtInfo[loadStmt].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
+                        irStmtInfo[callStmt].proc = proc;
+                        irStmtInfo[callStmt].kind = IRSTMT_CALL;
+                        irStmtInfo[callStmt].tCall.calleeReg = exprToIrReg[x];
+                        irStmtInfo[callStmt].tCall.firstIrCallArg = arg1;
+                        irStmtInfo[callStmt].tCall.firstIrCallResult = ret;
                         irCallArgInfo[arg1].srcreg = exprToIrReg[e1];
                         irCallArgInfo[arg2].srcreg = exprToIrReg[e2];
-                        irCallArgInfo[arg1].callStmt = y;
-                        irCallArgInfo[arg2].callStmt = y;
-                        irCallResultInfo[ret].callStmt = y;
+                        irCallArgInfo[arg1].callStmt = callStmt;
+                        irCallArgInfo[arg2].callStmt = callStmt;
+                        irCallResultInfo[ret].callStmt = callStmt;
                         irCallResultInfo[ret].tgtreg = exprToIrReg[x];
-                        // XXX: We "call" the binop operation. This is very inefficient.
-                        irStmtInfo[y].proc = proc;
-                        irStmtInfo[y].kind = IRSTMT_CALL;
-                        irStmtInfo[y].tCall.calleeReg = exprToIrReg[x];
-                        irStmtInfo[y].tCall.firstIrCallArg = arg1;
-                        irStmtInfo[y].tCall.firstIrCallResult = ret;
                 }
                 break;
         }
@@ -120,9 +121,9 @@ void compile_expr(Expr x)
                     scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
                         Data data = symbolInfo[sym].tData.optionaldata;
                         ASSERT(data != (Data) -1);  // proc-local data must exist
-                        IrStmt y = irStmtCnt++;
                         IrReg srcreg = dataToIrReg[data];
                         IrReg tgtreg = exprToIrReg[x];
+                        IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[y].proc = proc;
                         irStmtInfo[y].kind = IRSTMT_REGREG;
@@ -132,6 +133,7 @@ void compile_expr(Expr x)
                 else {
                         IrReg reg = irRegCnt++;
                         IrStmt s0 = irStmtCnt++;
+                        IrStmt s1 = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irRegInfo[reg].proc = proc;
@@ -142,8 +144,6 @@ void compile_expr(Expr x)
                         irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
                         irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
                         irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
-                        IrStmt s1 = irStmtCnt++;
-                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[s1].proc = proc;
                         irStmtInfo[s1].kind = IRSTMT_LOAD;
                         irStmtInfo[s1].tLoad.srcaddrreg = exprToIrReg[x];
