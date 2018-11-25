@@ -31,8 +31,10 @@ typedef int SymDef;  // symbol definition position in code
 typedef int Reloc; // relocation in code
 
 enum {
-        SECTION_DATA,
         SECTION_CODE,
+        SECTION_DATA,
+        SECTION_RODATA,
+        SECTION_ZERODATA,
 };
 
 struct SymDefInfo {

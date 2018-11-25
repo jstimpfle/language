@@ -501,6 +501,8 @@ enum {
         ES_SYMTAB,
         ES_TEXT,
         ES_BSS,
+        ES_RODATA,
+        ES_DATA,
         ES_RELATEXT,
         ES_STRTAB,
         ES_SHSTRTAB,
@@ -512,6 +514,8 @@ const char *sectionNames[NUM_ESS] = {
         [ES_SYMTAB  ] = ".symtab",
         [ES_TEXT    ] = ".text",
         [ES_BSS     ] = ".bss",
+        [ES_RODATA  ] = ".rodata",
+        [ES_DATA    ] = ".data",
         [ES_RELATEXT] = ".rela.text",
         [ES_STRTAB  ] = ".strtab",
         [ES_SHSTRTAB] = ".symstrtab",
@@ -557,22 +561,41 @@ void write_elf64_object(const char *outfilepath)
         }
         /* defined symbols */
         for (int i = 0; i < symDefCnt; i++) {
-                int sttKind;
+                int sttKind;  // STT_
                 int shndx;
+                int value = symDefInfo[i].offset;
+                int size = symDefInfo[i].size;
                 Symbol sym = symDefInfo[i].symbol;
-                if (symbolInfo[sym].kind == SYMBOL_PROC) {
+                int sectionKind = symDefInfo[i].kind;  // SECTION_
+                switch (sectionKind) {
+                case SECTION_CODE:
+                        ASSERT(symbolInfo[sym].kind == SYMBOL_PROC);
                         ASSERT(symbolInfo[sym].tProc.optionalproc != -1);
                         sttKind = STT_FUNC;
                         shndx = ES_TEXT; // symbol references the .text section
-                }
-                else if (symbolInfo[sym].kind == SYMBOL_DATA) {
+                        break;
+                case SECTION_ZERODATA:
+                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].tData.optionaldata == -1);
+                        sttKind = STT_OBJECT;
+                        shndx = ES_BSS;
+                        break;
+                case SECTION_RODATA:
+                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
                         ASSERT(symbolInfo[sym].tData.optionaldata != -1);
                         sttKind = STT_OBJECT;
-                        shndx = ES_BSS;  // for now all data is in .bss
-                }
-                else {
+                        shndx = ES_RODATA;
+                        break;
+                case SECTION_DATA:
+                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].tData.optionaldata != -1);
+                        sttKind = STT_OBJECT;
+                        shndx = ES_DATA;
+                        break;
+                default:
                         UNHANDLED_CASE();
                 }
+
                 int x = elfsymCnt++;
                 BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
                 elfsym[x].st_name = append_to_ElfStringTable(
@@ -580,8 +603,8 @@ void write_elf64_object(const char *outfilepath)
                 elfsym[x].st_info = (STB_GLOBAL << 4) | sttKind;
                 elfsym[x].st_other = 0;
                 elfsym[x].st_shndx = shndx;
-                elfsym[x].st_value = symDefInfo[i].offset;
-                elfsym[x].st_size = symDefInfo[i].size;
+                elfsym[x].st_value = value;
+                elfsym[x].st_size = size;
                 symbolToElfsym[sym] = x;
         }
         /* undefined symbols */
@@ -674,6 +697,8 @@ void write_elf64_object(const char *outfilepath)
         sh[ES_SYMTAB  ].sh_type = SHT_SYMTAB;
         sh[ES_TEXT    ].sh_type = SHT_PROGBITS;
         sh[ES_BSS     ].sh_type = SHT_NOBITS;
+        sh[ES_RODATA  ].sh_type = SHT_PROGBITS;
+        sh[ES_DATA    ].sh_type = SHT_PROGBITS;
         sh[ES_RELATEXT].sh_type = SHT_RELA;
         sh[ES_STRTAB  ].sh_type = SHT_STRTAB;
         sh[ES_SHSTRTAB].sh_type = SHT_STRTAB;
@@ -682,6 +707,8 @@ void write_elf64_object(const char *outfilepath)
         sh[ES_TEXT    ].sh_size = codeSectionCnt;
         sh[ES_BSS     ].sh_size = zerodataSectionCnt;
         sh[ES_RELATEXT].sh_size = relaTextCnt * sizeof (struct Elf64_Rela);  // ditto
+        sh[ES_RODATA  ].sh_size = rodataSectionCnt;
+        sh[ES_DATA    ].sh_size = dataSectionCnt;
         sh[ES_STRTAB  ].sh_size = strtabStrings.size;
         sh[ES_SHSTRTAB].sh_size = shstrtabStrings.size;
 
@@ -689,7 +716,9 @@ void write_elf64_object(const char *outfilepath)
         sh[ES_SYMTAB  ].sh_offset = eh.e_shoff + eh.e_shnum * sizeof (struct Elf64_Shdr);
         sh[ES_TEXT    ].sh_offset = sh[ES_SYMTAB  ].sh_offset + sh[ES_SYMTAB  ].sh_size;
         sh[ES_BSS     ].sh_offset = sh[ES_TEXT].sh_offset; // special case: the sh_size and the offset in the file do not correlate
-        sh[ES_RELATEXT].sh_offset = sh[ES_TEXT    ].sh_offset + sh[ES_TEXT    ].sh_size;
+        sh[ES_RODATA  ].sh_offset = sh[ES_TEXT    ].sh_offset + sh[ES_TEXT    ].sh_size;
+        sh[ES_DATA    ].sh_offset = sh[ES_RODATA  ].sh_offset + sh[ES_RODATA  ].sh_size;
+        sh[ES_RELATEXT].sh_offset = sh[ES_DATA    ].sh_offset + sh[ES_DATA    ].sh_size;
         sh[ES_STRTAB  ].sh_offset = sh[ES_RELATEXT].sh_offset + sh[ES_RELATEXT].sh_size;
         sh[ES_SHSTRTAB].sh_offset = sh[ES_STRTAB  ].sh_offset + sh[ES_STRTAB  ].sh_size;
 
@@ -697,6 +726,8 @@ void write_elf64_object(const char *outfilepath)
         sh[ES_SYMTAB  ].sh_addralign = 8;
         sh[ES_TEXT    ].sh_addralign = 8;
         sh[ES_BSS     ].sh_addralign = 8;
+        sh[ES_RODATA  ].sh_addralign = 8;
+        sh[ES_DATA    ].sh_addralign = 8;
         sh[ES_RELATEXT].sh_addralign = 8;
         sh[ES_STRTAB  ].sh_addralign = 1;
         sh[ES_SHSTRTAB].sh_addralign = 1;
@@ -704,6 +735,8 @@ void write_elf64_object(const char *outfilepath)
         sh[ES_SYMTAB].sh_flags = SHF_ALLOC;
         sh[ES_TEXT  ].sh_flags = SHF_ALLOC | SHF_EXECINSTR;
         sh[ES_BSS   ].sh_flags = SHF_ALLOC | SHF_WRITE;
+        sh[ES_RODATA].sh_flags = SHF_ALLOC;
+        sh[ES_DATA  ].sh_flags = SHF_ALLOC | SHF_WRITE;
 
         sh[ES_SYMTAB  ].sh_entsize = sizeof (struct Elf64_Sym);  // ???
         sh[ES_RELATEXT].sh_entsize = sizeof (struct Elf64_Rela);  // ???
@@ -744,6 +777,8 @@ void write_elf64_object(const char *outfilepath)
                 write_Elf64_Sym(&elfsym[i], f);
         /* .text */
         fwrite(codeSection, codeSectionCnt, 1, f);
+        fwrite(rodataSection, rodataSectionCnt, 1, f);
+        fwrite(dataSection, dataSectionCnt, 1, f);
         /* .rela.text */
         for (int i = 0; i < relaTextCnt; i++)
                 write_Elf64_Rela(&relaText[i], f);

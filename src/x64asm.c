@@ -91,15 +91,9 @@ void end_symbol(void)
         symDefInfo[sd].size = codeSectionCnt - symDefInfo[sd].offset;
 }
 
-/* BSS is unix/ELF/whatever speak for "uninitialized" data (data that gets
- * zeroed at startup). TODO: what about the offset? */
 INTERNAL
-void make_bss_data_symbol(Symbol sym)
+void emit_symbol(Symbol sym, int section, int offset, int size)
 {
-        int size = 8; //XXX: size of the data object the symbol points to
-        int offset = zerodataSectionCnt;
-        zerodataSectionCnt += size;
-
         ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
         SymDef sd = symDefCnt++;
         RESIZE_GLOBAL_BUFFER(symDefInfo, symDefCnt);
@@ -110,9 +104,21 @@ void make_bss_data_symbol(Symbol sym)
 }
 
 INTERNAL
-void make_rodata_symbol(Symbol sym, const void *buf, int size)
+void emit_rodata(uchar *buf, int len)
 {
+        int pos = rodataSectionCnt;
+        rodataSectionCnt += len;
+        RESIZE_GLOBAL_BUFFER(rodataSection, rodataSectionCnt);
+        copy_mem(rodataSection + pos, buf, len);
+}
 
+INTERNAL
+void emit_data(uchar *buf, int len)
+{
+        int pos = dataSectionCnt;
+        dataSectionCnt += len;
+        RESIZE_GLOBAL_BUFFER(dataSection, dataSectionCnt);
+        copy_mem(dataSection + pos, buf, len);
 }
 
 INTERNAL
@@ -604,8 +610,30 @@ void codegen_x64(void)
         }
 
         /* TODO: do we need an "IrData" type? */
-        for (Data x = 0; x < dataCnt; x++)
-                make_bss_data_symbol(dataInfo[x].sym);
+        for (Data x = 0; x < dataCnt; x++) {
+                int size = 8; //XXX: size of the data object the symbol points to
+                int offset = zerodataSectionCnt;
+                zerodataSectionCnt += size;
+                emit_symbol(dataInfo[x].sym, SECTION_DATA, size, offset);
+        }
+
+        // testdata, for now
+        {
+                const char foostring[] = "foostring";
+                Symbol sym = symbolCnt++;
+                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+                symbolInfo[sym].name = intern_cstring("foostring");
+                symbolInfo[sym].scope = (Scope) 0;
+                symbolInfo[sym].kind = SYMBOL_DATA;
+                //XXX
+                //symbolInfo[sym].tData = //XXX
+                //symbolInfo[sym].tProc.optionalproc = //XXX
+
+                int size = sizeof foostring;
+                int offset = rodataSectionCnt;
+                emit_symbol(sym, SECTION_RODATA, size, offset);
+                emit_rodata(foostring, size);
+        }
 
         for (IrProc x = 0; x < irProcCnt; x++) {
                 DEBUG("Generating code for proc #%d\n", x);
@@ -625,25 +653,4 @@ void codegen_x64(void)
                 relocInfo[x].kind = SECTION_CODE;
                 relocInfo[x].offset = offset;
         }
-
-        /*
-        emit_add_64_imm_RAX(0x31);
-        emit_add_64_indirect_reg(X64_RCX, X64_RDX, 0x3f3f3f3f);
-        emit_add_64_reg_indirect(X64_RCX, X64_RDX, 0x27);
-        emit_mov_64_reg_reg(X64_R11, X64_RSP);
-        emit_mov_64_reg_indirect(X64_RDX, X64_RBP, 0x0);
-        emit_mov_64_indirect_reg(X64_RDX, X64_RBX, 0x2);
-        emit_mov_64_reg_indirect(X64_RSP, X64_RSP, 0x7);
-        */
-
-        /*
-        for (int i = 0; i < codeSectionCnt; i++) {
-                if (i & 7)
-                        outf(" ");
-                else
-                        outf("\n");
-                outf("%.2x", codeSection[i]);
-        }
-        outs("\n");
-        */
 }
