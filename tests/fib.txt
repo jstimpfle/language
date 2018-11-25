@@ -5,9 +5,9 @@ proc int fib(int a)
     return 1;
 }
 
-data int r;
 proc int main()
 {
+    data int r;
     r = fib(7);
     print64(r);
     return 0;

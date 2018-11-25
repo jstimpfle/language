@@ -31,7 +31,7 @@ void compile_expr(Expr x)
                         Symref ref = exprInfo[e1].tSymref.ref;
                         Symbol sym = symrefInfo[ref].sym;
                         if (symbolInfo[sym].kind == SYMBOL_DATA &&
-                            symbolInfo[sym].scope == SCOPE_PROC) {
+                            scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
                                 Data data = symbolInfo[sym].tData.optionaldata;
                                 ASSERT(data != (Data) -1);  // proc-local data must exist
                                 IrReg srcreg = exprToIrReg[e2];
@@ -117,7 +117,7 @@ void compile_expr(Expr x)
                 Symbol sym = symrefInfo[ref].sym;
                 ASSERT(sym >= 0);
                 if (symbolInfo[sym].kind == SYMBOL_DATA &&
-                    symbolInfo[sym].scope == SCOPE_PROC) {
+                    scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
                         Data data = symbolInfo[sym].tData.optionaldata;
                         ASSERT(data != (Data) -1);  // proc-local data must exist
                         IrStmt y = irStmtCnt++;

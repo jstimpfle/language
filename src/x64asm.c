@@ -385,7 +385,9 @@ INTERNAL
 void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
 {
         int r1 = X64_RAX;
-        ASSERT(symbolInfo[symbol].scope == SCOPE_GLOBAL);
+        DEBUG("scope of symbol=%d is %d\n", symbol, symbolInfo[symbol].scope);
+        DEBUG("this scope's kind is %d\n", scopeInfo[symbolInfo[symbol].scope].kind);
+        ASSERT(scopeInfo[symbolInfo[symbol].scope].kind == SCOPE_GLOBAL);
         emit_mov_64_reloc_reg(symbol, 0, r1);
         emit_mov_64_reg_stack(r1, loc);
 }
@@ -489,6 +491,7 @@ void x64asm_proc(IrProc irp)
                         Symbol sym = irStmtInfo[irs].tLoadSymbolAddr.sym;
                         IrReg irreg = irStmtInfo[irs].tLoadSymbolAddr.tgtreg;
                         X64StackLoc loc = find_stack_loc(irreg);
+                        DEBUG("emit load %s\n", SS(sym));
                         emit_load_symaddr_stack(sym, loc);
 			break;
                 }
