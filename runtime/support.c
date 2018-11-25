@@ -61,3 +61,9 @@ uint64_t print64(uint64_t x)
         printf("%" PRId64 "\n", x);
         return 0;
 }
+
+uint64_t prints(const char *s)
+{
+        fputs(s, stdout);
+        return 0;
+}

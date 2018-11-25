@@ -30,7 +30,6 @@ int compute_colno(File file, int offset)
 INTERNAL
 void find_expr_position(Expr x, File *file, int *offset)
 {
-        // TODO: should this be added as hard data to ExprInfo?
         Token tok = -1;
         for (;;) {
                 switch (exprInfo[x].kind) {
@@ -38,7 +37,7 @@ void find_expr_position(Expr x, File *file, int *offset)
                         tok = exprInfo[x].tLiteral.tok;
                         break;
                 case EXPR_SYMREF:
-                        tok = symrefInfo[exprInfo[x].tSymref.ref].tok;
+                        tok = symrefToToken[exprInfo[x].tSymref.ref];
                         break;
                 case EXPR_UNOP:
                         tok = exprInfo[x].tUnop.tok;

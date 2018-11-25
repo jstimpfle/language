@@ -29,7 +29,7 @@ void compile_expr(Expr x)
                         compile_expr(e2);
                         ASSERT(exprInfo[e1].kind == EXPR_SYMREF);
                         Symref ref = exprInfo[e1].tSymref.ref;
-                        Symbol sym = symrefInfo[ref].sym;
+                        Symbol sym = symrefToSym[ref];
                         if (symbolInfo[sym].kind == SYMBOL_DATA &&
                             scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
                                 Data data = symbolInfo[sym].tData.optionaldata;
@@ -115,7 +115,7 @@ void compile_expr(Expr x)
         case EXPR_SYMREF: {
                 Type symTp = exprType[x];
                 Symref ref = exprInfo[x].tSymref.ref;
-                Symbol sym = symrefInfo[ref].sym;
+                Symbol sym = symrefToSym[ref];
                 ASSERT(sym >= 0);
                 if (symbolInfo[sym].kind == SYMBOL_DATA &&
                     scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
@@ -167,7 +167,7 @@ void compile_expr(Expr x)
                 Expr calleeExpr = exprInfo[x].tCall.callee;
                 if (exprInfo[calleeExpr].kind == EXPR_SYMREF) {
                         Symref ref = exprInfo[calleeExpr].tSymref.ref;
-                        Symbol sym = symrefInfo[ref].sym;
+                        Symbol sym = symrefToSym[ref];
                         if (sym == (Symbol) -1) {
                                 DEBUG("FATAL ERROR: symbol for ref %d (%s) is unresolved\n",
                                       ref, string_buffer(symrefInfo[ref].name));

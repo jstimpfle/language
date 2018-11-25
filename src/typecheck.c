@@ -20,18 +20,19 @@ Symbol find_symbol_in_scope(String name, Scope scope)
 
 void resolve_symbol_references(void)
 {
+        RESIZE_GLOBAL_BUFFER(symrefToSym, symrefCnt);
         int bad = 0;
         for (Symref ref = 0; ref < symrefCnt; ref++) {
                 String name = symrefInfo[ref].name;
                 Scope refScope = symrefInfo[ref].refScope;
                 Symbol sym = find_symbol_in_scope(name, refScope);
                 if (sym < 0) {
-                        MSG_AT_TOK(lvl_error, symrefInfo[ref].tok,
+                        MSG_AT_TOK(lvl_error, symrefToToken[ref],
                                    "unresolved symbol reference %s\n",
                                    string_buffer(name));
                         bad = 1;
                 }
-                symrefInfo[ref].sym = sym;
+                symrefToSym[ref] = sym;
         }
         if (bad) {
                 MSG(lvl_info, "Symbol resolution failed. Terminating early.\n");
@@ -83,7 +84,7 @@ void resolve_ref_type(Type t)
         case TYPE_REFERENCE: {
                 isComplete = 0;
                 typeInfo[t].isComplete = -1;
-                Symbol sym = symrefInfo[typeInfo[t].tRef.ref].sym;
+                Symbol sym = symrefToSym[typeInfo[t].tRef.ref];
                 if (sym != -1 && symbolInfo[sym].kind == SYMBOL_TYPE) {
                         Type symtp = symbolInfo[sym].tType;
                         if (symtp != -1) {
@@ -164,7 +165,7 @@ Type check_symref_expr_type(Expr x)
 {
         Symref ref = exprInfo[x].tSymref.ref;
         // XXX: symbol resolved?
-        Symbol sym = symrefInfo[ref].sym;
+        Symbol sym = symrefToSym[ref];
         Type tp = -1;
         if (sym == -1) {
                 const char *name = string_buffer(symrefInfo[ref].name);

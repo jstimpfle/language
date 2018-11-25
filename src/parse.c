@@ -8,7 +8,7 @@ Token add_word_token(File file, int offset, String string)
         RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
         tokenInfo[x].file = file;
         tokenInfo[x].offset = offset;
-        tokenInfo[x].kind = TOKTYPE_WORD;
+        tokenInfo[x].kind = TOKEN_WORD;
         tokenInfo[x].tWord.string = string;
         return x;
 }
@@ -20,8 +20,20 @@ Token add_integer_token(File file, int offset, long long value)
         RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
         tokenInfo[x].file = file;
         tokenInfo[x].offset = offset;
-        tokenInfo[x].kind = TOKTYPE_INTEGER;
+        tokenInfo[x].kind = TOKEN_INTEGER;
         tokenInfo[x].tInteger.value = value;
+        return x;
+}
+
+INTERNAL
+Token add_string_token(File file, int offset, String str)
+{
+        Token x = tokenCnt++;
+        RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
+        tokenInfo[x].file = file;
+        tokenInfo[x].offset = offset;
+        tokenInfo[x].kind = TOKEN_STRING;
+        tokenInfo[x].tString.value = str;
         return x;
 }
 
@@ -244,16 +256,42 @@ Token parse_next_token(void)
                 }
                 ans = add_integer_token(currentFile, off, x);
         }
+        else if (c == '"') {
+                lexbufCnt = 0;
+                for (;;) {
+                        c = read_char();
+                        if (c == '"')
+                                break;
+                        if (c == '\\') {
+                                c = read_char();
+                                if (c == 'n')
+                                        c = '\n';
+                                else if (c == '\\') {
+                                        /* (c = '\\') */
+                                }
+                                else {
+                                        FATAL_PARSE_ERROR_AT(
+                                                currentFile, currentOffset,
+                "escape sequence not supported: '\\<0x%x>'\n", c);
+                                }
+                        }
+                        int idx = lexbufCnt++;
+                        RESIZE_GLOBAL_BUFFER(lexbuf, lexbufCnt);
+                        lexbuf[idx] = c;
+                }
+                ans = add_string_token(currentFile, off,
+                                       intern_string(lexbuf, lexbufCnt));
+        }
         else if (c == '-') {
                 c = look_char();
                 if (c == '-') {
                         read_char();
                         ans = add_bare_token(currentFile, off,
-                                             TOKTYPE_DOUBLEMINUS);
+                                             TOKEN_DOUBLEMINUS);
                 }
                 else {
                         ans = add_bare_token(currentFile, off,
-                                             TOKTYPE_MINUS);
+                                             TOKEN_MINUS);
                 }
         }
         else if (c == '+') {
@@ -261,10 +299,10 @@ Token parse_next_token(void)
                 if (c == '+') {
                         read_char();
                         ans = add_bare_token(currentFile, off,
-                                             TOKTYPE_DOUBLEPLUS);
+                                             TOKEN_DOUBLEPLUS);
                 }
                 else {
-                        ans = add_bare_token(currentFile, off, TOKTYPE_PLUS);
+                        ans = add_bare_token(currentFile, off, TOKEN_PLUS);
                 }
         }
         else if (c == '=') {
@@ -272,34 +310,34 @@ Token parse_next_token(void)
                 if (c == '=') {
                         read_char();
                         ans = add_bare_token(currentFile, off,
-                                             TOKTYPE_EQ);
+                                             TOKEN_EQ);
                 }
                 else {
                         ans = add_bare_token(currentFile, off,
-                                             TOKTYPE_ASSIGNEQUALS);
+                                             TOKEN_ASSIGNEQUALS);
                 }
         }
         else {
                 static const struct { char c; int kind; } tt[] = {
-                        { '(', TOKTYPE_LEFTPAREN },
-                        { ')', TOKTYPE_RIGHTPAREN },
-                        { '{', TOKTYPE_LEFTBRACE },
-                        { '}', TOKTYPE_RIGHTBRACE },
-                        { '[', TOKTYPE_LEFTBRACKET },
-                        { ']', TOKTYPE_RIGHTBRACKET },
-                        { '.', TOKTYPE_DOT },
-                        { '*', TOKTYPE_ASTERISK },
-                        { '/', TOKTYPE_SLASH },
-                        { ',', TOKTYPE_COMMA },
-                        { ';', TOKTYPE_SEMICOLON },
-                        { ':', TOKTYPE_COLON },
-                        { '&', TOKTYPE_AMPERSAND },
-                        { '|', TOKTYPE_PIPE },
-                        { '^', TOKTYPE_CARET },
-                        { '~', TOKTYPE_TILDE },
-                        { '!', TOKTYPE_BANG },
-                        { '>', TOKTYPE_GT },
-                        { '<', TOKTYPE_LT },
+                        { '(', TOKEN_LEFTPAREN },
+                        { ')', TOKEN_RIGHTPAREN },
+                        { '{', TOKEN_LEFTBRACE },
+                        { '}', TOKEN_RIGHTBRACE },
+                        { '[', TOKEN_LEFTBRACKET },
+                        { ']', TOKEN_RIGHTBRACKET },
+                        { '.', TOKEN_DOT },
+                        { '*', TOKEN_ASTERISK },
+                        { '/', TOKEN_SLASH },
+                        { ',', TOKEN_COMMA },
+                        { ';', TOKEN_SEMICOLON },
+                        { ':', TOKEN_COLON },
+                        { '&', TOKEN_AMPERSAND },
+                        { '|', TOKEN_PIPE },
+                        { '^', TOKEN_CARET },
+                        { '~', TOKEN_TILDE },
+                        { '!', TOKEN_BANG },
+                        { '>', TOKEN_GT },
+                        { '<', TOKEN_LT },
                 };
 
                 ans = -1;
@@ -362,7 +400,7 @@ INTERNAL
 String parse_name(void)
 {
         PARSE_LOG();
-        Token tok = parse_token_kind(TOKTYPE_WORD);
+        Token tok = parse_token_kind(TOKEN_WORD);
         return tokenInfo[tok].tWord.string;
 }
 
@@ -370,13 +408,14 @@ INTERNAL
 Symref parse_symref(void)
 {
         PARSE_LOG();
-        Token tok = parse_token_kind(TOKTYPE_WORD);
+        Token tok = parse_token_kind(TOKEN_WORD);
         Scope refScope = currentScope;
         Symref ref = symrefCnt++;
         RESIZE_GLOBAL_BUFFER(symrefInfo, symrefCnt);
+        RESIZE_GLOBAL_BUFFER(symrefToToken, symrefCnt);
         symrefInfo[ref].name = tokenInfo[tok].tWord.string;
         symrefInfo[ref].refScope = refScope;
-        symrefInfo[ref].tok = tok;
+        symrefToToken[ref] = tok;
         return ref;
 }
 
@@ -391,7 +430,7 @@ Type parse_type(void)
         typeInfo[tp].tRef.ref = ref;
         typeInfo[tp].tRef.resolvedTp = -1;
         Token tok = look_next_token();
-        if (tokenInfo[tok].kind == TOKTYPE_ASTERISK) {
+        if (tokenInfo[tok].kind == TOKEN_ASTERISK) {
                 parse_next_token();
                 Type ptp = typeCnt++;
                 RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
@@ -408,7 +447,7 @@ Type parse_entity(void)
         PARSE_LOG();
         Type tp = parse_type();
         String name = parse_name();
-        parse_token_kind(TOKTYPE_SEMICOLON);
+        parse_token_kind(TOKEN_SEMICOLON);
         Type etp = typeCnt++;
         add_type_symbol(name, currentScope, etp);
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
@@ -425,10 +464,10 @@ Array parse_array(void)
 
         Type valuetp = parse_type();
         String name = parse_name();
-        parse_token_kind(TOKTYPE_LEFTBRACKET);
+        parse_token_kind(TOKEN_LEFTBRACKET);
         Type idxtp = parse_type();
-        parse_token_kind(TOKTYPE_RIGHTBRACKET);
-        parse_token_kind(TOKTYPE_SEMICOLON);
+        parse_token_kind(TOKEN_RIGHTBRACKET);
+        parse_token_kind(TOKEN_SEMICOLON);
 
         Array array = arrayCnt++;
         Type tp = typeCnt++;
@@ -456,7 +495,7 @@ Data parse_data(void)
         PARSE_LOG();
         Type tp = parse_type();
         String name = parse_name();
-        parse_token_kind(TOKTYPE_SEMICOLON);
+        parse_token_kind(TOKEN_SEMICOLON);
 
         Scope scope = currentScope;
         Data data = dataCnt++;
@@ -487,7 +526,7 @@ Expr parse_expr(int minprec)
                 Expr subexpr = parse_expr(42  /* TODO: unop precedence */);
                 expr = add_unop_expr(opkind, tok, subexpr);
         }
-        else if (tokenInfo[tok].kind == TOKTYPE_WORD) {
+        else if (tokenInfo[tok].kind == TOKEN_WORD) {
                 Symref ref = parse_symref();
                 expr = exprCnt++;
                 RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
@@ -495,18 +534,29 @@ Expr parse_expr(int minprec)
                 exprInfo[expr].kind = EXPR_SYMREF;
                 exprInfo[expr].tSymref.ref = ref;
         }
-        else if (tokenInfo[tok].kind == TOKTYPE_INTEGER) {
+        else if (tokenInfo[tok].kind == TOKEN_INTEGER) {
                 parse_next_token();
                 expr = exprCnt++;
                 RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
                 exprInfo[expr].proc = currentProc;
                 exprInfo[expr].kind = EXPR_LITERAL;
+                exprInfo[expr].tLiteral.kind = LITERAL_INTEGER;
                 exprInfo[expr].tLiteral.tok = tok;
         }
-        else if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
+        else if (tokenInfo[tok].kind == TOKEN_STRING) {
+                parse_next_token();
+                String string = tokenInfo[tok].tString.value;
+                expr = exprCnt++;
+                RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                exprInfo[expr].proc = currentProc;
+                exprInfo[expr].kind = EXPR_LITERAL;
+                exprInfo[expr].tLiteral.kind = LITERAL_STRING;
+                exprInfo[expr].tLiteral.tString = string;
+        }
+        else if (tokenInfo[tok].kind == TOKEN_LEFTPAREN) {
                 parse_next_token();
                 expr = parse_expr(0);
-                parse_token_kind(TOKTYPE_RIGHTPAREN);
+                parse_token_kind(TOKEN_RIGHTPAREN);
         }
         else {
                 FATAL_PARSE_ERROR_AT_TOK(tok, "Expected expression\n");
@@ -518,22 +568,22 @@ Expr parse_expr(int minprec)
                         parse_next_token();
                         expr = add_unop_expr(opkind, tok, expr);
                 }
-                else if (tokenInfo[tok].kind == TOKTYPE_LEFTPAREN) {
+                else if (tokenInfo[tok].kind == TOKEN_LEFTPAREN) {
                         parse_next_token();
                         Expr calleeExpr = expr;
                         expr = exprCnt++;
-                        while (look_token_kind(TOKTYPE_RIGHTPAREN) == -1) {
+                        while (look_token_kind(TOKEN_RIGHTPAREN) == -1) {
                                 Expr argExpr = parse_expr(0);
                                 int x = callArgCnt++;
                                 RESIZE_GLOBAL_BUFFER(callArgInfo, callArgCnt);
                                 callArgInfo[x].callExpr = expr;
                                 callArgInfo[x].argExpr = argExpr;
                                 callArgInfo[x].rank = x;
-                                if (look_token_kind(TOKTYPE_COMMA) == -1)
+                                if (look_token_kind(TOKEN_COMMA) == -1)
                                         break;
                                 parse_next_token();
                         }
-                        parse_token_kind(TOKTYPE_RIGHTPAREN);
+                        parse_token_kind(TOKEN_RIGHTPAREN);
                         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
                         exprInfo[expr].proc = currentProc;
                         exprInfo[expr].kind = EXPR_CALL;
@@ -541,9 +591,9 @@ Expr parse_expr(int minprec)
                         exprInfo[expr].tCall.firstArgIdx = -1;
                         exprInfo[expr].tCall.nargs = 0;
                 }
-                else if (tokenInfo[tok].kind == TOKTYPE_DOT) {
+                else if (tokenInfo[tok].kind == TOKEN_DOT) {
                         parse_next_token();
-                        Token x = parse_token_kind(TOKTYPE_WORD);
+                        Token x = parse_token_kind(TOKEN_WORD);
                         String name = tokenInfo[x].tWord.string;
                         Expr enclosingExpr = expr;
                         expr = exprCnt++;
@@ -553,11 +603,11 @@ Expr parse_expr(int minprec)
                         exprInfo[expr].tMember.expr = enclosingExpr;
                         exprInfo[expr].tMember.name = name;
                 }
-                else if (tokenInfo[tok].kind == TOKTYPE_LEFTBRACKET) {
+                else if (tokenInfo[tok].kind == TOKEN_LEFTBRACKET) {
                         parse_next_token();
                         Expr expr1 = expr;
                         Expr expr2 = parse_expr(0);
-                        parse_token_kind(TOKTYPE_RIGHTBRACKET);
+                        parse_token_kind(TOKEN_RIGHTBRACKET);
                         expr = exprCnt++;
                         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
                         exprInfo[expr].proc = currentProc;
@@ -617,7 +667,7 @@ Stmt parse_expr_stmt(void)
 {
         PARSE_LOG();
         Expr expr = parse_expr(0);
-        parse_token_kind(TOKTYPE_SEMICOLON);
+        parse_token_kind(TOKEN_SEMICOLON);
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_EXPR;
@@ -638,8 +688,8 @@ Stmt parse_compound_stmt(void)
         PARSE_LOG();
 
         Stmt stmt = stmtCnt++;
-        parse_token_kind(TOKTYPE_LEFTBRACE);
-        while (look_token_kind(TOKTYPE_RIGHTBRACE) == -1) {
+        parse_token_kind(TOKEN_LEFTBRACE);
+        while (look_token_kind(TOKEN_RIGHTBRACE) == -1) {
                 Stmt child = parse_stmt();
                 int x = childStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(childStmtInfo, childStmtCnt);
@@ -647,7 +697,7 @@ Stmt parse_compound_stmt(void)
                 childStmtInfo[x].child = child;
                 childStmtInfo[x].rank = x;
         }
-        parse_token_kind(TOKTYPE_RIGHTBRACE);
+        parse_token_kind(TOKEN_RIGHTBRACE);
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_COMPOUND;
         stmtInfo[stmt].tCompound.numStatements = 0;
@@ -660,7 +710,7 @@ Stmt parse_imperative_statement(void)
 {
         PARSE_LOG();
         Token tok = look_next_token();
-        if (tokenInfo[tok].kind == TOKTYPE_WORD) {
+        if (tokenInfo[tok].kind == TOKEN_WORD) {
                 String s = tokenInfo[tok].tWord.string;
                 if (s == constStr[CONSTSTR_IF]) {
                         parse_next_token();
@@ -682,7 +732,7 @@ Stmt parse_imperative_statement(void)
                         return parse_expr_stmt();
                 }
         }
-        else if (tokenInfo[tok].kind == TOKTYPE_LEFTBRACE) {
+        else if (tokenInfo[tok].kind == TOKEN_LEFTBRACE) {
                 return parse_compound_stmt();
         }
         else {
@@ -700,15 +750,15 @@ Stmt parse_if_stmt(void)
         Stmt ifbody;
 
         stmt = stmtCnt++;
-        parse_token_kind(TOKTYPE_LEFTPAREN);
+        parse_token_kind(TOKEN_LEFTPAREN);
         condExpr = parse_expr(0);
         DEBUG("1\n");
-        parse_token_kind(TOKTYPE_RIGHTPAREN);
+        parse_token_kind(TOKEN_RIGHTPAREN);
         DEBUG("2\n");
         ifbody = parse_imperative_statement();
 
         Token tok;
-        if ((tok = look_token_kind(TOKTYPE_WORD)) != -1 &&
+        if ((tok = look_token_kind(TOKEN_WORD)) != -1 &&
             tokenInfo[tok].tWord.string == constStr[CONSTSTR_ELSE]) {
                 parse_next_token();
                 Stmt elsebody = parse_imperative_statement();
@@ -732,9 +782,9 @@ INTERNAL
 Stmt parse_while_stmt(void)
 {
         PARSE_LOG();
-        parse_token_kind(TOKTYPE_LEFTPAREN);
+        parse_token_kind(TOKEN_LEFTPAREN);
         Expr condExpr = parse_expr(0);
-        parse_token_kind(TOKTYPE_RIGHTPAREN);
+        parse_token_kind(TOKEN_RIGHTPAREN);
         Stmt whilebody = parse_imperative_statement();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
@@ -748,13 +798,13 @@ INTERNAL
 Stmt parse_for_stmt(void)
 {
         PARSE_LOG();
-        parse_token_kind(TOKTYPE_LEFTPAREN);
+        parse_token_kind(TOKEN_LEFTPAREN);
         Stmt initStmt = parse_expr_stmt();
-        parse_token_kind(TOKTYPE_SEMICOLON);
+        parse_token_kind(TOKEN_SEMICOLON);
         Expr condExpr = parse_expr(0);
-        parse_token_kind(TOKTYPE_SEMICOLON);
+        parse_token_kind(TOKEN_SEMICOLON);
         Stmt stepStmt = parse_expr_stmt();
-        parse_token_kind(TOKTYPE_RIGHTPAREN);
+        parse_token_kind(TOKEN_RIGHTPAREN);
         Stmt forbody = parse_imperative_statement();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
@@ -771,7 +821,7 @@ Stmt parse_return_stmt(void)
 {
         PARSE_LOG();
         Expr expr = parse_expr(0);
-        parse_token_kind(TOKTYPE_SEMICOLON);
+        parse_token_kind(TOKEN_SEMICOLON);
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_RETURN;
@@ -784,7 +834,7 @@ Stmt parse_stmt(void)
 {
         PARSE_LOG();
         Token tok = look_next_token();
-        if (tokenInfo[tok].kind == TOKTYPE_WORD) {
+        if (tokenInfo[tok].kind == TOKEN_WORD) {
                 String s = tokenInfo[tok].tWord.string;
                 if (s == constStr[CONSTSTR_DATA]) {
                         parse_next_token();
@@ -835,17 +885,18 @@ Proc parse_proc(void)
 
         RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
         RESIZE_GLOBAL_BUFFER(procInfo, procCnt);
+        RESIZE_GLOBAL_BUFFER(procToType, procCnt);
         RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
 
         currentProc = proc;
         push_scope(pscope);
 
-        parse_token_kind(TOKTYPE_LEFTPAREN);
+        parse_token_kind(TOKEN_LEFTPAREN);
         int nparams = 0;
         for (;;) {
                 Token tok = look_next_token();
-                if (tokenInfo[tok].kind == TOKTYPE_RIGHTPAREN)
+                if (tokenInfo[tok].kind == TOKEN_RIGHTPAREN)
                         break;
                 nparams++;
                 Type paramtp = parse_type();
@@ -868,11 +919,11 @@ Proc parse_proc(void)
                 dataInfo[paramdata].scope = pscope;
                 dataInfo[paramdata].tp = -1; //XXX
                 dataInfo[paramdata].sym = paramsym;
-                if (look_token_kind(TOKTYPE_COMMA) == -1)
+                if (look_token_kind(TOKEN_COMMA) == -1)
                         break;
                 parse_next_token();
         }
-        parse_token_kind(TOKTYPE_RIGHTPAREN);
+        parse_token_kind(TOKEN_RIGHTPAREN);
         Stmt pbody = parse_compound_stmt();
         pop_scope();
 
@@ -881,11 +932,11 @@ Proc parse_proc(void)
         scopeInfo[pscope].numSymbols = 0;
         scopeInfo[pscope].kind = SCOPE_PROC;
         scopeInfo[pscope].tProc.proc = proc;
-        procInfo[proc].tp = ptype;
         procInfo[proc].sym = psym;
         procInfo[proc].scope = pscope;
         procInfo[proc].nparams = 0;
         procInfo[proc].body = pbody;
+        procToType[proc] = ptype;
         symbolInfo[psym].name = pname;
         symbolInfo[psym].scope = parentScope;
         symbolInfo[psym].kind = SYMBOL_PROC;
@@ -976,11 +1027,12 @@ void parse_global_scope(void)
         add_external_function("eq64");
         add_external_function("ne64");
         add_external_function("print64");
+        add_external_function("prints");
 
         globalScope = add_global_scope();
         push_scope(globalScope);
-        while (look_token_kind(TOKTYPE_WORD) != -1) {
-                Token tok = parse_token_kind(TOKTYPE_WORD);
+        while (look_token_kind(TOKEN_WORD) != -1) {
+                Token tok = parse_token_kind(TOKEN_WORD);
                 String s = tokenInfo[tok].tWord.string;
                 if (s == constStr[CONSTSTR_ENTITY])
                         parse_entity();

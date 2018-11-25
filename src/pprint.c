@@ -280,11 +280,11 @@ void pp_proc(Proc p)
 {
         outs("\n");
         outs("proc ");
-        pp_type(procInfo[p].tp);
+        pp_type(procToType[p]);
         outs(" ");
         outs(SS(procInfo[p].sym));
         outs("(");
-        int firstParam = typeInfo[procInfo[p].tp].tProc.firstParam;
+        int firstParam = typeInfo[procToType[p]].tProc.firstParam;
         for (int i = 0; i < procInfo[p].nparams; i++) {
                 if (i > 0)
                         outs(", ");

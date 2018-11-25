@@ -2,6 +2,7 @@
 #error This file must be included only from api.h !
 #endif
 
+
 /**
  * Intermediate Representation (IR). This is a lower-level representation of the
  * code than the syntactical one (which is usually called "abstract syntax tree"
@@ -34,9 +35,32 @@
  * \typedef{IrLabel} TODO
  */
 
+typedef int IrSymbol;
+typedef int IrProc;
+typedef int IrReg;
+typedef int IrStmt;
+typedef int IrCallArg;
+typedef int IrCallResult;
+typedef int IrReturnResult;
+typedef int IrLabel;
+
+typedef long long IrConstval;//needed?
+
 /**
  * \enum{IrStmtKind} defines the possible kinds of IR statements.
  */
+
+enum IrStmtKind {
+        IRSTMT_LOADCONSTANT,
+        IRSTMT_LOADSYMBOLADDR,
+        IRSTMT_LOAD,
+        IRSTMT_STORE,
+        IRSTMT_REGREG,
+        IRSTMT_CALL,
+        IRSTMT_CONDGOTO,
+        IRSTMT_GOTO,
+        IRSTMT_RETURN,
+};
 
 /**
  * \struct{IrRegInfo} is a struct associating important data with a particular
@@ -59,17 +83,6 @@
  * statement and holds one of the values that should be returned.
  */
 
-typedef int IrSymbol;
-typedef int IrProc;
-typedef int IrReg;
-typedef int IrStmt;
-typedef int IrCallArg;
-typedef int IrCallResult;
-typedef int IrReturnResult;
-typedef int IrLabel;
-
-typedef long long IrConstval;//needed?
-
 struct IrSymbolInfo {
         String name;
 };
@@ -82,18 +95,6 @@ struct IrRegInfo {
         String name;
         Symbol sym;
         Type tp; //XXX
-};
-
-enum IrStmtKind {
-        IRSTMT_LOADCONSTANT,
-        IRSTMT_LOADSYMBOLADDR,
-        IRSTMT_LOAD,
-        IRSTMT_STORE,
-        IRSTMT_REGREG,
-        IRSTMT_CALL,
-        IRSTMT_CONDGOTO,
-        IRSTMT_GOTO,
-        IRSTMT_RETURN,
 };
 
 struct IrCallArgInfo {

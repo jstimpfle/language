@@ -14,28 +14,56 @@ void cleanup(void)
                           globalBufferInfo[i].elemsize, __FILE__, __LINE__);
 }
 
+INTERNAL
+void print_usage(const char *progname)
+{
+        outf("\n");
+        outf("Usage:\n");
+        outf("  %s -help\n", progname);
+        outf("  %s [-debug] [-dump-ir] [-prettyprint-ast] <program.txt>\n",
+             progname);
+        outf("\n");
+}
+
 
 int main(int argc, const char **argv)
 {
-        const char *fileToParse;
+        const char *progname = argv[0];
 
-        fileToParse = "tests/test2.txt";
         for (int i = 1; i < argc; i++) {
                 if (argv[i][0] == '-') {
-                        if (cstr_equal(argv[i], "-debug"))
+                        if (cstr_equal(argv[i], "-help"))
+                                wantHelp = 1;
+                        else if (cstr_equal(argv[i], "-debug"))
                                 doDebug = 1;
                         else if (cstr_equal(argv[i], "-prettyprint-ast"))
                                 doPrettyPrintAst = 1;
                         else if (cstr_equal(argv[i], "-dump-ir"))
                                 doDumpIr = 1;
                         else {
-                                FATAL("Failed to parse command-line argument #%d: %s\n",
-                                      i, argv[i]);
+                                MSG(lvl_error, "Invalid command-line argument \"%s\"\n", argv[i]);
+                                goto bad;
                         }
                 }
                 else {
                         fileToParse = argv[i];
                 }
+        }
+        if (fileToParse == 0) {
+                MSG(lvl_error, "No file to compile given on command line\n");
+                goto bad;
+        }
+
+        if (0) {  /* i wonder which compilers will trip on this */
+bad:
+                print_usage(progname);
+                MSG(lvl_error, "bad invocation! Terminating.\n");
+                return 1;
+        }
+
+        if (wantHelp) {
+                print_usage(progname);
+                return 0;
         }
 
         initialize_pseudo_constant_data();
