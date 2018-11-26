@@ -42,13 +42,12 @@ To build the compiler, run `build.bat` on Windows or `./build.sh` on Linux.
 Usage
 -----
 
-To run the compiler, run the `build/language` executable (`build\language.exe`
-on Windows). This compiles a single code file (default: a file in the `test/`
-directory) to x64 machine code.
+You can now try and compile one of the example code files in the `test/`
+directory. Run for instance `build/language tests/fib.txt`.
 
-For now, an ELF-64 object file named `out.o` is created in the current
-directory. An object file is a container for machine code. The ELF-64 format is
-the standard object file format supported on Linux.
+If the compilation was successful, an ELF-64 object file named `out.o` was
+created in the current directory. An object file is a container for machine
+code. The ELF-64 format is the standard object file format supported on Linux.
 
 If you are on Linux, you can use the system's compiler and linker to make an
 executable file. The executable will contain some additional support functions,
