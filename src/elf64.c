@@ -598,6 +598,19 @@ void write_elf64_object(const char *outfilepath)
                 BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
                 CLEAR(elfsym[x]);
         }
+        /* section symbols. For some reason the STB_LOCAL symbols must come
+         * first */
+        for (int i = 0; i < NUM_ESS; i++) {
+                int x = elfsymCnt++;
+                BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
+                elfsym[x].st_name = 0;  // (empty/no) string
+                elfsym[x].st_info = (STB_LOCAL << 4) | STT_SECTION;
+                elfsym[x].st_other = 0;
+                elfsym[x].st_shndx = i;
+                elfsym[x].st_value = 0;
+                elfsym[x].st_size = 0;
+                elfsectionToElfsym[i] = x;
+        }
         /* defined symbols */
         for (int i = 0; i < symDefCnt; i++) {
                 int sttKind;  // STT_
@@ -675,18 +688,6 @@ void write_elf64_object(const char *outfilepath)
                 elfsym[x].st_size = 0;
                 symbolToElfsym[sym] = x;
         }
-        /* section symbols */
-        for (int i = 0; i < NUM_ESS; i++) {
-                int x = elfsymCnt++;
-                BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
-                elfsym[x].st_name = 0;  // (empty/no) string
-                elfsym[x].st_info = (STB_GLOBAL << 4) | STT_SECTION;
-                elfsym[x].st_other = 0;
-                elfsym[x].st_shndx = i;
-                elfsym[x].st_value = 0;
-                elfsym[x].st_size = 0;
-                elfsectionToElfsym[i] = x;
-        }
 
         /*
          * initialize Relocations
@@ -704,7 +705,7 @@ void write_elf64_object(const char *outfilepath)
                         esym = elfsectionToElfsym[esec];
                 }
                 else {
-                        int esym = symbolToElfsym[sym];
+                        esym = symbolToElfsym[sym];
                         if (esym == -1)
                                 FATAL("There is a relocation for symbol %s which is not in .symtab (is this an internal error?)\n", SS(sym));
                 }
@@ -802,9 +803,10 @@ void write_elf64_object(const char *outfilepath)
         sh[ES_SYMTAB  ].sh_link = ES_STRTAB;  // index of .strtab
         sh[ES_RELATEXT].sh_link = ES_SYMTAB;  // index of .symtab
 
-        sh[ES_SYMTAB].sh_info = 1;  /* XXX not sure what to put here. See Table 11,
-                                       "Index of first non-local symbol (i.e.,
-                                       number of local symbols)" */
+        /* XXX "Index of first non-local symbol (i.e., number of local symbols)"
+         */
+        sh[ES_SYMTAB].sh_info = elfsectionToElfsym[NUM_ESS-1] + 1;
+
         sh[ES_RELATEXT].sh_info = ES_TEXT;  // index of .text
 
         /*
