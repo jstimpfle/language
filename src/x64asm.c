@@ -574,9 +574,9 @@ void x64asm_proc(IrProc irp)
                         break;
                 }
                 case IRSTMT_RETURN: {
-                        IrReturnResult result = irStmtInfo[irs].tReturn.firstResult;
+                        IrReturnval result = irStmtInfo[irs].tReturn.firstResult;
                         if (result != -1) {
-                                IrReg irreg = irReturnResultInfo[result].resultReg;
+                                IrReg irreg = irReturnvalInfo[result].resultReg;
                                 X64StackLoc loc = find_stack_loc(irreg);
                                 emit_mov_64_stack_reg(loc, X64_RAX);
                         }

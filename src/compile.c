@@ -113,8 +113,8 @@ void compile_expr(Expr x)
                         irStmtInfo[callStmt].tCall.firstIrCallArg = arg1;
                         irStmtInfo[callStmt].tCall.firstIrCallResult = ret;
                         irCallArgInfo[arg1].srcreg = exprToIrReg[e1];
-                        irCallArgInfo[arg2].srcreg = exprToIrReg[e2];
                         irCallArgInfo[arg1].callStmt = callStmt;
+                        irCallArgInfo[arg2].srcreg = exprToIrReg[e2];
                         irCallArgInfo[arg2].callStmt = callStmt;
                         irCallResultInfo[ret].callStmt = callStmt;
                         irCallResultInfo[ret].tgtreg = exprToIrReg[x];
@@ -315,15 +315,14 @@ void compile_stmt(IrProc irp, Stmt stmt)
                 Expr resultExpr = stmtInfo[stmt].tReturn.expr;
                 compile_expr(resultExpr);
                 IrStmt irs = irStmtCnt++;
+                IrReturnval ret = irReturnvalCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                RESIZE_GLOBAL_BUFFER(irReturnvalInfo, irReturnvalCnt);
                 irStmtInfo[irs].proc = irp;
                 irStmtInfo[irs].kind = IRSTMT_RETURN;
-                irStmtInfo[irs].tReturn.firstResult = irReturnResultCnt;
-                /**/
-                IrReturnResult ret = irReturnResultCnt++;
-                RESIZE_GLOBAL_BUFFER(irReturnResultInfo, irReturnResultCnt);
-                irReturnResultInfo[ret].returnStmt = irs;
-                irReturnResultInfo[ret].resultReg = exprToIrReg[resultExpr];
+                irStmtInfo[irs].tReturn.firstResult = irReturnvalCnt;
+                irReturnvalInfo[ret].returnStmt = irs;
+                irReturnvalInfo[ret].resultReg = exprToIrReg[resultExpr];
                 break;
         }
         default:

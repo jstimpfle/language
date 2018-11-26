@@ -119,11 +119,11 @@ void irp_proc(IrProc p)
                         outs("(");
                         int res = irStmtInfo[i].tReturn.firstResult;
                         for (;;) {
-                                irp_reg(irReturnResultInfo[res].resultReg);
+                                irp_reg(irReturnvalInfo[res].resultReg);
                                 res++;
-                                if (res == irReturnResultCnt)
+                                if (res == irReturnvalCnt)
                                         break;
-                                if (irReturnResultInfo[res].returnStmt != i)
+                                if (irReturnvalInfo[res].returnStmt != i)
                                         break;
                                 outs(", ");
                         }

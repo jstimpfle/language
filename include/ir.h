@@ -29,7 +29,7 @@
  * IRSTMT_CALL. \typedef{IrCallResult} is a result value for an IR statement of
  * kind IRSTMT_CALL.
  *
- * \typedef{IrReturnResult} is a value that is return by an IR statement of kind
+ * \typedef{IrReturnval} is a value that is return by an IR statement of kind
  * IRSTMT_RETURN.
  *
  * \typedef{IrLabel} TODO
@@ -41,7 +41,7 @@ typedef int IrReg;
 typedef int IrStmt;
 typedef int IrCallArg;
 typedef int IrCallResult;
-typedef int IrReturnResult;
+typedef int IrReturnval;
 typedef int IrLabel;
 
 typedef long long IrConstval;//needed?
@@ -79,7 +79,7 @@ enum IrStmtKind {
  * call statement. It associates a the call statement with a particular IR
  * register that holds the call result value.
  *
- * \struct{IrReturnResultInfo} is associated with a IRSTMT_RETURN
+ * \struct{IrReturnvalInfo} is associated with a IRSTMT_RETURN
  * statement and holds one of the values that should be returned.
  */
 
@@ -107,7 +107,7 @@ struct IrCallResultInfo {
         IrReg tgtreg;
 };
 
-struct IrReturnResultInfo {
+struct IrReturnvalInfo {
         IrStmt returnStmt;
         IrReg resultReg;
 };
@@ -156,7 +156,7 @@ struct IrGotoStmtInfo {
 };
 
 struct IrReturnStmtInfo {
-        IrReturnResult firstResult;
+        IrReturnval firstResult;
 };
 
 struct IrStmtInfo {
@@ -207,7 +207,7 @@ DATA int irRegCnt;
 DATA int irStmtCnt;
 DATA int irCallArgCnt;
 DATA int irCallResultCnt;
-DATA int irReturnResultCnt;
+DATA int irReturnvalCnt;
 DATA int irProcCnt;
 DATA int irLabelCnt;
 DATA int irOriginCnt;
@@ -217,7 +217,7 @@ DATA struct IrRegInfo *irRegInfo;
 DATA struct IrStmtInfo *irStmtInfo;
 DATA struct IrCallArgInfo *irCallArgInfo;
 DATA struct IrCallResultInfo *irCallResultInfo;
-DATA struct IrReturnResultInfo *irReturnResultInfo;
+DATA struct IrReturnvalInfo *irReturnvalInfo;
 DATA struct IrProcInfo *irProcInfo;
 DATA struct IrLabelInfo *irLabelInfo;
 DATA struct IrOrigin *irOrigin;

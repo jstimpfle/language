@@ -196,7 +196,7 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         MAKE( irStmtInfo ),
         MAKE( irCallArgInfo ),
         MAKE( irCallResultInfo ),
-        MAKE( irReturnResultInfo ),
+        MAKE( irReturnvalInfo ),
         MAKE( irProcInfo ),
         MAKE( irLabelInfo ),
         MAKE( irOrigin ),

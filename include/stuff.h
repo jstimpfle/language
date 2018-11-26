@@ -129,7 +129,7 @@ enum {
         BUFFER_irStmtInfo,
         BUFFER_irCallArgInfo,
         BUFFER_irCallResultInfo,
-        BUFFER_irReturnResultInfo,
+        BUFFER_irReturnvalInfo,
         BUFFER_irProcInfo,
         BUFFER_irLabelInfo,
         BUFFER_irOrigin,
