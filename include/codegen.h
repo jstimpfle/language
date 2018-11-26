@@ -35,6 +35,7 @@ enum {
         SECTION_DATA,
         SECTION_RODATA,
         SECTION_ZERODATA,
+        NUM_SECTIONS,
 };
 
 struct SymDefInfo {
@@ -50,9 +51,10 @@ struct GotoInfo {
 };
 
 struct RelocInfo {
-        Symbol symbol;
-        int addend;  // offset relative to position of symbol
+        Symbol symbol;  /* if -1, the relocation is relative to the section
+                           (kind field) */
         int kind; // SECTION_
+        int addend;  // offset relative to position of symbol
         int offset;  // place in the code where bytes should be edited
 };
 

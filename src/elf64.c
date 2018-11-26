@@ -374,6 +374,32 @@ Other                   0
 #define PF_MASKPROC     0xFF000000      /* These flag bits are reserved for
                                            processor-specific use */
 
+
+/* Taken from somewhere else: x64 Relocation Types */
+/*      Name            Value      Field    Calculation (S=Symbol, A=Addend) */
+#define R_AMD64_NONE        0   /* None     None */
+#define R_AMD64_64          1   /* word64   S + A  */
+#define R_AMD64_PC32        2   /* word32   S + A - P  */
+#define R_AMD64_GOT32       3   /* word32   G + A  */
+#define R_AMD64_PLT32       4   /* word32   L + A - P  */
+#define R_AMD64_COPY        5   /* None     Refer to the explanation following
+                                            this table.   */
+#define R_AMD64_GLOB_DAT    6   /* word64   S  */
+#define R_AMD64_JUMP_SLOT   7   /* word64   S  */
+#define R_AMD64_RELATIVE    8   /* word64   B + A  */
+#define R_AMD64_GOTPCREL    9   /* word32   G + GOT + A - P  */
+#define R_AMD64_32         10   /* word32   S + A  */
+#define R_AMD64_32S        11   /* word32   S + A  */
+#define R_AMD64_16         12   /* word16   S + A  */
+#define R_AMD64_PC16       13   /* word16   S + A - P  */
+#define R_AMD64_8          14   /* word8    S + A  */
+#define R_AMD64_PC8        15   /* word8    S + A - P  */
+#define R_AMD64_PC64       24   /* word64   S + A - P  */
+#define R_AMD64_GOTOFF64   25   /* word64   S + A - GOT  */
+#define R_AMD64_GOTPC32    26   /* word32   GOT + A + P  */
+#define R_AMD64_SIZE32     32   /* word32   Z + A  */
+#define R_AMD64_SIZE64     33   /* word64   Z + A  */
+
 void write_Elf64_Uchar(Elf64_Uchar x, FILE *f)
 {
         fputc(x, f);
@@ -509,7 +535,16 @@ enum {
         NUM_ESS,
 };
 
-const char *sectionNames[NUM_ESS] = {
+
+/* Map the section identifiers from codegen.h to the ES_* sections here */
+const int sectionToElfsection[NUM_SECTIONS] = {
+        [SECTION_CODE] = ES_TEXT,
+        [SECTION_DATA] = ES_DATA,
+        [SECTION_RODATA] = ES_RODATA,
+        [SECTION_ZERODATA] = ES_BSS,
+};
+
+const char *const sectionNames[NUM_ESS] = {
         [ES_DUMMY   ] = "",
         [ES_SYMTAB  ] = ".symtab",
         [ES_TEXT    ] = ".text",
@@ -520,6 +555,10 @@ const char *sectionNames[NUM_ESS] = {
         [ES_STRTAB  ] = ".strtab",
         [ES_SHSTRTAB] = ".symstrtab",
 };
+
+/* for each ELF section we also make an ELF symbol so we can reference it */
+int elfsectionToElfsym[NUM_ESS];
+
 
 void write_elf64_object(const char *outfilepath)
 {
@@ -636,6 +675,18 @@ void write_elf64_object(const char *outfilepath)
                 elfsym[x].st_size = 0;
                 symbolToElfsym[sym] = x;
         }
+        /* section symbols */
+        for (int i = 0; i < NUM_ESS; i++) {
+                int x = elfsymCnt++;
+                BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
+                elfsym[x].st_name = 0;  // (empty/no) string
+                elfsym[x].st_info = (STB_GLOBAL << 4) | STT_SECTION;
+                elfsym[x].st_other = 0;
+                elfsym[x].st_shndx = i;
+                elfsym[x].st_value = 0;
+                elfsym[x].st_size = 0;
+                elfsectionToElfsym[i] = x;
+        }
 
         /*
          * initialize Relocations
@@ -643,17 +694,24 @@ void write_elf64_object(const char *outfilepath)
 
         for (int i = 0; i < relocCnt; i++) {
                 Symbol sym = relocInfo[i].symbol;
+                int kind = relocInfo[i].kind;
                 Elf64_Sxword addend = relocInfo[i].addend;
                 int offset = relocInfo[i].offset;
-                int es = symbolToElfsym[sym];
-                if (es == -1)
-                        FATAL("There is a relocation for symbol %s which is not in .symtab (is this an internal error?)\n", SS(sym));
+
+                int esym;
+                if (sym == -1) {
+                        int esec = sectionToElfsection[kind];
+                        esym = elfsectionToElfsym[esec];
+                }
+                else {
+                        int esym = symbolToElfsym[sym];
+                        if (esym == -1)
+                                FATAL("There is a relocation for symbol %s which is not in .symtab (is this an internal error?)\n", SS(sym));
+                }
                 int x = relaTextCnt++;
                 BUF_RESERVE(&relaText, &relaTextAlloc, relaTextCnt);
-                /* XXX: I got this from another place: "1" stands for a
-                 * "Segment + Offset" kind of calculation */
-                relaText[x].r_info = ELF64_R_INFO(es, 1);
                 relaText[x].r_offset = offset;
+                relaText[x].r_info = ELF64_R_INFO(esym, R_AMD64_64);
                 relaText[x].r_addend = addend;
         }
 
