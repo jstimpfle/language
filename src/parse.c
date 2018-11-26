@@ -752,9 +752,7 @@ Stmt parse_if_stmt(void)
         stmt = stmtCnt++;
         parse_token_kind(TOKEN_LEFTPAREN);
         condExpr = parse_expr(0);
-        DEBUG("1\n");
         parse_token_kind(TOKEN_RIGHTPAREN);
-        DEBUG("2\n");
         ifbody = parse_imperative_statement();
 
         Token tok;

@@ -6,7 +6,6 @@
 #include "api.h"
 #include <stdint.h>
 
-typedef unsigned char uchar;
 typedef int X64StackLoc;
 typedef uint8_t Imm8;
 typedef uint16_t Imm16;
@@ -98,36 +97,36 @@ void emit_symbol(Symbol sym, int section, int offset, int size)
         SymDef sd = symDefCnt++;
         RESIZE_GLOBAL_BUFFER(symDefInfo, symDefCnt);
         symDefInfo[sd].symbol = sym;
-        symDefInfo[sd].kind = SECTION_DATA;
+        symDefInfo[sd].kind = section;
         symDefInfo[sd].offset = offset;
         symDefInfo[sd].size = size;
 }
 
 INTERNAL
-void emit_rodata(uchar *buf, int len)
+void emit_rodata(const void *buf, int size)
 {
         int pos = rodataSectionCnt;
-        rodataSectionCnt += len;
+        rodataSectionCnt += size;
         RESIZE_GLOBAL_BUFFER(rodataSection, rodataSectionCnt);
-        copy_mem(rodataSection + pos, buf, len);
+        copy_mem(rodataSection + pos, buf, size);
 }
 
-INTERNAL
-void emit_data(uchar *buf, int len)
+INTERNAL UNUSEDFUNC
+void emit_data(const void *buf, int size)
 {
         int pos = dataSectionCnt;
-        dataSectionCnt += len;
+        dataSectionCnt += size;
         RESIZE_GLOBAL_BUFFER(dataSection, dataSectionCnt);
-        copy_mem(dataSection + pos, buf, len);
+        copy_mem(dataSection + pos, buf, size);
 }
 
 INTERNAL
-void emit_bytes(uchar *buf, int len)
+void emit_bytes(const void *buf, int size)
 {
         int pos = codeSectionCnt;
-        codeSectionCnt += len;
+        codeSectionCnt += size;
         RESIZE_GLOBAL_BUFFER(codeSection, codeSectionCnt);
-        copy_mem(codeSection + pos, buf, len);
+        copy_mem(codeSection + pos, buf, size);
 }
 
 INTERNAL
@@ -140,19 +139,21 @@ void emit(uint8_t c)
 #define BYTE(x, n) ((unsigned long long) (x) >> (8*(n)))
 void emit16(uint32_t c)
 {
-        uchar bs[] = { BYTE(c, 0), BYTE(c, 1) };
+        unsigned char bs[] = { BYTE(c, 0), BYTE(c, 1) };
         emit_bytes(bs, LENGTH(bs));
 }
 
 void emit32(uint32_t c)
 {
-        uchar bs[] = { BYTE(c, 0), BYTE(c, 1), BYTE(c, 2), BYTE(c, 3) };
+        unsigned char bs[] = {
+                BYTE(c, 0), BYTE(c, 1), BYTE(c, 2), BYTE(c, 3)
+        };
         emit_bytes(bs, LENGTH(bs));
 }
 
 void emit64(uint32_t c)
 {
-        uchar bs[] = {
+        unsigned char bs[] = {
                 BYTE(c, 0), BYTE(c, 1), BYTE(c, 2), BYTE(c, 3),
                 BYTE(c, 4), BYTE(c, 5), BYTE(c, 6), BYTE(c, 7),
         };
@@ -397,8 +398,6 @@ INTERNAL
 void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
 {
         int r1 = X64_RAX;
-        DEBUG("scope of symbol=%d is %d\n", symbol, symbolInfo[symbol].scope);
-        DEBUG("this scope's kind is %d\n", scopeInfo[symbolInfo[symbol].scope].kind);
         ASSERT(scopeInfo[symbolInfo[symbol].scope].kind == SCOPE_GLOBAL);
         emit_mov_64_reloc_reg(symbol, 0, r1);
         emit_mov_64_reg_stack(r1, loc);
@@ -503,7 +502,6 @@ void x64asm_proc(IrProc irp)
                         Symbol sym = irStmtInfo[irs].tLoadSymbolAddr.sym;
                         IrReg irreg = irStmtInfo[irs].tLoadSymbolAddr.tgtreg;
                         X64StackLoc loc = find_stack_loc(irreg);
-                        DEBUG("emit load %s\n", SS(sym));
                         emit_load_symaddr_stack(sym, loc);
 			break;
                 }
@@ -604,7 +602,8 @@ void codegen_x64(void)
         for (Expr x = 0; x < exprCnt; x++) {
                 if (exprInfo[x].kind == EXPR_LITERAL) {
                         if (exprInfo[x].tLiteral.kind == LITERAL_STRING) {
-                                String s = exprInfo[x].tLiteral.tString;
+                                // TODO emit relocation for data
+                                //String s = exprInfo[x].tLiteral.tString;
                         }
                 }
         }
@@ -631,7 +630,7 @@ void codegen_x64(void)
 
                 int size = sizeof foostring;
                 int offset = rodataSectionCnt;
-                emit_symbol(sym, SECTION_RODATA, size, offset);
+                emit_symbol(sym, SECTION_RODATA, offset, size);
                 emit_rodata(foostring, size);
         }
 
