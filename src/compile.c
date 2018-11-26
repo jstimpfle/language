@@ -12,10 +12,29 @@ void compile_expr(Expr x)
         case EXPR_LITERAL: {
                 IrStmt y = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[y].proc = proc;
-                irStmtInfo[y].kind = IRSTMT_LOADCONSTANT;
-                irStmtInfo[y].tLoadConstant.constval = tokenInfo[exprInfo[x].tLiteral.tok].tInteger.value; //XXX
-                irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
+                switch (exprInfo[x].tLiteral.kind) {
+                case LITERAL_INTEGER: {
+                        Token tok = exprInfo[x].tLiteral.tok;
+                        long long constval = tokenInfo[tok].tInteger.value;
+                        irStmtInfo[y].proc = proc;
+                        irStmtInfo[y].kind = IRSTMT_LOADCONSTANT;
+                        irStmtInfo[y].tLoadConstant.kind = IRCONSTANT_INTEGER;
+                        irStmtInfo[y].tLoadConstant.tInteger = constval;
+                        irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
+                        break;
+                }
+                case LITERAL_STRING: {
+                        String s = exprInfo[x].tLiteral.tString;
+                        irStmtInfo[y].proc = proc;
+                        irStmtInfo[y].kind = IRSTMT_LOADCONSTANT;
+                        irStmtInfo[y].tLoadConstant.kind = IRCONSTANT_STRING;
+                        irStmtInfo[y].tLoadConstant.tString = s;
+                        irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
+                        break;
+                }
+                default:
+                        UNHANDLED_CASE();
+                }
                 break;
         }
         case EXPR_BINOP: {

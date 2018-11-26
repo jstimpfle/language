@@ -86,6 +86,11 @@ void sort_array(void *ptr, int nelems, int elemsize,
         qsort(ptr, nelems, elemsize, cmp);
 }
 
+void outc(char c)
+{
+        fputc(c, stdout);
+}
+
 void outs(const char *s)
 {
         fputs(s, stdout);

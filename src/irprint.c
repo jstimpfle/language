@@ -2,9 +2,31 @@
 #include "api.h"
 
 INTERNAL
-void irp_constant(long long x)
+void irp_constant(const struct IrLoadConstantStmtInfo *c)
 {
-        outf("%lld", x);
+        switch (c->kind) {
+        case IRCONSTANT_INTEGER: {
+                outf("%lld", (long long) c->tInteger);
+                break;
+        }
+        case IRCONSTANT_STRING: {
+                const char *s = string_buffer(c->tString);
+                outc('"');
+                for (int i = 0; s[i] != '\0'; i++) {
+                        unsigned char c = s[i];
+                        if (32 <= c && c < 128)
+                                outc(c);
+                        else if (c == '\n')
+                                outs("\\n");
+                        else
+                                outf("\\x%.2x", c);
+                }
+                outc('"');
+                break;
+        }
+        default:
+                UNHANDLED_CASE();
+        }
 }
 
 INTERNAL
@@ -40,7 +62,7 @@ void irp_proc(IrProc p)
                 switch (irStmtInfo[i].kind) {
                 case IRSTMT_LOADCONSTANT:
                         outs("LDC   ");
-                        irp_constant(irStmtInfo[i].tLoadConstant.constval);
+                        irp_constant(&irStmtInfo[i].tLoadConstant);
                         outs(", ");
                         irp_reg(irStmtInfo[i].tLoadConstant.tgtreg);
                         break;

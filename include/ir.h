@@ -44,8 +44,6 @@ typedef int IrCallResult;
 typedef int IrReturnval;
 typedef int IrLabel;
 
-typedef long long IrConstval;//needed?
-
 /**
  * \enum{IrStmtKind} defines the possible kinds of IR statements.
  */
@@ -60,6 +58,14 @@ enum IrStmtKind {
         IRSTMT_CONDGOTO,
         IRSTMT_GOTO,
         IRSTMT_RETURN,
+};
+
+/**
+ */
+
+enum IrLoadConstantKind {
+        IRCONSTANT_INTEGER,
+        IRCONSTANT_STRING,
 };
 
 /**
@@ -113,7 +119,11 @@ struct IrReturnvalInfo {
 };
 
 struct IrLoadConstantStmtInfo {
-        IrConstval constval;
+        int kind;  // IRCONSTANT_
+        union {
+                long long tInteger;
+                String tString;
+        };
         IrReg tgtreg;
 };
 

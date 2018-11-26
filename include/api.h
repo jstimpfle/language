@@ -54,6 +54,7 @@ static inline int cstr_equal(const char *a, const char *b)
         return cstr_compare(a, b) == 0;
 }
 
+void outc(char c);
 void outs(const char *s);
 void outf(const char *fmt, ...);
 void NORETURN _abort(void);

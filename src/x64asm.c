@@ -160,6 +160,17 @@ void emit64(uint32_t c)
         emit_bytes(bs, LENGTH(bs));
 }
 
+void emit_section_relative_relocation(int sectionKind, int sectionPos,
+                                      int codePos)
+{
+        int x = relocCnt++;
+        RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
+        relocInfo[x].symbol = -1;
+        relocInfo[x].kind = sectionKind;
+        relocInfo[x].addend = sectionPos;
+        relocInfo[x].offset = codePos;
+}
+
 INTERNAL
 int make_modrm_byte(unsigned mod, unsigned reg, unsigned rm)
 {
@@ -335,8 +346,8 @@ void emit_mov_64_reloc_reg(Symbol symbol, int addend, int r1)
                 Reloc reloc = relocCnt++;
                 RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
                 relocInfo[reloc].symbol = symbol;
-                relocInfo[reloc].addend = addend;
                 relocInfo[reloc].kind = sectionKind;
+                relocInfo[reloc].addend = addend;
                 relocInfo[reloc].offset = offset;
         }
         emit64(0x00);
@@ -392,6 +403,16 @@ void emit_load_constant_stack(Imm64 imm, X64StackLoc loc)
          * register load */
         emit_mov_64_imm_reg(imm, X64_RAX);
         emit_mov_64_reg_stack(X64_RAX, loc);
+}
+
+INTERNAL
+void emit_load_relocatedConstant_stack(
+        int sectionKind, int sectionPos, X64StackLoc loc)
+{
+        emit_mov_64_address_reg(0 /*relocation */, X64_RAX);
+        int codePos = codeSectionCnt - 8;  // XXX
+        emit_mov_64_reg_stack(X64_RAX, loc);
+        emit_section_relative_relocation(sectionKind, sectionPos, codePos);
 }
 
 INTERNAL
@@ -492,10 +513,27 @@ void x64asm_proc(IrProc irp)
                 /**/
                 switch (irStmtInfo[irs].kind) {
                 case IRSTMT_LOADCONSTANT: {
-                        Imm64 v = irStmtInfo[irs].tLoadConstant.constval;
-                        IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
-                        X64StackLoc loc = find_stack_loc(irreg);
-                        emit_load_constant_stack(v, loc);
+                        switch (irStmtInfo[irs].tLoadConstant.kind) {
+                        case IRCONSTANT_INTEGER: {
+                                Imm64 v = irStmtInfo[irs].tLoadConstant.tInteger;
+                                IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
+                                X64StackLoc loc = find_stack_loc(irreg);
+                                emit_load_constant_stack(v, loc);
+                                break;
+                        }
+                        case IRCONSTANT_STRING: {
+                                String s = irStmtInfo[irs].tLoadConstant.tString;
+                                IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
+                                X64StackLoc loc = find_stack_loc(irreg);
+
+                                int rodataPos = rodataSectionCnt;
+                                emit_rodata(string_buffer(s), string_length(s) + 1);
+                                emit_load_relocatedConstant_stack(SECTION_RODATA, rodataPos, loc);
+                                break;
+                        }
+                        default:
+                                UNHANDLED_CASE();
+                        }
 			break;
                 }
                 case IRSTMT_LOADSYMBOLADDR: {
@@ -599,38 +637,12 @@ void codegen_x64(void)
         RESIZE_GLOBAL_BUFFER(irstmtToCodepos, irStmtCnt);
         RESIZE_GLOBAL_BUFFER(irprocToCodepos, irProcCnt);
 
-        for (Expr x = 0; x < exprCnt; x++) {
-                if (exprInfo[x].kind == EXPR_LITERAL) {
-                        if (exprInfo[x].tLiteral.kind == LITERAL_STRING) {
-                                // TODO emit relocation for data
-                                //String s = exprInfo[x].tLiteral.tString;
-                        }
-                }
-        }
-
         /* TODO: do we need an "IrData" type? */
         for (Data x = 0; x < dataCnt; x++) {
                 int size = 8; //XXX: size of the data object the symbol points to
                 int offset = zerodataSectionCnt;
                 zerodataSectionCnt += size;
                 emit_symbol(dataInfo[x].sym, SECTION_DATA, size, offset);
-        }
-
-        // testdata, for now
-        {
-                const char foostring[] = "foostring";
-                Symbol sym = symbolCnt++;
-                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-                symbolInfo[sym].name = intern_cstring("foostring");
-                symbolInfo[sym].scope = (Scope) 0;
-                symbolInfo[sym].kind = SYMBOL_DATA;
-                symbolInfo[sym].tData.tp = -1; //XXX fake value
-                symbolInfo[sym].tData.optionaldata = 0; //XXX fake value
-
-                int size = sizeof foostring;
-                int offset = rodataSectionCnt;
-                emit_symbol(sym, SECTION_RODATA, offset, size);
-                emit_rodata(foostring, size);
         }
 
         for (IrProc x = 0; x < irProcCnt; x++) {
@@ -646,9 +658,9 @@ void codegen_x64(void)
                 int x = relocCnt++;
                 RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
                 relocInfo[x].symbol = irProcInfo[irp].symbol;
+                relocInfo[x].kind = SECTION_CODE;
                 relocInfo[x].addend = irstmtToCodepos[irs]
                                                 - irprocToCodepos[irp];
-                relocInfo[x].kind = SECTION_CODE;
                 relocInfo[x].offset = offset;
         }
 }
