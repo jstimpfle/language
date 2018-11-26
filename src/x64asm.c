@@ -624,9 +624,8 @@ void codegen_x64(void)
                 symbolInfo[sym].name = intern_cstring("foostring");
                 symbolInfo[sym].scope = (Scope) 0;
                 symbolInfo[sym].kind = SYMBOL_DATA;
-                //XXX
-                //symbolInfo[sym].tData = //XXX
-                //symbolInfo[sym].tProc.optionalproc = //XXX
+                symbolInfo[sym].tData.tp = -1; //XXX fake value
+                symbolInfo[sym].tData.optionaldata = 0; //XXX fake value
 
                 int size = sizeof foostring;
                 int offset = rodataSectionCnt;

@@ -320,7 +320,7 @@ void compile_stmt(IrProc irp, Stmt stmt)
                 RESIZE_GLOBAL_BUFFER(irReturnvalInfo, irReturnvalCnt);
                 irStmtInfo[irs].proc = irp;
                 irStmtInfo[irs].kind = IRSTMT_RETURN;
-                irStmtInfo[irs].tReturn.firstResult = irReturnvalCnt;
+                irStmtInfo[irs].tReturn.firstResult = ret;
                 irReturnvalInfo[ret].returnStmt = irs;
                 irReturnvalInfo[ret].resultReg = exprToIrReg[resultExpr];
                 break;
