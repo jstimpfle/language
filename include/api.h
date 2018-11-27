@@ -185,6 +185,15 @@ String intern_cstring(const char *str);
 
 
 /*
+ * token.c
+ */
+
+Token parse_next_token(void);
+Token look_next_token(void);
+Token parse_token_kind(int tkind);
+Token look_token_kind(int tkind);
+
+/*
  * parse.c
  */
 void initialize_pseudo_constant_data(void);

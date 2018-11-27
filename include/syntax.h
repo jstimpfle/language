@@ -366,10 +366,6 @@ DATA int currentOffset;
 
 DATA int lexbufCnt;
 DATA char *lexbuf;
-DATA int haveSavedChar;
-DATA int haveSavedToken;
-DATA int savedChar;
-DATA Token savedToken;
 DATA int tokenCnt;
 DATA struct TokenInfo *tokenInfo;
 

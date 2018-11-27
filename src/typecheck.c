@@ -18,8 +18,168 @@ Symbol find_symbol_in_scope(String name, Scope scope)
         return -1;
 }
 
+const char *const extsymname[NUM_EXTSYMS] = {
+#define MAKE(name) [EXTSYM_##name] = #name
+        MAKE( add64 ),
+        MAKE( sub64 ),
+        MAKE( mul64 ),
+        MAKE( div64 ),
+        MAKE( gt64 ),
+        MAKE( lt64 ),
+        MAKE( ge64 ),
+        MAKE( le64 ),
+        MAKE( eq64 ),
+        MAKE( ne64 ),
+        MAKE( print64 ),
+        MAKE( prints ),
+#undef MAKE
+};
+
+INTERNAL
+int compare_Symbol(const void *a, const void *b)
+{
+        const Symbol *x = a;
+        const Symbol *y = b;
+        return symbolInfo[*x].scope - symbolInfo[*y].scope;
+}
+
+INTERNAL
+int compare_ParamInfo(const void *a, const void *b)
+{
+        const struct ParamInfo *x = a;
+        const struct ParamInfo *y = b;
+        if (x->proctp != y->proctp)
+                return x->proctp - y->proctp;
+        return x->rank - y->rank;
+}
+
+INTERNAL
+int compare_ChildStmtInfo(const void *a, const void *b)
+{
+        const struct ChildStmtInfo *x = a;
+        const struct ChildStmtInfo *y = b;
+        if (x->parent != y->parent)
+                return x->parent - y->parent;
+        return x->rank - y->rank;
+}
+
+INTERNAL
+int compare_CallArgInfo(const void *a, const void *b)
+{
+        const struct CallArgInfo *x = a;
+        const struct CallArgInfo *y = b;
+        if (x->callExpr != y->callExpr)
+                return x->callExpr - y->callExpr;
+        return x->rank - y->rank;
+}
+
 void resolve_symbol_references(void)
 {
+        DEBUG("Add external symbols\n");
+        for (int i = 0; i < NUM_EXTSYMS; i++) {
+                const char *name = extsymname[i];
+                DEBUG("Add external symbol %s\n", name);
+
+                Type tp = typeCnt++;
+                Symbol sym = symbolCnt++;
+
+                RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+                typeInfo[tp].kind = TYPE_PROC;
+                typeInfo[tp].tProc.rettp = (Type) 0; //XXX
+                typeInfo[tp].tProc.nparams = 0;
+
+                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+                symbolInfo[sym].name = intern_cstring(name);
+                symbolInfo[sym].scope = (Scope) 0;
+                symbolInfo[sym].kind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
+                symbolInfo[sym].tProc.tp = tp;
+                symbolInfo[sym].tProc.optionalproc = -1;
+
+                extsym[i] = sym;
+        }
+
+        {
+                /* permute Symbol array so they are grouped by defining scope */
+                /* TODO: this kind of renaming should be abstracted */
+                Symbol *order;
+                Symbol *newname;
+                struct Alloc orderAlloc;
+                struct Alloc newnameAlloc;
+                BUF_INIT(&order, &orderAlloc);
+                BUF_INIT(&newname, &newnameAlloc);
+                BUF_RESERVE(&order, &orderAlloc, symbolCnt);
+                BUF_RESERVE(&newname, &newnameAlloc, symbolCnt);
+                for (Symbol i = 0; i < symbolCnt; i++)
+                        order[i] = i;
+                sort_array(order, symbolCnt, sizeof *order,
+                           compare_Symbol);
+                for (Symbol i = 0; i < symbolCnt; i++)
+                        newname[order[i]] = i;
+                for (Data i = 0; i < dataCnt; i++)
+                        dataInfo[i].sym = newname[dataInfo[i].sym];
+                for (Array i = 0; i < arrayCnt; i++)
+                        arrayInfo[i].sym = newname[arrayInfo[i].sym];
+                for (Proc i = 0; i < procCnt; i++)
+                        procInfo[i].sym = newname[procInfo[i].sym];
+                for (Param i = 0; i < paramCnt; i++)
+                        paramInfo[i].sym = newname[paramInfo[i].sym];
+                for (Symbol i = 0; i < symbolCnt; i++) {
+                        Symbol j = newname[i];
+                        while (j != i) {
+                                struct SymbolInfo tmp = symbolInfo[i];
+                                symbolInfo[i] = symbolInfo[j];
+                                symbolInfo[j] = tmp;
+                                Symbol next = newname[j];
+                                newname[j] = j;
+                                j = next;
+                        }
+                }
+                BUF_EXIT(&order, &orderAlloc);
+                BUF_EXIT(&newname, &newnameAlloc);
+        }
+
+        /* fix up symbolInfo table: add references to various entities */
+        for (Data x = 0; x < dataCnt; x++) {
+                symbolInfo[dataInfo[x].sym].tData.tp = -1; //XXX: fill after typechecking of data?
+                symbolInfo[dataInfo[x].sym].tData.optionaldata = x;
+        }
+        for (Proc x = 0; x < procCnt; x++)
+                symbolInfo[procInfo[x].sym].tProc.optionalproc = x;
+
+        /* sort paramInfo array and fix symbols */
+        sort_array(paramInfo, paramCnt, sizeof *paramInfo,
+                   compare_ParamInfo);
+
+        for (Param param = paramCnt; param --> 0;) {
+                Type proctp = paramInfo[param].proctp;
+                ASSERT(typeInfo[proctp].kind == TYPE_PROC);
+                typeInfo[proctp].tProc.firstParam = param;
+        }
+
+        sort_array(childStmtInfo, childStmtCnt, sizeof *childStmtInfo,
+                   compare_ChildStmtInfo);
+        sort_array(callArgInfo, callArgCnt, sizeof *callArgInfo,
+                   compare_CallArgInfo);
+
+        for (int i = childStmtCnt; i --> 0;) {
+                Stmt parent = childStmtInfo[i].parent;
+                ASSERT(stmtInfo[parent].kind == STMT_COMPOUND);
+                stmtInfo[parent].tCompound.numStatements++;
+                stmtInfo[parent].tCompound.firstChildStmtIdx = i;
+        }
+
+        for (int i = callArgCnt; i --> 0;) {
+                Expr callee = callArgInfo[i].callExpr;
+                ASSERT(exprInfo[callee].kind == EXPR_CALL);
+                exprInfo[callee].tCall.nargs++;
+                exprInfo[callee].tCall.firstArgIdx = i;
+        }
+
+        for (Symbol i = symbolCnt; i --> 0;) {
+                scopeInfo[symbolInfo[i].scope].numSymbols++;
+                scopeInfo[symbolInfo[i].scope].firstSymbol = i;
+        }
+
         RESIZE_GLOBAL_BUFFER(symrefToSym, symrefCnt);
         int bad = 0;
         for (Symref ref = 0; ref < symrefCnt; ref++) {
