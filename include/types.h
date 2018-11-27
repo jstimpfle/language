@@ -6,12 +6,11 @@
 /**
  * \enum{TypeKind}: Type kinds. Types are needed to compile efficient machine
  * code. There are built-in and user-defined types. The builtin types are
- * (mostly?) various kinds of integers and pointers (which are integers as
- * well). The user-defined types, such as entities, arrays, or procedures, are
- * made up from other existing types (which may themselves be user-defined, or
- * built-in ones). Pointers to other types are implemented as types of kind
- * TYPE_REFERENCE, and these types contain symbol references, which must resolve
- * to SYMBOL_TYPE symbols.
+ * various kinds of integers. The user-defined types, such as entities, arrays,
+ * or procedures, are composed of other existing types (which may themselves be
+ * user-defined, or built-in ones). Lexical references (by name) to other types
+ * are implemented as types of kind TYPE_REFERENCE, and these types contain
+ * symbol references, which must resolve to SYMBOL_TYPE symbols.
  */
 
 enum TypeKind {
@@ -51,10 +50,15 @@ struct ProctypeInfo {
         int firstParam; // speed-up
 };
 
+/**
+ * \struct{ParamInfo}: Associates a Proc type with a type of a parameter of
+ * that proc. Order of proc parameters is specified by the Params' rank member.
+ */
+
 struct ParamInfo {
         Type proctp;
         Type tp;
-        Symbol sym;
+        Symbol sym;  // parameter name. Should this really be part of the type?
         int rank;
 };
 

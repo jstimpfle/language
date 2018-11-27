@@ -227,7 +227,7 @@ Data parse_data(void)
         symbolInfo[sym].name = name;
         symbolInfo[sym].scope = scope;
         symbolInfo[sym].kind = SYMBOL_DATA;
-        symbolInfo[sym].tData.tp = -1; //XXX
+        symbolInfo[sym].tData.tp = tp;
         symbolInfo[sym].tData.optionaldata = data;
         return data;
 }
@@ -631,10 +631,10 @@ Proc parse_proc(void)
                 symbolInfo[paramsym].name = paramname;
                 symbolInfo[paramsym].scope = pscope;
                 symbolInfo[paramsym].kind = SYMBOL_DATA;
-                symbolInfo[paramsym].tData.tp = -1; //XXX
+                symbolInfo[paramsym].tData.tp = paramtp;
                 symbolInfo[paramsym].tData.optionaldata = paramdata;
                 dataInfo[paramdata].scope = pscope;
-                dataInfo[paramdata].tp = -1; //XXX
+                dataInfo[paramdata].tp = paramtp;
                 dataInfo[paramdata].sym = paramsym;
                 if (look_token_kind(TOKEN_COMMA) == -1)
                         break;

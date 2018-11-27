@@ -43,7 +43,14 @@ Usage
 -----
 
 You can now try and compile one of the example code files in the `test/`
-directory. Run for instance `build/language tests/fib.txt`.
+directory. Run for instance:
+
+```sh
+build/language tests/fib.txt
+```
+
+You can also try the `-debug`, `-prettyprint-ast`, and `-dump-ir` options
+accepted by the `build/language` program.
 
 If the compilation was successful, an ELF-64 object file named `out.o` was
 created in the current directory. An object file is a container for machine
@@ -59,3 +66,10 @@ cc -o out runtime/support.c out.o
 ```
 
 Then run the executable `./out` to test the program.
+
+Here's a little function for your Linux shell that does these steps
+
+```sh
+compile() { build/language "$@" && cc -Wall -o out runtime/support.c out.o; }
+compileandrun() { compile "$@" && ./out; }
+```

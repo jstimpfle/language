@@ -169,7 +169,8 @@ struct DatasymbolInfo {
 };
 
 struct ProcsymbolInfo {
-        Type tp;  // TYPE_PROC, must match with type of optionalproc (if exists)
+        Type tp;  /* Type of kind TYPE_PROC. must be compatible with type of
+                     optionalproc (if exists) */
         Proc optionalproc;  // may be -1 if external linkage
 };
 

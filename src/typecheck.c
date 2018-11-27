@@ -140,14 +140,6 @@ void resolve_symbol_references(void)
                 BUF_EXIT(&newname, &newnameAlloc);
         }
 
-        /* fix up symbolInfo table: add references to various entities */
-        for (Data x = 0; x < dataCnt; x++) {
-                symbolInfo[dataInfo[x].sym].tData.tp = -1; //XXX: fill after typechecking of data?
-                symbolInfo[dataInfo[x].sym].tData.optionaldata = x;
-        }
-        for (Proc x = 0; x < procCnt; x++)
-                symbolInfo[procInfo[x].sym].tProc.optionalproc = x;
-
         /* sort paramInfo array and fix symbols */
         sort_array(paramInfo, paramCnt, sizeof *paramInfo,
                    compare_ParamInfo);
@@ -285,7 +277,12 @@ void resolve_type_references(void)
 INTERNAL
 int is_integral_type(Type t)
 {
-        return typeInfo[t].kind == TYPE_BASE; //XXX
+        if (typeInfo[t].kind == TYPE_REFERENCE) {
+                t = typeInfo[t].tRef.resolvedTp;
+                if (t == -1)
+                        return 0;
+        }
+        return typeInfo[t].kind == TYPE_BASE;
 }
 
 INTERNAL
@@ -342,7 +339,7 @@ Type check_symref_expr_type(Expr x)
                         UNHANDLED_CASE();
                         break;
                 case SYMBOL_DATA:
-                        tp = dataInfo[symbolInfo[sym].tData.optionaldata].tp;
+                        tp = symbolInfo[sym].tData.tp;
                         break;
                 case SYMBOL_ARRAY:
                         tp = arrayInfo[symbolInfo[sym].tArray].tp;
@@ -418,7 +415,7 @@ Type check_binop_expr_type(Expr x)
                 case BINOP_BITOR:
                 case BINOP_BITXOR:
                         if (is_integral_type(t1) && is_integral_type(t2)
-                            && t1 == t2)
+                            /* && are_types_compatible(t1 == t2)*/)
                                 tp = t1;
                         break;
                 default:
@@ -518,6 +515,7 @@ void check_types(void)
         for (Expr x = 0; x < exprCnt; x++) {
                 if (exprType[x] == -1)
                         LOG_TYPE_ERROR_EXPR(
-                                x, "Type check of expression failed\n");
+                                x, "Type check of %s expression failed\n",
+                                exprKindString[exprInfo[x].kind]);
         }
 }
