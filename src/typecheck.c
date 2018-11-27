@@ -95,7 +95,7 @@ void resolve_symbol_references(void)
                 symbolInfo[sym].tProc.tp = tp;
                 symbolInfo[sym].tProc.optionalproc = -1;
 
-                extsym[i] = sym;
+                extsymToSymbol[i] = sym;
         }
 
         {
@@ -115,6 +115,8 @@ void resolve_symbol_references(void)
                            compare_Symbol);
                 for (Symbol i = 0; i < symbolCnt; i++)
                         newname[order[i]] = i;
+                for (int i = 0; i < NUM_EXTSYMS; i++)
+                        extsymToSymbol[i] = newname[extsymToSymbol[i]];
                 for (Data i = 0; i < dataCnt; i++)
                         dataInfo[i].sym = newname[dataInfo[i].sym];
                 for (Array i = 0; i < arrayCnt; i++)

@@ -110,7 +110,7 @@ void compile_expr(Expr x)
                         Symbol funcsym = -1;
                         for (int i = 0; i < LENGTH(opmap); i++)
                                 if (exprInfo[x].tBinop.kind == opmap[i].binop)
-                                        funcsym = extsym[opmap[i].extsym];
+                                        funcsym = extsymToSymbol[opmap[i].extsym];
                         if (funcsym == -1)
                                 UNHANDLED_CASE();
 

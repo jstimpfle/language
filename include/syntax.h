@@ -69,7 +69,7 @@ enum {
 };
 
 extern const char *const extsymname[NUM_EXTSYMS];
-DATA Symbol extsym[NUM_EXTSYMS];
+DATA Symbol extsymToSymbol[NUM_EXTSYMS];
 
 
 /**
