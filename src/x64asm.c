@@ -6,11 +6,32 @@
 #include "api.h"
 #include <stdint.h>
 
-typedef int X64StackLoc;
 typedef uint8_t Imm8;
 typedef uint16_t Imm16;
 typedef uint32_t Imm32;
 typedef uint64_t Imm64;
+
+enum {
+        /* The order is important here: these values (0000...1111 binary) are
+         * also used for instruction encoding. */
+        X64_RAX,
+        X64_RCX,
+        X64_RDX,
+        X64_RBX,
+        X64_RSP,
+        X64_RBP,
+        X64_RSI,
+        X64_RDI,
+        X64_R8,
+        X64_R9,
+        X64_R10,
+        X64_R11,
+        X64_R12,
+        X64_R13,
+        X64_R14,
+        X64_R15,
+        NUM_X64REGS,
+};
 
 const char *x64regNames[NUM_X64REGS] = {
 #define MAKE(x) [x] = #x

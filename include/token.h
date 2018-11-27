@@ -51,7 +51,7 @@ enum TokenKind {
 };
 
 /**
- * \struct{TokenInfo}, \struct{WorkTokenInfo}, \struct{IntegerTokenInfo},
+ * \struct{TokenInfo}, \struct{WordTokenInfo}, \struct{IntegerTokenInfo},
  * \struct{StringTokenInfo}: TODO
  */
 
