@@ -1,0 +1,16 @@
+data int testint;
+
+proc int main()
+{
+    data int a;
+    data int* x;
+    a = 3;
+    x = &a;
+    print64(x);
+    print64(*x);
+    a = 4;
+    print64(*x);
+    testint = 42;
+    x = &testint;
+    return *x;
+}

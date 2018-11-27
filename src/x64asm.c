@@ -311,18 +311,19 @@ void emit_add_64_reg_reg(int r1, int r2)
 INTERNAL
 void emit_add_imm32_reg(Imm32 imm, int reg)
 {
+#if 0  /* disable optimization: seems to operate only on r32 registers */
         if (reg == X64_RAX) {
                 /* optimization */
                 emit(0x05);
                 emit32(imm);
+                return;
         }
-        else {
-                int B = (reg & ~7) ? REX_B : 0;
-                emit(REX_BASE|REX_W|B);
-                emit(0x81);
-                emit(make_modrm_byte(0x03, 0x00, reg & 7));
-                emit32(imm);
-        }
+#endif
+        int B = (reg & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|B);
+        emit(0x81);
+        emit(make_modrm_byte(0x03, 0x00, reg & 7));
+        emit32(imm);
 }
 
 INTERNAL
@@ -559,9 +560,20 @@ void x64asm_proc(IrProc irp)
                 }
                 case IRSTMT_LOADSYMBOLADDR: {
                         Symbol sym = irStmtInfo[irs].tLoadSymbolAddr.sym;
+                        ASSERT(scopeInfo[symbolInfo[sym].scope].kind == SCOPE_GLOBAL);
                         IrReg irreg = irStmtInfo[irs].tLoadSymbolAddr.tgtreg;
                         X64StackLoc loc = find_stack_loc(irreg);
                         emit_load_symaddr_stack(sym, loc);
+			break;
+                }
+                case IRSTMT_LOADREGADDR: {
+                        IrReg reg = irStmtInfo[irs].tLoadRegAddr.reg;
+                        IrReg tgtreg = irStmtInfo[irs].tLoadRegAddr.tgtreg;
+                        X64StackLoc loc = find_stack_loc(reg);
+                        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+                        emit_mov_64_reg_reg(X64_RBP, X64_RAX);
+                        emit_add_imm32_reg(loc, X64_RAX);
+                        emit_mov_64_reg_stack(X64_RAX, tgtloc);
 			break;
                 }
                 case IRSTMT_LOAD: {

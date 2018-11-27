@@ -51,6 +51,7 @@ typedef int IrLabel;
 enum IrStmtKind {
         IRSTMT_LOADCONSTANT,
         IRSTMT_LOADSYMBOLADDR,
+        IRSTMT_LOADREGADDR,
         IRSTMT_LOAD,
         IRSTMT_STORE,
         IRSTMT_REGREG,
@@ -132,6 +133,11 @@ struct IrLoadSymbolAddrStmtInfo {
         IrReg tgtreg;
 };
 
+struct IrLoadRegAddrStmtInfo {
+        IrReg reg;
+        IrReg tgtreg;
+};
+
 struct IrLoadStmtInfo {
         IrReg srcaddrreg;
         IrReg tgtreg;
@@ -175,6 +181,7 @@ struct IrStmtInfo {
         union {
                 struct IrLoadConstantStmtInfo tLoadConstant;
                 struct IrLoadSymbolAddrStmtInfo tLoadSymbolAddr;
+                struct IrLoadRegAddrStmtInfo tLoadRegAddr;
                 struct IrLoadStmtInfo tLoad;
                 struct IrStoreStmtInfo tStore;
                 struct IrRegregStmtInfo tRegreg;

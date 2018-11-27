@@ -37,6 +37,50 @@ void compile_expr(Expr x)
                 }
                 break;
         }
+        case EXPR_UNOP: {
+                Expr e1 = exprInfo[x].tUnop.expr;
+                switch (exprInfo[x].tUnop.kind) {
+                case UNOP_ADDRESSOF: {
+                        /* need special handling: we do not compute the
+                         * value but get its address. */
+                        ASSERT(exprInfo[e1].kind == EXPR_SYMREF);
+                        Symref ref = exprInfo[e1].tSymref.ref;
+                        Symbol sym = symrefToSym[ref];
+                        if (symbolInfo[sym].kind == SYMBOL_DATA &&
+                            scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
+                                Data data = symbolInfo[sym].tData.optionaldata;
+                                ASSERT(data != (Data) -1);  // proc-local data must exist
+                                IrStmt y = irStmtCnt++;
+                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                                irStmtInfo[y].kind = IRSTMT_LOADREGADDR;
+                                irStmtInfo[y].tLoadRegAddr.reg = dataToIrReg[data];
+                                irStmtInfo[y].tLoadRegAddr.tgtreg = exprToIrReg[x];
+                        }
+                        else {
+                                IrStmt y = irStmtCnt++;
+                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                                irStmtInfo[y].proc = proc;
+                                irStmtInfo[y].kind = IRSTMT_LOADSYMBOLADDR;
+                                irStmtInfo[y].tLoadSymbolAddr.sym = sym;
+                                irStmtInfo[y].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
+                        }
+                        break;
+                }
+                case UNOP_DEREF: {
+                        compile_expr(e1);
+                        IrStmt y = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[y].proc = proc;
+                        irStmtInfo[y].kind = IRSTMT_LOAD;
+                        irStmtInfo[y].tLoad.srcaddrreg = exprToIrReg[e1];
+                        irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
+                        break;
+                }
+                default:
+                        UNHANDLED_CASE();
+                }
+                break;
+        }
         case EXPR_BINOP: {
                 Expr e1 = exprInfo[x].tBinop.expr1;
                 Expr e2 = exprInfo[x].tBinop.expr2;

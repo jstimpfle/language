@@ -367,11 +367,16 @@ Type check_unop_expr_type(Expr x)
         Type tt = check_expr_type(xx);
         Type tp = -1;
         if (tt != -1) {
+                if (typeInfo[tt].kind == TYPE_REFERENCE)
+                        tt = typeInfo[tt].tRef.resolvedTp;
                 switch (op) {
+                case UNOP_DEREF:
+                        if (typeInfo[tt].kind == TYPE_POINTER)
+                                tp = typeInfo[tt].tPointer.tp;
+                        break;
                 case UNOP_INVERTBITS:
                 case UNOP_NOT:
                 case UNOP_ADDRESSOF:
-                case UNOP_DEREF:
                 case UNOP_NEGATIVE:
                 case UNOP_POSITIVE:
                 case UNOP_PREDECREMENT:
