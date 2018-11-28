@@ -13,6 +13,7 @@ proc int main()
     a = 4;
     print64(*x);
     testint = 42;
-    x = &testint;
-    return *x;
+    *&*&x = &testint;
+    *x = 8;
+    return testint;
 }

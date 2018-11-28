@@ -72,6 +72,12 @@ void irp_proc(IrProc p)
                         outs(", ");
                         irp_reg(irStmtInfo[i].tLoadSymbolAddr.tgtreg);
                         break;
+                case IRSTMT_LOADREGADDR:
+                        outs("LDR   ");
+                        irp_reg(irStmtInfo[i].tLoadRegAddr.reg);
+                        outs(", ");
+                        irp_reg(irStmtInfo[i].tLoadRegAddr.tgtreg);
+                        break;
                 case IRSTMT_LOAD:
                         outs("LD    ");
                         irp_reg(irStmtInfo[i].tLoad.srcaddrreg);

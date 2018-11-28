@@ -5,8 +5,25 @@
 #include "defs.h"
 #include "api.h"
 
-void compile_expr(Expr x)
+
+enum {
+        LVALUE,
+        RVALUE,
+};
+
+void compile_expr(Expr x, int kind)
 {
+        if (kind == LVALUE &&
+            !( exprInfo[x].kind == EXPR_SYMREF ) &&
+            !( exprInfo[x].kind == EXPR_MEMBER ) &&
+            !( exprInfo[x].kind == EXPR_SUBSCRIPT ) &&
+            !( exprInfo[x].kind == EXPR_UNOP &&
+               exprInfo[x].tUnop.kind == UNOP_DEREF)) {
+                MSG_AT_EXPR(lvl_fatal, x,
+                            "This %s expression cannot be an lvalue!\n",
+                            exprKindString[exprInfo[x].kind]);
+                FATAL("Abort\n");
+        }
         Proc proc = exprInfo[x].proc;
         switch (exprInfo[x].kind) {
         case EXPR_LITERAL: {
@@ -41,39 +58,31 @@ void compile_expr(Expr x)
                 Expr e1 = exprInfo[x].tUnop.expr;
                 switch (exprInfo[x].tUnop.kind) {
                 case UNOP_ADDRESSOF: {
-                        /* need special handling: we do not compute the
-                         * value but get its address. */
-                        ASSERT(exprInfo[e1].kind == EXPR_SYMREF);
-                        Symref ref = exprInfo[e1].tSymref.ref;
-                        Symbol sym = symrefToSym[ref];
-                        if (symbolInfo[sym].kind == SYMBOL_DATA &&
-                            scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
-                                Data data = symbolInfo[sym].tData.optionaldata;
-                                ASSERT(data != (Data) -1);  // proc-local data must exist
-                                IrStmt y = irStmtCnt++;
-                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                                irStmtInfo[y].kind = IRSTMT_LOADREGADDR;
-                                irStmtInfo[y].tLoadRegAddr.reg = dataToIrReg[data];
-                                irStmtInfo[y].tLoadRegAddr.tgtreg = exprToIrReg[x];
-                        }
-                        else {
-                                IrStmt y = irStmtCnt++;
-                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                                irStmtInfo[y].proc = proc;
-                                irStmtInfo[y].kind = IRSTMT_LOADSYMBOLADDR;
-                                irStmtInfo[y].tLoadSymbolAddr.sym = sym;
-                                irStmtInfo[y].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
-                        }
-                        break;
-                }
-                case UNOP_DEREF: {
-                        compile_expr(e1);
+                        compile_expr(e1, LVALUE);
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[y].proc = proc;
-                        irStmtInfo[y].kind = IRSTMT_LOAD;
-                        irStmtInfo[y].tLoad.srcaddrreg = exprToIrReg[e1];
-                        irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
+                        irStmtInfo[y].kind = IRSTMT_REGREG;
+                        irStmtInfo[y].tRegreg.srcreg = exprToIrReg[e1];
+                        irStmtInfo[y].tRegreg.tgtreg = exprToIrReg[x];
+                        break;
+                }
+                case UNOP_DEREF: {
+                        compile_expr(e1, RVALUE);
+                        IrStmt y = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        if (kind == LVALUE) {
+                                irStmtInfo[y].proc = proc;
+                                irStmtInfo[y].kind = IRSTMT_REGREG;
+                                irStmtInfo[y].tRegreg.srcreg = exprToIrReg[e1];
+                                irStmtInfo[y].tRegreg.tgtreg = exprToIrReg[x];
+                        }
+                        else {
+                                irStmtInfo[y].proc = proc;
+                                irStmtInfo[y].kind = IRSTMT_LOAD;
+                                irStmtInfo[y].tLoad.srcaddrreg = exprToIrReg[e1];
+                                irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
+                        }
                         break;
                 }
                 default:
@@ -85,55 +94,27 @@ void compile_expr(Expr x)
                 Expr e1 = exprInfo[x].tBinop.expr1;
                 Expr e2 = exprInfo[x].tBinop.expr2;
                 if (exprInfo[x].tBinop.kind == BINOP_ASSIGN) {
-                        /* need special handling: we do not compute the lefthand
-                         * value but assign to it. This is lvalue vs rvalue
-                         * here, TODO: think of a cleaner way to do assignments,
-                         * or at least structure the code better. */
-                        compile_expr(e2);
-                        ASSERT(exprInfo[e1].kind == EXPR_SYMREF);
-                        Symref ref = exprInfo[e1].tSymref.ref;
-                        Symbol sym = symrefToSym[ref];
-                        if (symbolInfo[sym].kind == SYMBOL_DATA &&
-                            scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
-                                Data data = symbolInfo[sym].tData.optionaldata;
-                                ASSERT(data != (Data) -1);  // proc-local data must exist
-                                IrReg srcreg = exprToIrReg[e2];
-                                IrReg tgtreg = dataToIrReg[data];
-                                IrStmt y = irStmtCnt++;
-                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                                irStmtInfo[y].proc = proc;
-                                irStmtInfo[y].kind = IRSTMT_REGREG;
-                                irStmtInfo[y].tRegreg.srcreg = srcreg;
-                                irStmtInfo[y].tRegreg.tgtreg = tgtreg;
-                                // TODO: move to exprToIrReg[x] ?
-                        }
-                        else {
-                                /* non-local variable */
-                                IrReg reg = irRegCnt++;
-                                IrStmt s1 = irStmtCnt++;
-                                IrStmt s2 = irStmtCnt++;
-                                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
-                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                                irRegInfo[reg].proc = proc;
-                                irRegInfo[reg].name = intern_cstring("(reg)"); //XXX
-                                irRegInfo[reg].sym = sym; //XXX
-                                irRegInfo[reg].tp = exprType[x];
-                                irStmtInfo[s1].proc = proc;
-                                irStmtInfo[s1].kind = IRSTMT_LOADSYMBOLADDR;
-                                irStmtInfo[s1].tLoadSymbolAddr.sym = sym;
-                                irStmtInfo[s1].tLoadSymbolAddr.tgtreg = reg;
-                                irStmtInfo[s2].proc = proc;
-                                irStmtInfo[s2].kind = IRSTMT_STORE;
-                                irStmtInfo[s2].tStore.srcreg = exprToIrReg[e2];
-                                irStmtInfo[s2].tStore.tgtaddrreg = reg;
-                                // TODO: move to exprToIrReg[x]?
-                        }
+                        compile_expr(e1, LVALUE);
+                        compile_expr(e2, RVALUE);
+                        IrStmt y = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[y].proc = proc;
+                        irStmtInfo[y].kind = IRSTMT_STORE;
+                        irStmtInfo[y].tStore.srcreg = exprToIrReg[e2];
+                        irStmtInfo[y].tStore.tgtaddrreg = exprToIrReg[e1];
+
+                        IrStmt y2 = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[y2].proc = proc;
+                        irStmtInfo[y2].kind = IRSTMT_REGREG;
+                        irStmtInfo[y2].tRegreg.srcreg = exprToIrReg[e1];
+                        irStmtInfo[y2].tRegreg.tgtreg = exprToIrReg[x];
                 }
                 else {
                         /* XXX: Here we "call" the binop operation. This is very
                          * inefficient. */
-                        compile_expr(e1);
-                        compile_expr(e2);
+                        compile_expr(e1, RVALUE);
+                        compile_expr(e2, RVALUE);
 
                         static const struct {
                                 int binop;
@@ -185,7 +166,6 @@ void compile_expr(Expr x)
                 break;
         }
         case EXPR_SYMREF: {
-                Type symTp = exprType[x];
                 Symref ref = exprInfo[x].tSymref.ref;
                 Symbol sym = symrefToSym[ref];
                 ASSERT(sym >= 0);
@@ -193,33 +173,38 @@ void compile_expr(Expr x)
                     scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
                         Data data = symbolInfo[sym].tData.optionaldata;
                         ASSERT(data != (Data) -1);  // proc-local data must exist
-                        IrReg srcreg = dataToIrReg[data];
-                        IrReg tgtreg = exprToIrReg[x];
-                        IrStmt y = irStmtCnt++;
-                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irStmtInfo[y].proc = proc;
-                        irStmtInfo[y].kind = IRSTMT_REGREG;
-                        irStmtInfo[y].tRegreg.srcreg = srcreg;
-                        irStmtInfo[y].tRegreg.tgtreg = tgtreg;
+                        if (kind == RVALUE) {
+                                IrStmt y = irStmtCnt++;
+                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                                irStmtInfo[y].proc = proc;
+                                irStmtInfo[y].kind = IRSTMT_REGREG;
+                                irStmtInfo[y].tRegreg.srcreg = dataToIrReg[data];
+                                irStmtInfo[y].tRegreg.tgtreg = exprToIrReg[x];
+                        }
+                        else {
+                                IrStmt y = irStmtCnt++;
+                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                                irStmtInfo[y].proc = proc;
+                                irStmtInfo[y].kind = IRSTMT_LOADREGADDR;
+                                irStmtInfo[y].tLoadRegAddr.reg = dataToIrReg[data];
+                                irStmtInfo[y].tLoadRegAddr.tgtreg = exprToIrReg[x];
+                        }
                 }
                 else {
-                        IrReg reg = irRegCnt++;
                         IrStmt s0 = irStmtCnt++;
-                        IrStmt s1 = irStmtCnt++;
-                        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irRegInfo[reg].proc = proc;
-                        irRegInfo[reg].name = intern_cstring("(reg)"); //XXX
-                        irRegInfo[reg].sym = sym; //XXX
-                        irRegInfo[reg].tp = symTp;
                         irStmtInfo[s0].proc = proc;
                         irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
                         irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
                         irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
-                        irStmtInfo[s1].proc = proc;
-                        irStmtInfo[s1].kind = IRSTMT_LOAD;
-                        irStmtInfo[s1].tLoad.srcaddrreg = exprToIrReg[x];
-                        irStmtInfo[s1].tLoad.tgtreg = exprToIrReg[x];
+                        if (kind == RVALUE) {
+                                IrStmt s1 = irStmtCnt++;
+                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                                irStmtInfo[s1].proc = proc;
+                                irStmtInfo[s1].kind = IRSTMT_LOAD;
+                                irStmtInfo[s1].tLoad.srcaddrreg = exprToIrReg[x];
+                                irStmtInfo[s1].tLoad.tgtreg = exprToIrReg[x];
+                        }
                 }
                 break;
         }
@@ -230,7 +215,7 @@ void compile_expr(Expr x)
                 int firstCallArg = exprInfo[x].tCall.firstArgIdx;
                 int lastCallArg = firstCallArg + exprInfo[x].tCall.nargs;
                 for (int i = firstCallArg; i < lastCallArg; i++)
-                        compile_expr(callArgInfo[i].argExpr);
+                        compile_expr(callArgInfo[i].argExpr, RVALUE);
                 /*
                  * Evaluate function to call. The usual case is also a special
                  * case: If we call an EXPR_SYMREF, that symbol's value is not
@@ -253,7 +238,7 @@ void compile_expr(Expr x)
                         irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[calleeExpr];
                 }
                 else {
-                        compile_expr(calleeExpr);
+                        compile_expr(calleeExpr, RVALUE);
                 }
                 /*
                  * Emit calling code
@@ -307,7 +292,7 @@ void compile_stmt(IrProc irp, Stmt stmt)
                 break;
         }
         case STMT_EXPR: {
-                compile_expr(stmtInfo[stmt].tExpr.expr);
+                compile_expr(stmtInfo[stmt].tExpr.expr, RVALUE);
                 break;
         }
         case STMT_COMPOUND: {
@@ -320,7 +305,7 @@ void compile_stmt(IrProc irp, Stmt stmt)
         case STMT_IF: {
                 Expr condExpr = stmtInfo[stmt].tIf.condExpr;
                 Stmt ifbody = stmtInfo[stmt].tIf.ifbody;
-                compile_expr(condExpr);
+                compile_expr(condExpr, RVALUE);
                 IrStmt irs = irStmtCnt++;
                 compile_stmt(irp, ifbody);
                 IrStmt stmtAfterBlock = irStmtCnt;
@@ -336,7 +321,7 @@ void compile_stmt(IrProc irp, Stmt stmt)
                 Expr condExpr = stmtInfo[stmt].tIfelse.condExpr;
                 Stmt ifbody = stmtInfo[stmt].tIfelse.ifbody;
                 Stmt elsebody = stmtInfo[stmt].tIfelse.elsebody;
-                compile_expr(condExpr);
+                compile_expr(condExpr, RVALUE);
                 IrStmt j0 = irStmtCnt++;
                 compile_stmt(irp, ifbody);
                 IrStmt j1 = irStmtCnt++;
@@ -358,7 +343,7 @@ void compile_stmt(IrProc irp, Stmt stmt)
                 Expr condExpr = stmtInfo[stmt].tWhile.condExpr;
                 Stmt whilebody = stmtInfo[stmt].tWhile.whilebody;
                 IrStmt condStmt = irStmtCnt;
-                compile_expr(condExpr);
+                compile_expr(condExpr, RVALUE);
                 IrStmt irs = irStmtCnt++;
                 compile_stmt(irp, whilebody);
                 IrStmt backJmp = irStmtCnt++;
@@ -376,7 +361,7 @@ void compile_stmt(IrProc irp, Stmt stmt)
         }
         case STMT_RETURN: {
                 Expr resultExpr = stmtInfo[stmt].tReturn.expr;
-                compile_expr(resultExpr);
+                compile_expr(resultExpr, RVALUE);
                 IrStmt irs = irStmtCnt++;
                 IrReturnval ret = irReturnvalCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
