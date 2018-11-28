@@ -277,12 +277,27 @@ void resolve_type_references(void)
 INTERNAL
 int is_integral_type(Type t)
 {
-        if (typeInfo[t].kind == TYPE_REFERENCE) {
-                t = typeInfo[t].tRef.resolvedTp;
-                if (t == -1)
-                        return 0;
-        }
         return typeInfo[t].kind == TYPE_BASE;
+}
+
+INTERNAL
+Type referenced_type(Type t)
+{
+        if (typeInfo[t].kind == TYPE_REFERENCE)
+                t = typeInfo[t].tRef.resolvedTp;
+        return t;
+}
+
+INTERNAL
+Type pointer_type(Type t)
+{
+        // TODO: cache pointer-to version of this type
+        Type r = typeCnt++;
+        RESIZE_GLOBAL_BUFFER(typeInfo, r);
+        typeInfo[r].kind = TYPE_POINTER;
+        typeInfo[r].tPointer.tp = t;
+        typeInfo[r].isComplete = 0; //XXX?
+        return r;
 }
 
 INTERNAL
@@ -365,18 +380,19 @@ Type check_unop_expr_type(Expr x)
         int op = exprInfo[x].tUnop.kind;
         Expr xx = exprInfo[x].tUnop.expr;
         Type tt = check_expr_type(xx);
+        tt = referenced_type(tt);
         Type tp = -1;
         if (tt != -1) {
-                if (typeInfo[tt].kind == TYPE_REFERENCE)
-                        tt = typeInfo[tt].tRef.resolvedTp;
                 switch (op) {
+                case UNOP_ADDRESSOF:
+                        tp = pointer_type(tt);
+                        break;
                 case UNOP_DEREF:
                         if (typeInfo[tt].kind == TYPE_POINTER)
                                 tp = typeInfo[tt].tPointer.tp;
                         break;
                 case UNOP_INVERTBITS:
                 case UNOP_NOT:
-                case UNOP_ADDRESSOF:
                 case UNOP_NEGATIVE:
                 case UNOP_POSITIVE:
                 case UNOP_PREDECREMENT:
@@ -402,6 +418,8 @@ Type check_binop_expr_type(Expr x)
         Expr x2 = exprInfo[x].tBinop.expr2;
         Type t1 = check_expr_type(x1);
         Type t2 = check_expr_type(x2);
+        t1 = referenced_type(t1);
+        t2 = referenced_type(t2);
         Type tp = -1;
         if (t1 != -1 && t2 != -1) {
                 switch (op) {
@@ -420,8 +438,15 @@ Type check_binop_expr_type(Expr x)
                 case BINOP_BITOR:
                 case BINOP_BITXOR:
                         if (is_integral_type(t1) && is_integral_type(t2)
-                            /* && are_types_compatible(t1 == t2)*/)
+                            /* && are_types_compatible(t1 == t2)*/) {
                                 tp = t1;
+                        }
+                        else if (typeInfo[t1].kind == TYPE_POINTER &&
+                                 typeInfo[t2].kind == TYPE_POINTER) {
+                                if (referenced_type(typeInfo[t1].tPointer.tp) ==
+                                    referenced_type(typeInfo[t2].tPointer.tp))
+                                        tp = t1;
+                        }
                         break;
                 default:
                         UNHANDLED_CASE();
@@ -461,12 +486,12 @@ Type check_subscript_expr_type(Expr x)
         }
         else if (typeInfo[t1].kind != TYPE_ARRAY)
                 LOG_TYPE_ERROR_EXPR(x,
-                            "Subscript expression invalid: "
-                            "indexed object is not array type\n");
+                        "Subscript expression invalid: "
+                        "indexed object is not array type\n");
         else if (! type_equal(t2, typeInfo[t1].tArray.idxtp))
                 LOG_TYPE_ERROR_EXPR(x,
-                            "Incompatible type of index "
-                            "in subscript expression\n");
+                        "Incompatible type of index "
+                        "in subscript expression\n");
         else
                 tp = typeInfo[t1].tArray.valuetp;
         exprType[x] = tp;

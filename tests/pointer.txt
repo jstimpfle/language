@@ -4,8 +4,10 @@ proc int main()
 {
     data int a;
     data int* x;
+    data int* s;
     a = 3;
     x = &a;
+    s = "Hello";
     print64(x);
     print64(*x);
     a = 4;
