@@ -102,8 +102,20 @@ void pp_expr(Expr expr)
                         break;
                 }
                 case EXPR_LITERAL: {
-                        Token tok = exprInfo[expr].tLiteral.tok;
-                        outf("%lld", tokenInfo[tok].tInteger);
+                        switch (exprInfo[expr].tLiteral.kind) {
+                        case LITERAL_INTEGER: {
+                                Token tok = exprInfo[expr].tLiteral.tok;
+                                outf("%lld", tokenInfo[tok].tInteger);
+                                break;
+                        }
+                        case LITERAL_STRING: {
+                                String s = exprInfo[expr].tLiteral.tString;
+                                outf("\"%s\"", string_buffer(s));
+                                break;
+                        }
+                        default:
+                                UNHANDLED_CASE();
+                        }
                         break;
                 }
                 case EXPR_UNOP: {
