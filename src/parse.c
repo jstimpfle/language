@@ -148,8 +148,7 @@ Type parse_type(void)
         typeInfo[tp].kind = TYPE_REFERENCE;
         typeInfo[tp].tRef.ref = ref;
         typeInfo[tp].tRef.resolvedTp = -1;
-        Token tok = look_next_token();
-        if (tokenInfo[tok].kind == TOKEN_ASTERISK) {
+        while (look_token_kind(TOKEN_ASTERISK) != -1) {
                 parse_next_token();
                 Type ptp = typeCnt++;
                 RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
