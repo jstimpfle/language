@@ -1,0 +1,15 @@
+proc int main(int argc, char *argv)
+{
+    data int i;
+    i = 0;
+    while (i < argc) {
+        prints("Argument #");
+        print64(i);
+        prints(argv[i*8]);
+        prints("\n");
+        i = i + 1;
+    }
+    return 0;
+}
+
+export main;

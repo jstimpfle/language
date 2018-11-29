@@ -11,6 +11,33 @@ enum {
         RVALUE,
 };
 
+
+/* XXX: remove this. We should add these operations to the IR somehow and let
+ * the code generator compile efficient code. */
+Symbol find_op_symbol(int opkind)
+{
+        static const struct {
+                int opkind;
+                int extsym;
+        } opmap[] = {
+                { BINOP_PLUS,  EXTSYM_add64 },
+                { BINOP_MINUS, EXTSYM_sub64 },
+                { BINOP_MUL,   EXTSYM_mul64 },
+                { BINOP_DIV,   EXTSYM_div64 },
+                { BINOP_GT,    EXTSYM_gt64 },
+                { BINOP_LT,    EXTSYM_lt64 },
+                { BINOP_GE,    EXTSYM_ge64 },
+                { BINOP_LE,    EXTSYM_le64 },
+                { BINOP_EQ,    EXTSYM_eq64 },
+                { BINOP_NE,    EXTSYM_ne64 },
+        };
+
+        for (int i = 0; i < LENGTH(opmap); i++)
+                if (opkind == opmap[i].opkind)
+                        return extsymToSymbol[opmap[i].extsym];
+        return -1;
+}
+
 void compile_expr(Expr x, int kind)
 {
         if (kind == LVALUE &&
@@ -103,26 +130,7 @@ void compile_expr(Expr x, int kind)
                         compile_expr(e1, RVALUE);
                         compile_expr(e2, RVALUE);
 
-                        static const struct {
-                                int binop;
-                                int extsym;
-                        } opmap[] = {
-                                { BINOP_PLUS,  EXTSYM_add64 },
-                                { BINOP_MINUS, EXTSYM_sub64 },
-                                { BINOP_MUL,   EXTSYM_mul64 },
-                                { BINOP_DIV,   EXTSYM_div64 },
-                                { BINOP_GT,    EXTSYM_gt64 },
-                                { BINOP_LT,    EXTSYM_lt64 },
-                                { BINOP_GE,    EXTSYM_ge64 },
-                                { BINOP_LE,    EXTSYM_le64 },
-                                { BINOP_EQ,    EXTSYM_eq64 },
-                                { BINOP_NE,    EXTSYM_ne64 },
-                        };
-
-                        Symbol funcsym = -1;
-                        for (int i = 0; i < LENGTH(opmap); i++)
-                                if (exprInfo[x].tBinop.kind == opmap[i].binop)
-                                        funcsym = extsymToSymbol[opmap[i].extsym];
+                        Symbol funcsym = find_op_symbol(exprInfo[x].tBinop.kind);
                         if (funcsym == -1)
                                 UNHANDLED_CASE();
 
@@ -254,6 +262,46 @@ void compile_expr(Expr x, int kind)
                 RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
                 irCallResultInfo[ret].callStmt = y;
                 irCallResultInfo[ret].tgtreg = exprToIrReg[x];
+                break;
+        }
+        case EXPR_SUBSCRIPT: {
+                Symbol funcsym = find_op_symbol(BINOP_PLUS);
+                Expr e1 = exprInfo[x].tSubscript.expr1;
+                Expr e2 = exprInfo[x].tSubscript.expr2;
+                compile_expr(e1, RVALUE);
+                compile_expr(e2, RVALUE);
+                /* call add function to offset pointer */
+                IrStmt loadStmt = irStmtCnt++;
+                IrStmt callStmt = irStmtCnt++;
+                IrCallArg arg1 = irCallArgCnt++;
+                IrCallArg arg2 = irCallArgCnt++;
+                IrCallResult ret = irCallResultCnt++;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                RESIZE_GLOBAL_BUFFER(irCallArgInfo, irCallArgCnt);
+                RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
+                irStmtInfo[loadStmt].proc = proc;
+                irStmtInfo[loadStmt].kind = IRSTMT_LOADSYMBOLADDR;
+                irStmtInfo[loadStmt].tLoadSymbolAddr.sym = funcsym;
+                irStmtInfo[loadStmt].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
+                irStmtInfo[callStmt].proc = proc;
+                irStmtInfo[callStmt].kind = IRSTMT_CALL;
+                irStmtInfo[callStmt].tCall.calleeReg = exprToIrReg[x];
+                irStmtInfo[callStmt].tCall.firstIrCallArg = arg1;
+                irStmtInfo[callStmt].tCall.firstIrCallResult = ret;
+                irCallArgInfo[arg1].srcreg = exprToIrReg[e1];
+                irCallArgInfo[arg1].callStmt = callStmt;
+                irCallArgInfo[arg2].srcreg = exprToIrReg[e2];
+                irCallArgInfo[arg2].callStmt = callStmt;
+                irCallResultInfo[ret].callStmt = callStmt;
+                irCallResultInfo[ret].tgtreg = exprToIrReg[x];
+                if (kind == RVALUE) {
+                        IrStmt y = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[y].proc = proc;
+                        irStmtInfo[y].kind = IRSTMT_LOAD;
+                        irStmtInfo[y].tLoad.srcaddrreg = exprToIrReg[x];
+                        irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
+                }
                 break;
         }
         default:

@@ -487,22 +487,31 @@ Type check_subscript_expr_type(Expr x)
         Type t1 = check_expr_type(x1);
         Type t2 = check_expr_type(x2);
         Type tp = -1;
-
-        if (is_bad_type(t1) || is_bad_type(t2)) {
+        t1 = referenced_type(t1);
+        t2 = referenced_type(t2);
+        if (t1 == -1 || is_bad_type(t1)) {
                 LOG_TYPE_ERROR_EXPR(x,
                         "Cannot typecheck subscript expression: "
-                        "bad array or index type\n");
+                        "bad array type\n");
+                goto bad;
         }
-        else if (typeInfo[t1].kind != TYPE_ARRAY)
+        if (t2 == -1 || is_bad_type(t2)) {
+                LOG_TYPE_ERROR_EXPR(x,
+                        "Cannot typecheck subscript expression: "
+                        "bad index type\n");
+                goto bad;
+        }
+        else if (typeInfo[t1].kind != TYPE_ARRAY &&
+                 typeInfo[t1].kind != TYPE_POINTER)
                 LOG_TYPE_ERROR_EXPR(x,
                         "Subscript expression invalid: "
                         "indexed object is not array type\n");
         else if (! type_equal(t2, typeInfo[t1].tArray.idxtp))
                 LOG_TYPE_ERROR_EXPR(x,
-                        "Incompatible type of index "
-                        "in subscript expression\n");
+                        "Incompatible type of index in subscript\n");
         else
                 tp = typeInfo[t1].tArray.valuetp;
+bad:
         exprType[x] = tp;
         return tp;
 }
