@@ -59,25 +59,17 @@ void compile_expr(Expr x, int kind)
                 switch (exprInfo[x].tUnop.kind) {
                 case UNOP_ADDRESSOF: {
                         compile_expr(e1, LVALUE);
-                        IrStmt y = irStmtCnt++;
-                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irStmtInfo[y].proc = proc;
-                        irStmtInfo[y].kind = IRSTMT_REGREG;
-                        irStmtInfo[y].tRegreg.srcreg = exprToIrReg[e1];
-                        irStmtInfo[y].tRegreg.tgtreg = exprToIrReg[x];
+                        exprToIrReg[x] = exprToIrReg[e1]; //XXX
                         break;
                 }
                 case UNOP_DEREF: {
                         compile_expr(e1, RVALUE);
-                        IrStmt y = irStmtCnt++;
-                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         if (kind == LVALUE) {
-                                irStmtInfo[y].proc = proc;
-                                irStmtInfo[y].kind = IRSTMT_REGREG;
-                                irStmtInfo[y].tRegreg.srcreg = exprToIrReg[e1];
-                                irStmtInfo[y].tRegreg.tgtreg = exprToIrReg[x];
+                                exprToIrReg[x] = exprToIrReg[e1]; //XXX
                         }
                         else {
+                                IrStmt y = irStmtCnt++;
+                                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                                 irStmtInfo[y].proc = proc;
                                 irStmtInfo[y].kind = IRSTMT_LOAD;
                                 irStmtInfo[y].tLoad.srcaddrreg = exprToIrReg[e1];
@@ -94,7 +86,7 @@ void compile_expr(Expr x, int kind)
                 Expr e1 = exprInfo[x].tBinop.expr1;
                 Expr e2 = exprInfo[x].tBinop.expr2;
                 if (exprInfo[x].tBinop.kind == BINOP_ASSIGN) {
-                        compile_expr(e1, LVALUE);
+                        compile_expr(e1, LVALUE); // could optimize this for simple identifier assignments
                         compile_expr(e2, RVALUE);
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
@@ -103,12 +95,7 @@ void compile_expr(Expr x, int kind)
                         irStmtInfo[y].tStore.srcreg = exprToIrReg[e2];
                         irStmtInfo[y].tStore.tgtaddrreg = exprToIrReg[e1];
 
-                        IrStmt y2 = irStmtCnt++;
-                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irStmtInfo[y2].proc = proc;
-                        irStmtInfo[y2].kind = IRSTMT_REGREG;
-                        irStmtInfo[y2].tRegreg.srcreg = exprToIrReg[e1];
-                        irStmtInfo[y2].tRegreg.tgtreg = exprToIrReg[x];
+                        exprToIrReg[x] = exprToIrReg[e2]; //XXX
                 }
                 else {
                         /* XXX: Here we "call" the binop operation. This is very
