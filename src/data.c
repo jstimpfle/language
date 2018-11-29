@@ -146,6 +146,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_DATA,   "data"   ),
         MAKE( CONSTSTR_ENTITY, "entity" ),
         MAKE( CONSTSTR_ARRAY,  "array"  ),
+        MAKE( CONSTSTR_EXPORT, "export" ),
 #undef MAKE
 };
 
@@ -173,12 +174,14 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         MAKE( symrefToToken ),
         MAKE( typeInfo ),
         MAKE( symbolInfo ),
+        MAKE( isSymbolExported ),
         MAKE( dataInfo ),
         MAKE( arrayInfo ),
         MAKE( scopeInfo ),
         MAKE( procInfo ),
         MAKE( procToType ),
         MAKE( paramInfo ),
+        MAKE( exportInfo ),
         MAKE( symrefInfo ),
         MAKE( symrefToSym ),
         MAKE( exprInfo ),

@@ -13,3 +13,5 @@ proc int main()
     print64(r);
     return 0;
 }
+
+export main;

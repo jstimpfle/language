@@ -71,8 +71,20 @@ enum {
 extern const char *const extsymname[NUM_EXTSYMS];
 DATA Symbol extsymToSymbol[NUM_EXTSYMS];
 
+/*
+ * \typedef{Expr}: The result of parsing an expression, as part of a statement.
+ * See also \ref{ExprInfo}.
+ *
+ * \typedef{Stmt}: The result of parsing a statement, which can be any of the
+ * \enum{StmtKind} kinds of statements. See also \ref{StmtInfo}.
+ */
+
+typedef int Expr;
+typedef int Stmt;
 
 /**
+ * Top-level syntactic elements:
+ *
  * \typedef{Data}: The result of parsing a data declaration. See also
  * \ref{DataInfo}.
  *
@@ -84,61 +96,13 @@ DATA Symbol extsymToSymbol[NUM_EXTSYMS];
  *
  * \typedef{Param}: The result of parsing a procedure parameter as part of a
  * proc definition. See also \ref{ParamInfo}
- *
- * \typedef{Expr}: The result of parsing an expression, as part of a statement.
- * See also \ref{ExprInfo}.
- *
- * \typedef{Stmt}: The result of parsing a statement, which can be any of the
- * \enum{StmtKind} kinds of statements. See also \ref{StmtInfo}.
  */
 
 typedef int Data;
 typedef int Array;
 typedef int Proc;
 typedef int Param;
-typedef int Expr;
-typedef int Stmt;
-
-
-/**
- * \enum{LiteralKind}: Literal value expression kinds (e.g. integer literal or
- * string literal)
- *
- * \enum{ExprKind}: Expression kinds. Expressions are (typically?) contained in
- * statements.
- *
- * \enum{StmtKind}: Statement kinds. Procedure bodies are made up of statements.
- * One kind of statement is the compound statement, which contains an arbitrary
- * number of other child statements in curly braces.
- */
-
-enum LiteralKind {
-        LITERAL_INTEGER,
-        LITERAL_STRING,
-};
-
-enum ExprKind {
-        EXPR_LITERAL,
-        EXPR_SYMREF,
-        EXPR_UNOP,
-        EXPR_BINOP,
-        EXPR_MEMBER,
-        EXPR_SUBSCRIPT,
-        EXPR_CALL,
-};
-
-enum StmtKind {
-        STMT_IF,
-        STMT_IFELSE,
-        STMT_FOR,
-        STMT_WHILE,
-        STMT_RETURN,
-        STMT_EXPR,
-        STMT_COMPOUND,
-        STMT_DATA,
-        STMT_ARRAY,
-};
-
+typedef int Export;
 
 /**
  * \struct{SymbolInfo}: Represents a name given to one of the various entity
@@ -177,7 +141,7 @@ struct ProcsymbolInfo {
 struct SymbolInfo {
         String name;
         Scope scope;
-        int kind;  // SYMBOL_
+        char kind;  // SYMBOL_
         union {
                 Type tType;
                 struct DatasymbolInfo tData;
@@ -212,27 +176,45 @@ DATA struct ScopeInfo *scopeInfo;
 DATA struct SymrefInfo *symrefInfo;
 DATA Token *symrefToToken;
 DATA Symbol *symrefToSym;
+DATA unsigned char *isSymbolExported;
 
 /**
+ * \enum{LiteralKind}: Literal value expression kinds (e.g. integer literal or
+ * string literal)
+ *
+ * \enum{ExprKind}: Expression kinds. Expressions are (typically?) contained in
+ * statements.
+ *
+ * \enum{StmtKind}: Statement kinds. Procedure bodies are made up of statements.
+ * One kind of statement is the compound statement, which contains an arbitrary
+ * number of other child statements in curly braces.
  */
 
-struct DataInfo {
-        Scope scope;
-        Type tp;
-        Symbol sym;  // back-link
+enum LiteralKind {
+        LITERAL_INTEGER,
+        LITERAL_STRING,
 };
 
-struct ArrayInfo {
-        Scope scope;
-        Type tp;
-        Symbol sym;  // back-link
+enum ExprKind {
+        EXPR_LITERAL,
+        EXPR_SYMREF,
+        EXPR_UNOP,
+        EXPR_BINOP,
+        EXPR_MEMBER,
+        EXPR_SUBSCRIPT,
+        EXPR_CALL,
 };
 
-struct ProcInfo {
-        Symbol sym;
-        Scope scope;
-        int nparams;
-        Stmt body;
+enum StmtKind {
+        STMT_IF,
+        STMT_IFELSE,
+        STMT_FOR,
+        STMT_WHILE,
+        STMT_RETURN,
+        STMT_EXPR,
+        STMT_COMPOUND,
+        STMT_DATA,
+        STMT_ARRAY,
 };
 
 
@@ -362,6 +344,37 @@ struct ChildStmtInfo {
         int rank;
 };
 
+/**
+ * Top-level entities
+ */
+
+struct DataInfo {
+        Scope scope;
+        Type tp;
+        Symbol sym;  // back-link
+};
+
+struct ArrayInfo {
+        Scope scope;
+        Type tp;
+        Symbol sym;  // back-link
+};
+
+struct ProcInfo {
+        Symbol sym;
+        Scope scope;
+        int nparams;
+        Stmt body;
+};
+
+struct ExportInfo {
+        Symref ref;
+};
+
+/*
+ * Data
+ */
+
 DATA File currentFile;
 DATA int currentOffset;
 
@@ -376,20 +389,22 @@ DATA Scope scopeStack[16];
 DATA int scopeStackCnt;
 DATA Proc currentProc;
 
-DATA int dataCnt;
-DATA int arrayCnt;
-DATA int procCnt;
 DATA int exprCnt;
 DATA int callArgCnt;
 DATA int stmtCnt;
 DATA int childStmtCnt;
-
-DATA struct DataInfo *dataInfo;
-DATA struct ArrayInfo *arrayInfo;
-DATA struct ProcInfo *procInfo;
-DATA Type *procToType;
+DATA int dataCnt;
+DATA int arrayCnt;
+DATA int procCnt;
+DATA int exportCnt;
 
 DATA struct ExprInfo *exprInfo;
 DATA struct CallArgInfo *callArgInfo;
 DATA struct StmtInfo *stmtInfo;
 DATA struct ChildStmtInfo *childStmtInfo;
+
+DATA struct DataInfo *dataInfo;
+DATA struct ArrayInfo *arrayInfo;
+DATA struct ProcInfo *procInfo;
+DATA Type *procToType;
+DATA struct ExportInfo *exportInfo;

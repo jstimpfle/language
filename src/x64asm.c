@@ -672,6 +672,8 @@ void codegen_x64(void)
 
         /* TODO: do we need an "IrData" type? */
         for (Data x = 0; x < dataCnt; x++) {
+                if (scopeInfo[dataInfo[x].scope].kind != SCOPE_GLOBAL)
+                        continue;
                 int size = 8; //XXX: size of the data object the symbol points to
                 int offset = zerodataSectionCnt;
                 zerodataSectionCnt += size;

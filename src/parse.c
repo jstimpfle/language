@@ -667,6 +667,18 @@ Proc parse_proc(void)
         return proc;
 }
 
+void parse_export(void)
+{
+        PARSE_LOG();
+
+        Symref ref = parse_symref();
+        parse_token_kind(TOKEN_SEMICOLON);
+
+        Export x = exportCnt++;
+        RESIZE_GLOBAL_BUFFER(exportInfo, exportCnt);
+        exportInfo[x].ref = ref;
+}
+
 void parse_global_scope(void)
 {
         PARSE_LOG();
@@ -684,6 +696,8 @@ void parse_global_scope(void)
                         parse_data();
                 else if (s == constStr[CONSTSTR_PROC])
                         parse_proc();
+                else if (s == constStr[CONSTSTR_EXPORT])
+                        parse_export();
                 else
                         FATAL_PARSE_ERROR_AT_TOK(tok,
                             "Unexpected word %s\n", TS(tok));

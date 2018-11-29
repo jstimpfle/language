@@ -193,6 +193,15 @@ void resolve_symbol_references(void)
                 cleanup();
                 exit_program(1);
         }
+
+        RESIZE_GLOBAL_BUFFER(isSymbolExported, symbolCnt);
+        for (Symbol sym = 0; sym < symbolCnt; sym++)
+                isSymbolExported[sym] = 0;
+        for (Export x = 0; x < exportCnt; x++) {
+                Symref ref = exportInfo[x].ref;
+                Symbol sym = symrefToSym[ref];
+                isSymbolExported[sym] = 1;
+        }
 }
 
 INTERNAL

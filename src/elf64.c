@@ -1,7 +1,5 @@
 /* ELF-64 writer. Lots of comments pulled from the spec ("ELF-64 Object File
- * Format, Version 1.5 Draft 2"). We try to be independent of the rest of the
- * infrastructure in the project, so this file will be reusable as a baseline in
- * other projects with only small changes. */
+ * Format, Version 1.5 Draft 2"). */
 
 #include "defs.h"
 #include "api.h"
@@ -132,6 +130,12 @@ struct Elf64_Shdr {
 
 /* Figure 4. ELF-64 Symbol table entry */
 struct Elf64_Sym {
+        /* XXX: This is a crutch I put in here. It's not part of the on-disk
+         * data structures. Since The STB_LOCAL symbols must come first in the
+         * symbol table, we need to sort them. To permute our internal mapping
+         * as well, we need this original-index field here. */
+        uint64_t index_before_sorting;
+
         /* st_name contains the offset, in bytes, to the symbol name, relative
          * to the start of the symbol string table. If this field contains zero,
          * the symbol has no name. */
@@ -165,6 +169,7 @@ struct Elf64_Sym {
         Elf64_Addr      st_value;       /* Symbol value */
         Elf64_Xword     st_size;        /* Size of object (e.g., common) */
 };
+#define ELF64_SYM_SIZE_ON_DISK (sizeof (struct Elf64_Sym) - sizeof(uint64_t)) /*XXX*/
 
 /* Figure 5. ELF-64 Relocation Entries (Elf64_Rel and Elf64_Rela) */
 struct Elf64_Rel {
@@ -557,8 +562,16 @@ const char *const sectionNames[NUM_ESS] = {
 };
 
 /* for each ELF section we also make an ELF symbol so we can reference it */
-int elfsectionToElfsym[NUM_ESS];
+static int elfsectionToElfsym[NUM_ESS];
 
+int compare_Elf64_Sym_by_visibility(const void *a, const void *b)
+{
+        const struct Elf64_Sym *x = a;
+        const struct Elf64_Sym *y = b;
+        unsigned visx = (unsigned) x->st_info & 0xf0;
+        unsigned visy = (unsigned) y->st_info & 0xf0;
+        return visx - visy;
+}
 
 void write_elf64_object(const char *outfilepath)
 {
@@ -598,8 +611,7 @@ void write_elf64_object(const char *outfilepath)
                 BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
                 CLEAR(elfsym[x]);
         }
-        /* section symbols. For some reason the STB_LOCAL symbols must come
-         * first */
+        /* section symbols. */
         for (int i = 0; i < NUM_ESS; i++) {
                 int x = elfsymCnt++;
                 BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
@@ -618,7 +630,9 @@ void write_elf64_object(const char *outfilepath)
                 int value = symDefInfo[i].offset;
                 int size = symDefInfo[i].size;
                 Symbol sym = symDefInfo[i].symbol;
+                DEBUG("Defined symbol %s\n", SS(sym));
                 int sectionKind = symDefInfo[i].kind;  // SECTION_
+                int visibility = isSymbolExported[sym] ? STB_GLOBAL : STB_LOCAL;
                 switch (sectionKind) {
                 case SECTION_CODE:
                         ASSERT(symbolInfo[sym].kind == SYMBOL_PROC);
@@ -652,7 +666,7 @@ void write_elf64_object(const char *outfilepath)
                 BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
                 elfsym[x].st_name = append_to_ElfStringTable(
                                                 &strtabStrings, SS(sym));
-                elfsym[x].st_info = (STB_GLOBAL << 4) | sttKind;
+                elfsym[x].st_info = (visibility << 4) | sttKind;
                 elfsym[x].st_other = 0;
                 elfsym[x].st_shndx = shndx;
                 elfsym[x].st_value = value;
@@ -687,6 +701,24 @@ void write_elf64_object(const char *outfilepath)
                 elfsym[x].st_value = 0;
                 elfsym[x].st_size = 0;
                 symbolToElfsym[sym] = x;
+        }
+
+        /* The simplest way to satisfy the requirement that STB_LOCAL symbols
+         * must come first is to sort now and apply a mapping to the
+         * symbolToElfsym array. */
+        {
+                int *mapping;
+                struct Alloc alloc;
+                BUF_INIT(&mapping, &alloc);
+                BUF_RESERVE(&mapping, &alloc, elfsymCnt);
+                for (int i = 0; i < elfsymCnt; i++)
+                        elfsym[i].index_before_sorting = i;
+                SORT(elfsym, elfsymCnt, compare_Elf64_Sym_by_visibility);
+                for (int i = 0; i < elfsymCnt; i++)
+                        mapping[elfsym[i].index_before_sorting] = i;
+                for (Symbol sym = 0; sym < symbolCnt; sym++)
+                        symbolToElfsym[sym] = mapping[symbolToElfsym[sym]];
+                BUF_EXIT(&mapping, &alloc);
         }
 
         /*
@@ -762,10 +794,10 @@ void write_elf64_object(const char *outfilepath)
         sh[ES_STRTAB  ].sh_type = SHT_STRTAB;
         sh[ES_SHSTRTAB].sh_type = SHT_STRTAB;
 
-        sh[ES_SYMTAB  ].sh_size = elfsymCnt * sizeof (struct Elf64_Sym);  // XXX sizeof?
+        sh[ES_SYMTAB  ].sh_size = elfsymCnt * ELF64_SYM_SIZE_ON_DISK;
         sh[ES_TEXT    ].sh_size = codeSectionCnt;
         sh[ES_BSS     ].sh_size = zerodataSectionCnt;
-        sh[ES_RELATEXT].sh_size = relaTextCnt * sizeof (struct Elf64_Rela);  // ditto
+        sh[ES_RELATEXT].sh_size = relaTextCnt * ELF64_SYM_SIZE_ON_DISK;
         sh[ES_RODATA  ].sh_size = rodataSectionCnt;
         sh[ES_DATA    ].sh_size = dataSectionCnt;
         sh[ES_STRTAB  ].sh_size = strtabStrings.size;
@@ -797,7 +829,7 @@ void write_elf64_object(const char *outfilepath)
         sh[ES_RODATA].sh_flags = SHF_ALLOC;
         sh[ES_DATA  ].sh_flags = SHF_ALLOC | SHF_WRITE;
 
-        sh[ES_SYMTAB  ].sh_entsize = sizeof (struct Elf64_Sym);  // ???
+        sh[ES_SYMTAB  ].sh_entsize = ELF64_SYM_SIZE_ON_DISK;
         sh[ES_RELATEXT].sh_entsize = sizeof (struct Elf64_Rela);  // ???
 
         sh[ES_SYMTAB  ].sh_link = ES_STRTAB;  // index of .strtab
@@ -805,7 +837,18 @@ void write_elf64_object(const char *outfilepath)
 
         /* XXX "Index of first non-local symbol (i.e., number of local symbols)"
          */
-        sh[ES_SYMTAB].sh_info = elfsectionToElfsym[NUM_ESS-1] + 1;
+        sh[ES_SYMTAB].sh_info = 0;
+        {
+                int i = 0;
+                for (; i < elfsymCnt; i++) {
+                        unsigned visibility = (elfsym[i].st_info & 0xf0) >> 4;
+                        if (visibility != STB_LOCAL) {
+                                break;
+                        }
+                }
+                sh[ES_SYMTAB].sh_info = i;
+        }
+
 
         sh[ES_RELATEXT].sh_info = ES_TEXT;  // index of .text
 

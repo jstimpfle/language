@@ -15,3 +15,5 @@ proc int main()
     print64(a);
     print64(add64(a, add64(y, 8)));
 }
+
+export main;

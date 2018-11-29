@@ -1,0 +1,17 @@
+proc int localproc()
+{
+}
+
+proc int main(int argc, char **argv)
+{
+    if (argc < 2) {
+        prints("Need 1 command-line argument!\n");
+        return 1;
+    }
+    prints("The command-line argument is: ");
+    prints(*(argv+8));
+    prints("\n");
+    return 0;
+}
+
+export main;

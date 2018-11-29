@@ -33,6 +33,7 @@ enum ConstStrKind {
         CONSTSTR_DATA,
         CONSTSTR_ENTITY,
         CONSTSTR_ARRAY,
+        CONSTSTR_EXPORT,
         NUM_CONSTSTRS,
 };
 
@@ -106,12 +107,14 @@ enum {
         BUFFER_symrefToToken,
         BUFFER_typeInfo,
         BUFFER_symbolInfo,
+        BUFFER_isSymbolExported,
         BUFFER_dataInfo,
         BUFFER_arrayInfo,
         BUFFER_scopeInfo,
         BUFFER_procInfo,
         BUFFER_procToType,
         BUFFER_paramInfo,
+        BUFFER_exportInfo,
         BUFFER_symrefInfo,
         BUFFER_symrefToSym,
         BUFFER_exprInfo,

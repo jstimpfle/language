@@ -17,3 +17,5 @@ proc int main()
     *x = 8;
     return testint;
 }
+
+export main;

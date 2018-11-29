@@ -3,3 +3,5 @@ proc int main()
     prints("Hello, world!\n");
     return 0;
 }
+
+export main;
