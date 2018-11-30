@@ -234,4 +234,4 @@ void codegen_x64(void);
 /*
  * main.c
  */
-void cleanup();
+void cleanup(void);

@@ -74,38 +74,38 @@ bad:
         read_whole_file(x);
         }
 
-        MSG(lvl_info, "Parse file %s\n", fileToParse);
+        DEBUG("Parse file %s\n", fileToParse);
         parse_global_scope();
 
-        MSG(lvl_info, "Resolve symbol references...\n");
+        DEBUG("Resolve symbol references...\n");
         resolve_symbol_references();
 
-        MSG(lvl_info, "Resolve type references...\n");
+        DEBUG("Resolve type references...\n");
         resolve_type_references();
 
-        MSG(lvl_info, "Check types...\n");
+        DEBUG("Check types...\n");
         check_types();
 
         if (doPrettyPrintAst) {
-                MSG(lvl_info, "Pretty print input...\n\n");
+                DEBUG("Pretty print input...\n\n");
                 prettyprint();
         }
 
-        MSG(lvl_info, "Compile to IR...\n");
+        DEBUG("Compile to IR...\n");
         compile_to_IR();
 
         if (doDumpIr) {
-                MSG(lvl_info, "Test IR pretty printer...\n");
+                DEBUG("Test IR pretty printer...\n");
                 irprint();
         }
 
-        MSG(lvl_info, "A little codegen test...\n");
+        DEBUG("A little codegen test...\n");
         codegen_x64();
 
-        MSG(lvl_info, "Write elf object file...\n");
+        DEBUG("Write elf object file...\n");
         write_elf64_object("out.o");
 
-        MSG(lvl_info, "Success. Cleanup and terminate program.\n");
+        DEBUG("Success. Cleanup and terminate program.\n");
         cleanup();
 
         return 0;
