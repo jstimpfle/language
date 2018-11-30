@@ -516,7 +516,6 @@ Stmt parse_for_stmt(void)
         PARSE_LOG();
         parse_token_kind(TOKEN_LEFTPAREN);
         Stmt initStmt = parse_expr_stmt();
-        parse_token_kind(TOKEN_SEMICOLON);
         Expr condExpr = parse_expr(0);
         parse_token_kind(TOKEN_SEMICOLON);
         Stmt stepStmt = parse_expr_stmt();

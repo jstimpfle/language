@@ -605,6 +605,32 @@ void x64asm_proc(IrProc irp)
                         emit_mov_64_reg_stack(X64_RAX, tgtloc);
 			break;
                 }
+                case IRSTMT_OP1: {
+                        UNHANDLED_CASE();
+			break;
+                }
+                case IRSTMT_OP2: {
+                        IrReg reg1 = irStmtInfo[irs].tOp2.reg1;
+                        IrReg reg2 = irStmtInfo[irs].tOp2.reg2;
+                        IrReg tgtreg = irStmtInfo[irs].tOp2.tgtreg;
+                        X64StackLoc loc1 = find_stack_loc(reg1);
+                        X64StackLoc loc2 = find_stack_loc(reg2);
+                        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+                        switch (irStmtInfo[irs].tOp2.kind) {
+                        case IROP2_ADD:
+                                emit_mov_64_stack_reg(loc1, X64_RAX);
+                                emit_mov_64_stack_reg(loc2, X64_RBX);
+                                emit_add_64_reg_reg(X64_RBX, X64_RAX);
+                                emit_mov_64_reg_stack(X64_RAX, tgtloc);
+                                break;
+                        case IROP2_SUB:
+                        case IROP2_MUL:
+                        case IROP2_DIV:
+                        default:
+                                UNHANDLED_CASE();
+                        }
+			break;
+                }
                 case IRSTMT_CALL: {
                         IrReg calleeReg = irStmtInfo[irs].tCall.calleeReg;
                         X64StackLoc calleeloc = find_stack_loc(calleeReg);

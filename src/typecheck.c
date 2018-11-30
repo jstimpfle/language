@@ -329,7 +329,7 @@ int type_equal(Type a, Type b)
         }
         while (typeInfo[b].kind == TYPE_REFERENCE) {
                 b = typeInfo[b].tRef.resolvedTp;
-                ASSERT(a != -1);
+                ASSERT(b != -1);
         }
         return a == b;
 }

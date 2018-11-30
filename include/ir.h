@@ -46,6 +46,9 @@ typedef int IrLabel;
 
 /**
  * \enum{IrStmtKind} defines the possible kinds of IR statements.
+ *
+ * \enum{IrOp1} defines the possible primitive operations on 1 register.
+ * \enum{IrOp2} defines the possible primitive operations on 2 registers.
  */
 
 enum IrStmtKind {
@@ -55,10 +58,24 @@ enum IrStmtKind {
         IRSTMT_LOAD,
         IRSTMT_STORE,
         IRSTMT_REGREG,
+        IRSTMT_OP1,
+        IRSTMT_OP2,
         IRSTMT_CALL,
         IRSTMT_CONDGOTO,
         IRSTMT_GOTO,
         IRSTMT_RETURN,
+};
+
+enum IrOp1 {
+        IROP1_NEG,
+        IROP1_BITNEG,
+};
+
+enum IrOp2 {
+        IROP2_ADD,
+        IROP2_SUB,
+        IROP2_MUL,
+        IROP2_DIV,
 };
 
 /**
@@ -153,6 +170,19 @@ struct IrRegregStmtInfo {
         IrReg tgtreg;
 };
 
+struct IrOp1StmtInfo {
+        int kind;  // IROP1_
+        IrReg reg;
+        IrReg tgtreg;
+};
+
+struct IrOp2StmtInfo {
+        int kind;  // IROP2_
+        IrReg reg1;
+        IrReg reg2;
+        IrReg tgtreg;
+};
+
 struct IrCallStmtInfo {
         IrReg calleeReg;
         IrCallArg firstIrCallArg;  // speed-up
@@ -185,6 +215,8 @@ struct IrStmtInfo {
                 struct IrLoadStmtInfo tLoad;
                 struct IrStoreStmtInfo tStore;
                 struct IrRegregStmtInfo tRegreg;
+                struct IrOp1StmtInfo tOp1;
+                struct IrOp2StmtInfo tOp2;
                 struct IrCallStmtInfo tCall;
                 struct IrCondGotoStmtInfo tCondGoto;
                 struct IrGotoStmtInfo tGoto;

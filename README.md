@@ -71,5 +71,7 @@ Here's a little function for your Linux shell that does these steps
 
 ```sh
 compile() { build/language "$@" && cc -Wall -o out runtime/support.c out.o; }
-compileandrun() { compile "$@" && ./out; }
+docompile() { local dash=false; for i in "$@" ; do if [ "$i" = -- ] ; then dash=true; fi; if ! "$dash"; then set -- "$@" "$i"; fi; shift; done; compile "$@"; }
+dorun() { while [ "$#" -gt 0 ] && [ "$1" != -- ]; do shift; done; shift; ./out "$@"; }
+compileandrun() { docompile "$@" && dorun "$@"; }
 ```

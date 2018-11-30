@@ -265,42 +265,26 @@ void compile_expr(Expr x, int kind)
                 break;
         }
         case EXPR_SUBSCRIPT: {
-                Symbol funcsym = find_op_symbol(BINOP_PLUS);
                 Expr e1 = exprInfo[x].tSubscript.expr1;
                 Expr e2 = exprInfo[x].tSubscript.expr2;
                 compile_expr(e1, RVALUE);
                 compile_expr(e2, RVALUE);
-                /* call add function to offset pointer */
-                IrStmt loadStmt = irStmtCnt++;
-                IrStmt callStmt = irStmtCnt++;
-                IrCallArg arg1 = irCallArgCnt++;
-                IrCallArg arg2 = irCallArgCnt++;
-                IrCallResult ret = irCallResultCnt++;
+                /* offset pointer */
+                IrStmt y = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                RESIZE_GLOBAL_BUFFER(irCallArgInfo, irCallArgCnt);
-                RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
-                irStmtInfo[loadStmt].proc = proc;
-                irStmtInfo[loadStmt].kind = IRSTMT_LOADSYMBOLADDR;
-                irStmtInfo[loadStmt].tLoadSymbolAddr.sym = funcsym;
-                irStmtInfo[loadStmt].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
-                irStmtInfo[callStmt].proc = proc;
-                irStmtInfo[callStmt].kind = IRSTMT_CALL;
-                irStmtInfo[callStmt].tCall.calleeReg = exprToIrReg[x];
-                irStmtInfo[callStmt].tCall.firstIrCallArg = arg1;
-                irStmtInfo[callStmt].tCall.firstIrCallResult = ret;
-                irCallArgInfo[arg1].srcreg = exprToIrReg[e1];
-                irCallArgInfo[arg1].callStmt = callStmt;
-                irCallArgInfo[arg2].srcreg = exprToIrReg[e2];
-                irCallArgInfo[arg2].callStmt = callStmt;
-                irCallResultInfo[ret].callStmt = callStmt;
-                irCallResultInfo[ret].tgtreg = exprToIrReg[x];
+                irStmtInfo[y].proc = proc;
+                irStmtInfo[y].kind = IRSTMT_OP2;
+                irStmtInfo[y].tOp2.kind = IROP2_ADD;
+                irStmtInfo[y].tOp2.reg1 = exprToIrReg[e1];
+                irStmtInfo[y].tOp2.reg2 = exprToIrReg[e2];
+                irStmtInfo[y].tOp2.tgtreg = exprToIrReg[x];
                 if (kind == RVALUE) {
-                        IrStmt y = irStmtCnt++;
+                        IrStmt z = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irStmtInfo[y].proc = proc;
-                        irStmtInfo[y].kind = IRSTMT_LOAD;
-                        irStmtInfo[y].tLoad.srcaddrreg = exprToIrReg[x];
-                        irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
+                        irStmtInfo[z].proc = proc;
+                        irStmtInfo[z].kind = IRSTMT_LOAD;
+                        irStmtInfo[z].tLoad.srcaddrreg = exprToIrReg[x];
+                        irStmtInfo[z].tLoad.tgtreg = exprToIrReg[x];
                 }
                 break;
         }
