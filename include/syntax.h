@@ -53,16 +53,6 @@ enum SymbolKind {
  */
 
 enum {
-        EXTSYM_add64,
-        EXTSYM_sub64,
-        EXTSYM_mul64,
-        EXTSYM_div64,
-        EXTSYM_gt64,
-        EXTSYM_lt64,
-        EXTSYM_ge64,
-        EXTSYM_le64,
-        EXTSYM_eq64,
-        EXTSYM_ne64,
         EXTSYM_print64,
         EXTSYM_prints,
         NUM_EXTSYMS,

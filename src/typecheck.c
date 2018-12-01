@@ -20,16 +20,6 @@ Symbol find_symbol_in_scope(String name, Scope scope)
 
 const char *const extsymname[NUM_EXTSYMS] = {
 #define MAKE(name) [EXTSYM_##name] = #name
-        MAKE( add64 ),
-        MAKE( sub64 ),
-        MAKE( mul64 ),
-        MAKE( div64 ),
-        MAKE( gt64 ),
-        MAKE( lt64 ),
-        MAKE( ge64 ),
-        MAKE( le64 ),
-        MAKE( eq64 ),
-        MAKE( ne64 ),
         MAKE( print64 ),
         MAKE( prints ),
 #undef MAKE

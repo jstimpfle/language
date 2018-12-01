@@ -13,7 +13,7 @@ proc int main()
     print64(a);
     a = a / 2;
     print64(a);
-    print64(add64(a, add64(y, 8)));
+    print64(a + y + 8);
 }
 
 export main;

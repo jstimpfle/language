@@ -49,6 +49,7 @@ typedef int IrLabel;
  *
  * \enum{IrOp1} defines the possible primitive operations on 1 register.
  * \enum{IrOp2} defines the possible primitive operations on 2 registers.
+ * \enum{IrCmp} defines the possible comparison operations on 2 registers.
  */
 
 enum IrStmtKind {
@@ -60,6 +61,7 @@ enum IrStmtKind {
         IRSTMT_REGREG,
         IRSTMT_OP1,
         IRSTMT_OP2,
+        IRSTMT_CMP,
         IRSTMT_CALL,
         IRSTMT_CONDGOTO,
         IRSTMT_GOTO,
@@ -76,6 +78,15 @@ enum IrOp2 {
         IROP2_SUB,
         IROP2_MUL,
         IROP2_DIV,
+};
+
+enum IrCmp {
+        IRCMP_LT,
+        IRCMP_GT,
+        IRCMP_LE,
+        IRCMP_GE,
+        IRCMP_EQ,
+        IRCMP_NE,
 };
 
 /**
@@ -183,6 +194,13 @@ struct IrOp2StmtInfo {
         IrReg tgtreg;
 };
 
+struct IrCmpStmtInfo {
+        int kind;  // IRCMP_
+        IrReg reg1;
+        IrReg reg2;
+        IrReg tgtreg;
+};
+
 struct IrCallStmtInfo {
         IrReg calleeReg;
         IrCallArg firstIrCallArg;  // speed-up
@@ -217,6 +235,7 @@ struct IrStmtInfo {
                 struct IrRegregStmtInfo tRegreg;
                 struct IrOp1StmtInfo tOp1;
                 struct IrOp2StmtInfo tOp2;
+                struct IrCmpStmtInfo tCmp;
                 struct IrCallStmtInfo tCall;
                 struct IrCondGotoStmtInfo tCondGoto;
                 struct IrGotoStmtInfo tGoto;

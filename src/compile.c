@@ -5,38 +5,10 @@
 #include "defs.h"
 #include "api.h"
 
-
 enum {
         LVALUE,
         RVALUE,
 };
-
-
-/* XXX: remove this. We should add these operations to the IR somehow and let
- * the code generator compile efficient code. */
-Symbol find_op_symbol(int opkind)
-{
-        static const struct {
-                int opkind;
-                int extsym;
-        } opmap[] = {
-                { BINOP_PLUS,  EXTSYM_add64 },
-                { BINOP_MINUS, EXTSYM_sub64 },
-                { BINOP_MUL,   EXTSYM_mul64 },
-                { BINOP_DIV,   EXTSYM_div64 },
-                { BINOP_GT,    EXTSYM_gt64 },
-                { BINOP_LT,    EXTSYM_lt64 },
-                { BINOP_GE,    EXTSYM_ge64 },
-                { BINOP_LE,    EXTSYM_le64 },
-                { BINOP_EQ,    EXTSYM_eq64 },
-                { BINOP_NE,    EXTSYM_ne64 },
-        };
-
-        for (int i = 0; i < LENGTH(opmap); i++)
-                if (opkind == opmap[i].opkind)
-                        return extsymToSymbol[opmap[i].extsym];
-        return -1;
-}
 
 void compile_expr(Expr x, int kind)
 {
@@ -110,9 +82,10 @@ void compile_expr(Expr x, int kind)
                 break;
         }
         case EXPR_BINOP: {
+                int binopKind = exprInfo[x].tBinop.kind;
                 Expr e1 = exprInfo[x].tBinop.expr1;
                 Expr e2 = exprInfo[x].tBinop.expr2;
-                if (exprInfo[x].tBinop.kind == BINOP_ASSIGN) {
+                if (binopKind == BINOP_ASSIGN) {
                         compile_expr(e1, LVALUE); // could optimize this for simple identifier assignments
                         compile_expr(e2, RVALUE);
                         IrStmt y = irStmtCnt++;
@@ -124,39 +97,53 @@ void compile_expr(Expr x, int kind)
 
                         exprToIrReg[x] = exprToIrReg[e2]; //XXX
                 }
-                else {
-                        /* XXX: Here we "call" the binop operation. This is very
-                         * inefficient. */
+                else if (binopKind == BINOP_PLUS ||
+                         binopKind == BINOP_MINUS ||
+                         binopKind == BINOP_MUL ||
+                         binopKind == BINOP_DIV) {
                         compile_expr(e1, RVALUE);
                         compile_expr(e2, RVALUE);
-
-                        Symbol funcsym = find_op_symbol(exprInfo[x].tBinop.kind);
-                        if (funcsym == -1)
-                                UNHANDLED_CASE();
-
-                        IrStmt loadStmt = irStmtCnt++;
-                        IrStmt callStmt = irStmtCnt++;
-                        IrCallArg arg1 = irCallArgCnt++;
-                        IrCallArg arg2 = irCallArgCnt++;
-                        IrCallResult ret = irCallResultCnt++;
+                        int kind;
+                        switch (exprInfo[x].tBinop.kind) {
+                        case BINOP_PLUS:  kind = IROP2_ADD; break;
+                        case BINOP_MINUS: kind = IROP2_SUB; break;
+                        case BINOP_MUL:   kind = IROP2_MUL; break;
+                        case BINOP_DIV:   kind = IROP2_DIV; break;
+                        default: ASSERT(0);
+                        }
+                        IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        RESIZE_GLOBAL_BUFFER(irCallArgInfo, irCallArgCnt);
-                        RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
-                        irStmtInfo[loadStmt].proc = proc;
-                        irStmtInfo[loadStmt].kind = IRSTMT_LOADSYMBOLADDR;
-                        irStmtInfo[loadStmt].tLoadSymbolAddr.sym = funcsym;
-                        irStmtInfo[loadStmt].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
-                        irStmtInfo[callStmt].proc = proc;
-                        irStmtInfo[callStmt].kind = IRSTMT_CALL;
-                        irStmtInfo[callStmt].tCall.calleeReg = exprToIrReg[x];
-                        irStmtInfo[callStmt].tCall.firstIrCallArg = arg1;
-                        irStmtInfo[callStmt].tCall.firstIrCallResult = ret;
-                        irCallArgInfo[arg1].srcreg = exprToIrReg[e1];
-                        irCallArgInfo[arg1].callStmt = callStmt;
-                        irCallArgInfo[arg2].srcreg = exprToIrReg[e2];
-                        irCallArgInfo[arg2].callStmt = callStmt;
-                        irCallResultInfo[ret].callStmt = callStmt;
-                        irCallResultInfo[ret].tgtreg = exprToIrReg[x];
+                        irStmtInfo[y].proc = proc;
+                        irStmtInfo[y].kind = IRSTMT_OP2;
+                        irStmtInfo[y].tOp2.kind = kind;
+                        irStmtInfo[y].tOp2.reg1 = exprToIrReg[e1];
+                        irStmtInfo[y].tOp2.reg2 = exprToIrReg[e2];
+                        irStmtInfo[y].tOp2.tgtreg = exprToIrReg[x];
+                }
+                else {
+                        compile_expr(e1, RVALUE);
+                        compile_expr(e2, RVALUE);
+                        int kind;
+                        switch (exprInfo[x].tBinop.kind) {
+                        case BINOP_LT: kind = IRCMP_LT; break;
+                        case BINOP_GT: kind = IRCMP_GT; break;
+                        case BINOP_LE: kind = IRCMP_LE; break;
+                        case BINOP_GE: kind = IRCMP_GE; break;
+                        case BINOP_EQ: kind = IRCMP_EQ; break;
+                        case BINOP_NE: kind = IRCMP_NE; break;
+                        default:
+                                MSG(lvl_error, "Can't handle %s!\n",
+                                binopInfo[exprInfo[x].tBinop.kind].str);
+                                UNHANDLED_CASE();
+                        }
+                        IrStmt y = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[y].proc = proc;
+                        irStmtInfo[y].kind = IRSTMT_CMP;
+                        irStmtInfo[y].tCmp.kind = kind;
+                        irStmtInfo[y].tCmp.reg1 = exprToIrReg[e1];
+                        irStmtInfo[y].tCmp.reg2 = exprToIrReg[e2];
+                        irStmtInfo[y].tCmp.tgtreg = exprToIrReg[x];
                 }
                 break;
         }

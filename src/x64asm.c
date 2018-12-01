@@ -33,6 +33,15 @@ enum {
         NUM_X64REGS,
 };
 
+enum {
+        X64CMP_LT,
+        X64CMP_GT,
+        X64CMP_LE,
+        X64CMP_GE,
+        X64CMP_EQ,
+        X64CMP_NE,
+};
+
 const char *x64regNames[NUM_X64REGS] = {
 #define MAKE(x) [x] = #x
         MAKE( X64_RAX ),
@@ -327,6 +336,63 @@ void emit_add_imm32_reg(Imm32 imm, int reg)
 }
 
 INTERNAL
+void emit_sub_64_reg_reg(int r1, int r2)
+{
+        int R = (r1 & ~7) ? REX_R : 0;
+        int B = (r2 & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|R|B);
+        emit(0x2B);
+        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+}
+
+/* Multiply RAX with given register. Result is in RDX:RAX */
+INTERNAL
+void emit_mul_64(int r)
+{
+        int B = (r & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|B);
+        emit(0xF7);
+        emit(make_modrm_byte(0x03, 0x04, r & 7));
+}
+
+INTERNAL
+void emit_div_64(int r)
+{
+        int B = (r & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|B);
+        emit(0xF7);
+        emit(make_modrm_byte(0x03, 0x06, r & 7));
+}
+
+INTERNAL
+void emit_cmp_64_reg_reg(int r1, int r2)
+{
+        int R = (r1 & ~7) ? REX_R : 0;
+        int B = (r2 & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|R|B);
+        emit(0x3B);
+        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+}
+
+void emit_setcc(int kind /*X64CMP_??*/, int r)
+{
+        int B = (r & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|B);
+        emit(0x0F);
+        switch (kind) {
+        case X64CMP_LT: emit(0x9C); break;
+        case X64CMP_GT: emit(0x9F); break;
+        case X64CMP_LE: emit(0x9E); break;
+        case X64CMP_GE: emit(0x9D); break;
+        case X64CMP_EQ: emit(0x94); break;
+        case X64CMP_NE: emit(0x95); break;
+        default: UNHANDLED_CASE();
+        }
+        emit(make_modrm_byte(0x03, 0x00, r & 7));
+}
+
+
+INTERNAL
 void emit_mov_64_imm_reg(Imm64 imm, int r1)
 {
         if (is_imm32(imm)) {
@@ -616,20 +682,58 @@ void x64asm_proc(IrProc irp)
                         X64StackLoc loc1 = find_stack_loc(reg1);
                         X64StackLoc loc2 = find_stack_loc(reg2);
                         X64StackLoc tgtloc = find_stack_loc(tgtreg);
+                        emit_mov_64_stack_reg(loc1, X64_RAX);
+                        emit_mov_64_stack_reg(loc2, X64_RBX);
                         switch (irStmtInfo[irs].tOp2.kind) {
                         case IROP2_ADD:
-                                emit_mov_64_stack_reg(loc1, X64_RAX);
-                                emit_mov_64_stack_reg(loc2, X64_RBX);
                                 emit_add_64_reg_reg(X64_RBX, X64_RAX);
-                                emit_mov_64_reg_stack(X64_RAX, tgtloc);
                                 break;
                         case IROP2_SUB:
+                                emit_sub_64_reg_reg(X64_RAX, X64_RBX);
+                                break;
                         case IROP2_MUL:
+                                emit_mul_64(X64_RBX);
+                                break;
                         case IROP2_DIV:
+                                emit_div_64(X64_RBX);
+                                break;
                         default:
                                 UNHANDLED_CASE();
                         }
+                        emit_mov_64_reg_stack(X64_RAX, tgtloc);
 			break;
+                }
+                case IRSTMT_CMP: {
+                        IrReg reg1 = irStmtInfo[irs].tOp2.reg1;
+                        IrReg reg2 = irStmtInfo[irs].tOp2.reg2;
+                        IrReg tgtreg = irStmtInfo[irs].tOp2.tgtreg;
+                        X64StackLoc loc1 = find_stack_loc(reg1);
+                        X64StackLoc loc2 = find_stack_loc(reg2);
+                        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+                        emit_mov_64_stack_reg(loc1, X64_RAX);
+                        emit_mov_64_stack_reg(loc2, X64_RBX);
+                        /*
+                         * We use ecx here instead of eax as the target. That's
+                         * because we need to clear the target register before
+                         * calling setcc. (Setcc only sets the lower 8 bits of
+                         * the target register). And since clearing itself sets
+                         * the CPU status flags, we need to clear *before*
+                         * comparing. Which means we need to use a different
+                         * register!
+                         */
+                        emit(0x31); emit(0xC9); // xor %ecx, %ecx
+                        emit_cmp_64_reg_reg(X64_RAX, X64_RBX);
+                        switch (irStmtInfo[irs].tCmp.kind) {
+                        case IRCMP_LT: emit_setcc(X64CMP_LT, X64_RCX); break;
+                        case IRCMP_GT: emit_setcc(X64CMP_GT, X64_RCX); break;
+                        case IRCMP_LE: emit_setcc(X64CMP_LE, X64_RCX); break;
+                        case IRCMP_GE: emit_setcc(X64CMP_GE, X64_RCX); break;
+                        case IRCMP_EQ: emit_setcc(X64CMP_EQ, X64_RCX); break;
+                        case IRCMP_NE: emit_setcc(X64CMP_NE, X64_RCX); break;
+                        default: UNHANDLED_CASE();
+                        }
+                        emit_mov_64_reg_stack(X64_RCX, tgtloc);
+                        break;
                 }
                 case IRSTMT_CALL: {
                         IrReg calleeReg = irStmtInfo[irs].tCall.calleeReg;

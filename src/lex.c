@@ -172,43 +172,8 @@ Token parse_next_token(void)
                 ans = add_string_token(currentFile, off,
                                        intern_string(lexbuf, lexbufCnt));
         }
-        else if (c == '-') {
-                c = look_char();
-                if (c == '-') {
-                        read_char();
-                        ans = add_bare_token(currentFile, off,
-                                             TOKEN_DOUBLEMINUS);
-                }
-                else {
-                        ans = add_bare_token(currentFile, off,
-                                             TOKEN_MINUS);
-                }
-        }
-        else if (c == '+') {
-                c = look_char();
-                if (c == '+') {
-                        read_char();
-                        ans = add_bare_token(currentFile, off,
-                                             TOKEN_DOUBLEPLUS);
-                }
-                else {
-                        ans = add_bare_token(currentFile, off, TOKEN_PLUS);
-                }
-        }
-        else if (c == '=') {
-                c = look_char();
-                if (c == '=') {
-                        read_char();
-                        ans = add_bare_token(currentFile, off,
-                                             TOKEN_EQ);
-                }
-                else {
-                        ans = add_bare_token(currentFile, off,
-                                             TOKEN_ASSIGNEQUALS);
-                }
-        }
         else {
-                static const struct { char c; int kind; } tt[] = {
+                static const struct { char c; int kind; } t1[] = {
                         { '(', TOKEN_LEFTPAREN },
                         { ')', TOKEN_RIGHTPAREN },
                         { '{', TOKEN_LEFTBRACE },
@@ -225,25 +190,50 @@ Token parse_next_token(void)
                         { '|', TOKEN_PIPE },
                         { '^', TOKEN_CARET },
                         { '~', TOKEN_TILDE },
-                        { '!', TOKEN_BANG },
-                        { '>', TOKEN_GT },
-                        { '<', TOKEN_LT },
+                };
+
+                static const struct {
+                        char c1;
+                        char c2;
+                        int k1;
+                        int k2;
+                } t2[] = {
+                        { '=', '=', TOKEN_ASSIGNEQUALS, TOKEN_EQ },
+                        { '+', '+', TOKEN_PLUS, TOKEN_DOUBLEPLUS },
+                        { '-', '-', TOKEN_MINUS, TOKEN_DOUBLEMINUS },
+                        { '!', '=', TOKEN_BANG, TOKEN_NE },
+                        { '>', '=', TOKEN_GT, TOKEN_GE },
+                        { '<', '=', TOKEN_LT, TOKEN_LE, },
                 };
 
                 ans = -1;
+                int tokenKind = -1;
 
-                for (int i = 0; i < LENGTH(tt); i++) {
-                        if (c == tt[i].c) {
-                                ans = add_bare_token(currentFile, off,
-                                                     tt[i].kind);
-                                break;
+                for (int i = 0; i < LENGTH(t1); i++) {
+                        if (c == t1[i].c) {
+                                tokenKind = t1[i].kind;
+                                goto good;
                         }
                 }
 
-                if (ans == -1) {
-                        FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-                                             "Failed to lex token\n");
+                for (int i = 0; i < LENGTH(t2); i++) {
+                        if (c == t2[i].c1) {
+                                c = look_char();
+                                if (c == t2[i].c2) {
+                                        read_char();
+                                        tokenKind = t2[i].k2;
+                                }
+                                else {
+                                        tokenKind = t2[i].k1;
+                                }
+                                goto good;
+                        }
                 }
+
+                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
+                                     "Failed to lex token\n");
+good:
+                ans = add_bare_token(currentFile, off, tokenKind);
         }
 
         return ans;
