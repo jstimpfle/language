@@ -1,0 +1,10 @@
+proc int main()
+{
+    print64(7 + 2);
+    print64(7 - 2);
+    print64(7 * 2);
+    print64(7 / 2);
+    return 0;
+}
+
+export main;

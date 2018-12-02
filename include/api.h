@@ -205,10 +205,14 @@ void parse_global_scope(void);
 void prettyprint(void);
 
 /*
- * typecheck.c
+ * resolve.c
  */
 void resolve_symbol_references(void);
 void resolve_type_references(void);
+
+/*
+ * typecheck.c
+ */
 void check_types(void);
 
 /*
