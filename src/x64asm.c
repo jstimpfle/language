@@ -695,6 +695,8 @@ void x64asm_proc(IrProc irp)
                                 emit_mul_64(X64_RBX);
                                 break;
                         case IROP2_DIV:
+                                // clear rdx before div, with xor %rdx, %rdx
+                                emit(0x48); emit(0x31); emit(0xD2);
                                 emit_div_64(X64_RBX);
                                 break;
                         default:
