@@ -2,6 +2,13 @@
 #error This file must be included only from api.h !
 #endif
 
+/**
+ * \typedef{Type}: Type of a runtime value.
+ * \typedef{Param}: Type of a formal Proc parameter. See also \ref{ParamInfo}
+ */
+
+typedef int Type;
+typedef int Param;
 
 /**
  * \enum{TypeKind}: Type kinds. Types are needed to compile efficient machine

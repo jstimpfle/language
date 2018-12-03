@@ -83,15 +83,11 @@ typedef int Stmt;
  *
  * \typedef{Proc}: The result of parsing a proc definition. See also
  * \ref{ProcInfo}.
- *
- * \typedef{Param}: The result of parsing a procedure parameter as part of a
- * proc definition. See also \ref{ParamInfo}
  */
 
 typedef int Data;
 typedef int Array;
 typedef int Proc;
-typedef int Param;
 typedef int Export;
 
 /**

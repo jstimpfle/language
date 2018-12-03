@@ -16,7 +16,6 @@
 
 typedef int File;
 typedef int String;
-typedef int Type;
 
 /**
  * \enum{ConstStrKind}: Constant strings that get interned at startup as an
