@@ -154,6 +154,9 @@ enum {
 struct GlobalBufferInfo {
         void **ptr;
         int elemsize;
+        /* for debugging purposes */
+        const char *__bufferName;
+        int *__bufferCnt;
 };
 
 extern const char lvl_debug[];

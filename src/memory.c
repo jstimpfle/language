@@ -2,6 +2,20 @@
 #include "api.h"
 #include <stdlib.h>
 
+void check_global_buffer_allocations(void)
+{
+        #define DUMP(x) outf("%sCnt=%d, allocated=%d\n", #x, globalBufferAlloc[BUFFER_##x].cap);
+        #define CHECk(x) if (x##Cnt < globalBufferAlloc[BUFFER_##x].cap) { FATAL("%s = %d but %s = %d\n", #x "Cnt", x##Cnt, #x "Alloc", globalBufferAlloc[BUFFER_##x].cap);
+        for (int i = 0; i < NUM_BUFFERS; i++) {
+                const char *name = globalBufferInfo[i].__bufferName;
+                int cnt = *globalBufferInfo[i].__bufferCnt;
+                int cap = globalBufferAlloc[i].cap;
+                if (*globalBufferInfo[i].ptr && cnt > cap) {
+                        FATAL("Buffer %s: cnt=%d cap=%d\n", name, cnt, cap);
+                }
+        }
+}
+
 void *mem_realloc(void *ptr, int size)
 {
         return realloc(ptr, size);
@@ -31,6 +45,7 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                 cnt = 2 * nelems - 1;
                 while (cnt & (cnt - 1))
                         cnt = cnt & (cnt - 1);
+                ASSERT(cnt >= nelems);
                 p = mem_realloc(*ptr, cnt * elsize);
                 if (!p)
                         FATAL("OOM!");
@@ -51,6 +66,8 @@ void _resize_global_buffer(int buf, int nelems, int clear)
 void _resize_global_buffer_dbg(int buf, int nelems, int clear,
         const char *filename, int line)
 {
+        DEBUG("From %s line %d: Resize buffer %s %d\n",
+              filename, line, globalBufferInfo[buf].__bufferName, nelems);
         _buf_reserve(globalBufferInfo[buf].ptr, &globalBufferAlloc[buf],
                 nelems, globalBufferInfo[buf].elemsize,
                 clear, filename, line);
