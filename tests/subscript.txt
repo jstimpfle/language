@@ -1,4 +1,4 @@
-proc int main(int argc, char *argv)
+proc int main(int argc, char **argv)
 {
     data int i;
     i = 0;
