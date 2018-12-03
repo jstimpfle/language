@@ -20,7 +20,7 @@ int is_lvalue_expression(Expr x)
 INTERNAL
 Type referenced_type(Type t)
 {
-        if (typeInfo[t].kind == TYPE_REFERENCE)
+        while (typeInfo[t].kind == TYPE_REFERENCE)
                 t = typeInfo[t].tRef.resolvedTp;
         return t;
 }
@@ -51,14 +51,10 @@ int type_equal(Type a, Type b)
                 return 0;
         if (!typeInfo[b].isComplete)
                 return 0;
-        while (typeInfo[a].kind == TYPE_REFERENCE) {
-                a = typeInfo[a].tRef.resolvedTp;
-                ASSERT(a != -1);
-        }
-        while (typeInfo[b].kind == TYPE_REFERENCE) {
-                b = typeInfo[b].tRef.resolvedTp;
-                ASSERT(b != -1);
-        }
+        a = referenced_type(a);
+        b = referenced_type(b);
+        ASSERT(a != -1);
+        ASSERT(b != -1);
         return a == b;
 }
 
@@ -272,6 +268,7 @@ Type check_call_expr_type(Expr x)
 INTERNAL
 Type check_expr_type(Expr x, int evaluated)
 {
+        ASSERT(0 <= x && x < exprCnt);
         Type tp = -1;
         isExprEvaluated[x] = evaluated; // set *before* checking type
         switch (exprInfo[x].kind) {
