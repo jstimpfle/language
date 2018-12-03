@@ -235,8 +235,12 @@ Type check_subscript_expr_type(Expr x)
                         "Invalid type of index used in subscript expression. "
                         "Need integral type: %d.\n",
                         typeKindString[typeInfo[t2].kind]);
-        else
-                tp = typeInfo[t1].tArray.valuetp;
+        else if (typeInfo[t1].kind == TYPE_POINTER) {
+                tp = typeInfo[t1].tPointer.tp;
+        }
+        else {
+                UNHANDLED_CASE();
+        }
         return tp;
 }
 
@@ -271,7 +275,7 @@ Type check_expr_type(Expr x, int evaluated)
         Type tp = -1;
         isExprEvaluated[x] = evaluated; // set *before* checking type
         switch (exprInfo[x].kind) {
-        case EXPR_LITERAL:      tp = check_literal_expr_type(x); DEBUG("Have %d\n", tp); break;
+        case EXPR_LITERAL:      tp = check_literal_expr_type(x); break;
         case EXPR_SYMREF:       tp = check_symref_expr_type(x); break;
         case EXPR_UNOP:         tp = check_unop_expr_type(x); break;
         case EXPR_BINOP:        tp = check_binop_expr_type(x); break;
