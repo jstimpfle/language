@@ -5,11 +5,6 @@
 #include "defs.h"
 #include "api.h"
 
-enum {
-        LVALUE,
-        RVALUE,
-};
-
 void compile_expr(Expr x)
 {
         if (! isExprEvaluated[x] &&
