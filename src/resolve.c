@@ -134,6 +134,7 @@ void resolve_symbol_references(void)
 
         for (Param param = paramCnt; param --> 0;) {
                 Type proctp = paramInfo[param].proctp;
+                ASSERT(proctp >= 0 && proctp < typeCnt);
                 ASSERT(typeInfo[proctp].kind == TYPE_PROC);
                 typeInfo[proctp].tProc.firstParam = param;
         }
@@ -195,6 +196,7 @@ void resolve_symbol_references(void)
 INTERNAL
 void resolve_ref_type(Type t)
 {
+        ASSERT(0 <= t && t < typeCnt);
         if (typeInfo[t].isComplete >= 0) {
                 /* already processed */
                 return;
@@ -204,10 +206,10 @@ void resolve_ref_type(Type t)
                 typeInfo[t].isComplete = 0;
                 return;
         }
+        ASSERT(typeInfo[t].isComplete == -2);
 
-        const int unassigned = -42;
-
-        int isComplete = unassigned;
+        const int UNASSIGNED = -42;
+        int isComplete = UNASSIGNED;
 
         switch (typeInfo[t].kind) {
         case TYPE_BASE:
@@ -228,10 +230,20 @@ void resolve_ref_type(Type t)
                 resolve_ref_type(typeInfo[t].tPointer.tp);
                 isComplete = typeInfo[typeInfo[t].tPointer.tp].isComplete;
                 break;
-        case TYPE_PROC:
-                isComplete = 0;
-                // TODO
+        case TYPE_PROC: {
+                Type rettp = typeInfo[t].tProc.rettp;
+                resolve_ref_type(rettp);
+                isComplete = isComplete && typeInfo[rettp].isComplete;
+
+                for (Param i = typeInfo[t].tProc.firstParam;
+                     i < paramCnt && paramInfo[i].proctp == t;
+                     i++) {
+                        Type pt = paramInfo[i].tp;
+                        resolve_ref_type(pt);
+                        isComplete = isComplete && typeInfo[pt].isComplete;
+                }
                 break;
+        }
         case TYPE_REFERENCE: {
                 isComplete = 0;
                 typeInfo[t].isComplete = -1;
@@ -249,7 +261,7 @@ void resolve_ref_type(Type t)
         default:
                 UNHANDLED_CASE();
         }
-        ASSERT(isComplete != unassigned);
+        ASSERT(isComplete == 0 || isComplete == 1);
         typeInfo[t].isComplete = isComplete;
 }
 
