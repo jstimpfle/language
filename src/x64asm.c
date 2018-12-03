@@ -571,6 +571,243 @@ void emit_function_epilogue(void)
 }
 
 INTERNAL
+void x64asm_loadconstant_irstmt(IrStmt irs)
+{
+        switch (irStmtInfo[irs].tLoadConstant.kind) {
+        case IRCONSTANT_INTEGER: {
+                Imm64 v = irStmtInfo[irs].tLoadConstant.tInteger;
+                IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
+                X64StackLoc loc = find_stack_loc(irreg);
+                emit_load_constant_stack(v, loc);
+                break;
+        }
+        case IRCONSTANT_STRING: {
+                String s = irStmtInfo[irs].tLoadConstant.tString;
+                IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
+                X64StackLoc loc = find_stack_loc(irreg);
+                int rodataPos = rodataSectionCnt;
+                emit_rodata(string_buffer(s), string_length(s) + 1);
+                emit_load_relocatedConstant_stack(SECTION_RODATA, rodataPos, loc);
+                break;
+        }
+        default:
+                UNHANDLED_CASE();
+        }
+}
+
+INTERNAL
+void x64asm_loadsymboladdr_irstmt(IrStmt irs)
+{
+        Symbol sym = irStmtInfo[irs].tLoadSymbolAddr.sym;
+        ASSERT(scopeInfo[symbolInfo[sym].scope].kind == SCOPE_GLOBAL);
+        IrReg irreg = irStmtInfo[irs].tLoadSymbolAddr.tgtreg;
+        X64StackLoc loc = find_stack_loc(irreg);
+        emit_load_symaddr_stack(sym, loc);
+}
+
+INTERNAL
+void x64asm_loadregaddr_irstmt(IrStmt irs)
+{
+        IrReg reg = irStmtInfo[irs].tLoadRegAddr.reg;
+        IrReg tgtreg = irStmtInfo[irs].tLoadRegAddr.tgtreg;
+        X64StackLoc loc = find_stack_loc(reg);
+        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+        emit_mov_64_reg_reg(X64_RBP, X64_RAX);
+        emit_add_imm32_reg(loc, X64_RAX);
+        emit_mov_64_reg_stack(X64_RAX, tgtloc);
+}
+
+INTERNAL
+void x64asm_load_irstmt(IrStmt irs)
+{
+        IrReg addrreg = irStmtInfo[irs].tLoad.srcaddrreg;
+        IrReg tgtreg = irStmtInfo[irs].tLoad.tgtreg;
+        X64StackLoc srcloc = find_stack_loc(addrreg);
+        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+        emit_mov_64_stack_reg(srcloc, X64_RAX);
+        emit_mov_64_indirect_reg(X64_RAX, X64_RAX, 0);
+        emit_mov_64_reg_stack(X64_RAX, tgtloc);
+}
+
+INTERNAL
+void x64asm_store_irstmt(IrStmt irs)
+{
+        IrReg addrreg = irStmtInfo[irs].tStore.srcreg;
+        IrReg tgtreg = irStmtInfo[irs].tStore.tgtaddrreg;
+        X64StackLoc srcloc = find_stack_loc(addrreg);
+        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+        emit_mov_64_stack_reg(srcloc, X64_RAX);
+        emit_mov_64_stack_reg(tgtloc, X64_RCX);
+        emit_mov_64_reg_indirect(X64_RAX, X64_RCX, 0);
+}
+
+INTERNAL
+void x64asm_regreg_irstmt(IrStmt irs)
+{
+        IrReg srcreg = irStmtInfo[irs].tRegreg.srcreg;
+        IrReg tgtreg = irStmtInfo[irs].tRegreg.tgtreg;
+        X64StackLoc srcloc = find_stack_loc(srcreg);
+        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+        emit_mov_64_stack_reg(srcloc, X64_RAX);
+        emit_mov_64_reg_stack(X64_RAX, tgtloc);
+}
+
+INTERNAL
+void x64asm_op1_irstmt(IrStmt irs)
+{
+        (void) irs;
+        UNHANDLED_CASE();
+}
+
+INTERNAL
+void x64asm_op2_irstmt(IrStmt irs)
+{
+        IrReg reg1 = irStmtInfo[irs].tOp2.reg1;
+        IrReg reg2 = irStmtInfo[irs].tOp2.reg2;
+        IrReg tgtreg = irStmtInfo[irs].tOp2.tgtreg;
+        X64StackLoc loc1 = find_stack_loc(reg1);
+        X64StackLoc loc2 = find_stack_loc(reg2);
+        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+        emit_mov_64_stack_reg(loc1, X64_RAX);
+        emit_mov_64_stack_reg(loc2, X64_RBX);
+        switch (irStmtInfo[irs].tOp2.kind) {
+        case IROP2_ADD:
+                emit_add_64_reg_reg(X64_RBX, X64_RAX);
+                break;
+        case IROP2_SUB:
+                emit_sub_64_reg_reg(X64_RAX, X64_RBX);
+                break;
+        case IROP2_MUL:
+                emit_mul_64(X64_RBX);
+                break;
+        case IROP2_DIV:
+                // clear rdx before div, with xor %rdx, %rdx
+                emit(0x48); emit(0x31); emit(0xD2);
+                emit_div_64(X64_RBX);
+                break;
+        default:
+                UNHANDLED_CASE();
+        }
+        emit_mov_64_reg_stack(X64_RAX, tgtloc);
+}
+
+INTERNAL
+void x64asm_cmp_irstmt(IrStmt irs)
+{
+        IrReg reg1 = irStmtInfo[irs].tOp2.reg1;
+        IrReg reg2 = irStmtInfo[irs].tOp2.reg2;
+        IrReg tgtreg = irStmtInfo[irs].tOp2.tgtreg;
+        X64StackLoc loc1 = find_stack_loc(reg1);
+        X64StackLoc loc2 = find_stack_loc(reg2);
+        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+        emit_mov_64_stack_reg(loc1, X64_RAX);
+        emit_mov_64_stack_reg(loc2, X64_RBX);
+        /*
+         * We use ecx here instead of eax as the target. That's
+         * because we need to clear the target register before
+         * calling setcc. (Setcc only sets the lower 8 bits of
+         * the target register). And since clearing itself sets
+         * the CPU status flags, we need to clear *before*
+         * comparing. Which means we need to use a different
+         * register!
+         */
+        emit(0x31); emit(0xC9); // xor %ecx, %ecx
+        emit_cmp_64_reg_reg(X64_RAX, X64_RBX);
+        switch (irStmtInfo[irs].tCmp.kind) {
+        case IRCMP_LT: emit_setcc(X64CMP_LT, X64_RCX); break;
+        case IRCMP_GT: emit_setcc(X64CMP_GT, X64_RCX); break;
+        case IRCMP_LE: emit_setcc(X64CMP_LE, X64_RCX); break;
+        case IRCMP_GE: emit_setcc(X64CMP_GE, X64_RCX); break;
+        case IRCMP_EQ: emit_setcc(X64CMP_EQ, X64_RCX); break;
+        case IRCMP_NE: emit_setcc(X64CMP_NE, X64_RCX); break;
+        default: UNHANDLED_CASE();
+        }
+        emit_mov_64_reg_stack(X64_RCX, tgtloc);
+}
+
+INTERNAL
+void x64asm_call_irstmt(IrStmt irs)
+{
+        IrReg calleeReg = irStmtInfo[irs].tCall.calleeReg;
+        X64StackLoc calleeloc = find_stack_loc(calleeReg);
+        IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
+        for (int i = 0; ; i++) {
+                IrCallArg a = firstArg + i;
+                if (!(a < irCallArgCnt
+                      && irCallArgInfo[a].callStmt == irs))
+                        break;
+                IrReg r = irCallArgInfo[a].srcreg;
+                X64StackLoc loc = find_stack_loc(r);
+                // move to appropriate register
+                // XXX: this is of course ad-hoc and wrong. For
+                // instance, we do not even check if that
+                // register is free
+                emit_mov_64_stack_reg(loc, cc[i]);
+        }
+        IrCallResult cr0 = irStmtInfo[irs].tCall.firstIrCallResult;
+        IrReg rreg = irCallResultInfo[cr0].tgtreg;
+        X64StackLoc rloc = find_stack_loc(rreg);
+        emit_mov_64_stack_reg(calleeloc, X64_R11);
+        emit_call_reg(X64_R11);
+        emit_mov_64_reg_stack(X64_RAX, rloc);
+}
+
+INTERNAL
+void x64asm_condgoto_irstmt(IrStmt irs)
+{
+        IrReg condreg = irStmtInfo[irs].tCondGoto.condreg;
+        X64StackLoc condloc = find_stack_loc(condreg);
+        IrStmt tgtstmt = irStmtInfo[irs].tCondGoto.tgtstmt;
+        emit_local_conditional_jump(condloc, tgtstmt);
+}
+
+INTERNAL
+void x64asm_goto_irstmt(IrStmt irs)
+{
+        IrStmt tgtstmt = irStmtInfo[irs].tGoto.tgtstmt;
+        emit_local_jump(tgtstmt);
+}
+
+INTERNAL
+void x64asm_return_irstmt(IrStmt irs)
+{
+        IrReturnval result = irStmtInfo[irs].tReturn.firstResult;
+        if (result != -1) {
+                IrReg irreg = irReturnvalInfo[result].resultReg;
+                X64StackLoc loc = find_stack_loc(irreg);
+                emit_mov_64_stack_reg(loc, X64_RAX);
+        }
+        /* if it's not the last statement then emit an extra
+         * return */
+        if (irs+1 < irStmtCnt &&
+            irStmtInfo[irs+1].proc == irStmtInfo[irs].proc) {
+                emit_function_epilogue();
+        }
+}
+
+INTERNAL
+void x64asm_irstmt(IrStmt irs)
+{
+        irstmtToCodepos[irs] = codeSectionCnt; // correct?
+        switch (irStmtInfo[irs].kind) {
+        case IRSTMT_LOADCONSTANT:     x64asm_loadconstant_irstmt(irs); break;
+        case IRSTMT_LOADSYMBOLADDR:   x64asm_loadsymboladdr_irstmt(irs); break;
+        case IRSTMT_LOADREGADDR:      x64asm_loadregaddr_irstmt(irs); break;
+        case IRSTMT_LOAD:             x64asm_load_irstmt(irs); break;
+        case IRSTMT_STORE:            x64asm_store_irstmt(irs); break;
+        case IRSTMT_REGREG:           x64asm_regreg_irstmt(irs); break;
+        case IRSTMT_OP1:              x64asm_op1_irstmt(irs); break;
+        case IRSTMT_OP2:              x64asm_op2_irstmt(irs); break;
+        case IRSTMT_CMP:              x64asm_cmp_irstmt(irs); break;
+        case IRSTMT_CALL:             x64asm_call_irstmt(irs); break;
+        case IRSTMT_CONDGOTO:         x64asm_condgoto_irstmt(irs); break;
+        case IRSTMT_GOTO:             x64asm_goto_irstmt(irs); break;
+        case IRSTMT_RETURN:           x64asm_return_irstmt(irs); break;
+        default: UNHANDLED_CASE();
+        }
+}
+
+INTERNAL
 void x64asm_proc(IrProc irp)
 {
         Symbol psym = irProcInfo[irp].symbol;
@@ -596,202 +833,7 @@ void x64asm_proc(IrProc irp)
         for (IrStmt irs = irProcInfo[irp].firstIrStmt;
              irs < irStmtCnt && irStmtInfo[irs].proc == irp;
              irs++) {
-                /* correct?*/
-                irstmtToCodepos[irs] = codeSectionCnt;
-                /**/
-                switch (irStmtInfo[irs].kind) {
-                case IRSTMT_LOADCONSTANT: {
-                        switch (irStmtInfo[irs].tLoadConstant.kind) {
-                        case IRCONSTANT_INTEGER: {
-                                Imm64 v = irStmtInfo[irs].tLoadConstant.tInteger;
-                                IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
-                                X64StackLoc loc = find_stack_loc(irreg);
-                                emit_load_constant_stack(v, loc);
-                                break;
-                        }
-                        case IRCONSTANT_STRING: {
-                                String s = irStmtInfo[irs].tLoadConstant.tString;
-                                IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
-                                X64StackLoc loc = find_stack_loc(irreg);
-
-                                int rodataPos = rodataSectionCnt;
-                                emit_rodata(string_buffer(s), string_length(s) + 1);
-                                emit_load_relocatedConstant_stack(SECTION_RODATA, rodataPos, loc);
-                                break;
-                        }
-                        default:
-                                UNHANDLED_CASE();
-                        }
-			break;
-                }
-                case IRSTMT_LOADSYMBOLADDR: {
-                        Symbol sym = irStmtInfo[irs].tLoadSymbolAddr.sym;
-                        ASSERT(scopeInfo[symbolInfo[sym].scope].kind == SCOPE_GLOBAL);
-                        IrReg irreg = irStmtInfo[irs].tLoadSymbolAddr.tgtreg;
-                        X64StackLoc loc = find_stack_loc(irreg);
-                        emit_load_symaddr_stack(sym, loc);
-			break;
-                }
-                case IRSTMT_LOADREGADDR: {
-                        IrReg reg = irStmtInfo[irs].tLoadRegAddr.reg;
-                        IrReg tgtreg = irStmtInfo[irs].tLoadRegAddr.tgtreg;
-                        X64StackLoc loc = find_stack_loc(reg);
-                        X64StackLoc tgtloc = find_stack_loc(tgtreg);
-                        emit_mov_64_reg_reg(X64_RBP, X64_RAX);
-                        emit_add_imm32_reg(loc, X64_RAX);
-                        emit_mov_64_reg_stack(X64_RAX, tgtloc);
-			break;
-                }
-                case IRSTMT_LOAD: {
-                        IrReg addrreg = irStmtInfo[irs].tLoad.srcaddrreg;
-                        IrReg tgtreg = irStmtInfo[irs].tLoad.tgtreg;
-                        X64StackLoc srcloc = find_stack_loc(addrreg);
-                        X64StackLoc tgtloc = find_stack_loc(tgtreg);
-                        emit_mov_64_stack_reg(srcloc, X64_RAX);
-                        emit_mov_64_indirect_reg(X64_RAX, X64_RAX, 0);
-                        emit_mov_64_reg_stack(X64_RAX, tgtloc);
-			break;
-                }
-                case IRSTMT_STORE: {
-                        IrReg addrreg = irStmtInfo[irs].tStore.srcreg;
-                        IrReg tgtreg = irStmtInfo[irs].tStore.tgtaddrreg;
-                        X64StackLoc srcloc = find_stack_loc(addrreg);
-                        X64StackLoc tgtloc = find_stack_loc(tgtreg);
-                        emit_mov_64_stack_reg(srcloc, X64_RAX);
-                        emit_mov_64_stack_reg(tgtloc, X64_RCX);
-                        emit_mov_64_reg_indirect(X64_RAX, X64_RCX, 0);
-			break;
-                }
-                case IRSTMT_REGREG: {
-                        IrReg srcreg = irStmtInfo[irs].tRegreg.srcreg;
-                        IrReg tgtreg = irStmtInfo[irs].tRegreg.tgtreg;
-                        X64StackLoc srcloc = find_stack_loc(srcreg);
-                        X64StackLoc tgtloc = find_stack_loc(tgtreg);
-                        emit_mov_64_stack_reg(srcloc, X64_RAX);
-                        emit_mov_64_reg_stack(X64_RAX, tgtloc);
-			break;
-                }
-                case IRSTMT_OP1: {
-                        UNHANDLED_CASE();
-			break;
-                }
-                case IRSTMT_OP2: {
-                        IrReg reg1 = irStmtInfo[irs].tOp2.reg1;
-                        IrReg reg2 = irStmtInfo[irs].tOp2.reg2;
-                        IrReg tgtreg = irStmtInfo[irs].tOp2.tgtreg;
-                        X64StackLoc loc1 = find_stack_loc(reg1);
-                        X64StackLoc loc2 = find_stack_loc(reg2);
-                        X64StackLoc tgtloc = find_stack_loc(tgtreg);
-                        emit_mov_64_stack_reg(loc1, X64_RAX);
-                        emit_mov_64_stack_reg(loc2, X64_RBX);
-                        switch (irStmtInfo[irs].tOp2.kind) {
-                        case IROP2_ADD:
-                                emit_add_64_reg_reg(X64_RBX, X64_RAX);
-                                break;
-                        case IROP2_SUB:
-                                emit_sub_64_reg_reg(X64_RAX, X64_RBX);
-                                break;
-                        case IROP2_MUL:
-                                emit_mul_64(X64_RBX);
-                                break;
-                        case IROP2_DIV:
-                                // clear rdx before div, with xor %rdx, %rdx
-                                emit(0x48); emit(0x31); emit(0xD2);
-                                emit_div_64(X64_RBX);
-                                break;
-                        default:
-                                UNHANDLED_CASE();
-                        }
-                        emit_mov_64_reg_stack(X64_RAX, tgtloc);
-			break;
-                }
-                case IRSTMT_CMP: {
-                        IrReg reg1 = irStmtInfo[irs].tOp2.reg1;
-                        IrReg reg2 = irStmtInfo[irs].tOp2.reg2;
-                        IrReg tgtreg = irStmtInfo[irs].tOp2.tgtreg;
-                        X64StackLoc loc1 = find_stack_loc(reg1);
-                        X64StackLoc loc2 = find_stack_loc(reg2);
-                        X64StackLoc tgtloc = find_stack_loc(tgtreg);
-                        emit_mov_64_stack_reg(loc1, X64_RAX);
-                        emit_mov_64_stack_reg(loc2, X64_RBX);
-                        /*
-                         * We use ecx here instead of eax as the target. That's
-                         * because we need to clear the target register before
-                         * calling setcc. (Setcc only sets the lower 8 bits of
-                         * the target register). And since clearing itself sets
-                         * the CPU status flags, we need to clear *before*
-                         * comparing. Which means we need to use a different
-                         * register!
-                         */
-                        emit(0x31); emit(0xC9); // xor %ecx, %ecx
-                        emit_cmp_64_reg_reg(X64_RAX, X64_RBX);
-                        switch (irStmtInfo[irs].tCmp.kind) {
-                        case IRCMP_LT: emit_setcc(X64CMP_LT, X64_RCX); break;
-                        case IRCMP_GT: emit_setcc(X64CMP_GT, X64_RCX); break;
-                        case IRCMP_LE: emit_setcc(X64CMP_LE, X64_RCX); break;
-                        case IRCMP_GE: emit_setcc(X64CMP_GE, X64_RCX); break;
-                        case IRCMP_EQ: emit_setcc(X64CMP_EQ, X64_RCX); break;
-                        case IRCMP_NE: emit_setcc(X64CMP_NE, X64_RCX); break;
-                        default: UNHANDLED_CASE();
-                        }
-                        emit_mov_64_reg_stack(X64_RCX, tgtloc);
-                        break;
-                }
-                case IRSTMT_CALL: {
-                        IrReg calleeReg = irStmtInfo[irs].tCall.calleeReg;
-                        X64StackLoc calleeloc = find_stack_loc(calleeReg);
-                        IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
-                        for (int i = 0; ; i++) {
-                                IrCallArg a = firstArg + i;
-                                if (!(a < irCallArgCnt
-                                      && irCallArgInfo[a].callStmt == irs))
-                                        break;
-                                IrReg r = irCallArgInfo[a].srcreg;
-                                X64StackLoc loc = find_stack_loc(r);
-                                // move to appropriate register
-                                // XXX: this is of course ad-hoc and wrong. For
-                                // instance, we do not even check if that
-                                // register is free
-                                emit_mov_64_stack_reg(loc, cc[i]);
-                        }
-                        IrCallResult cr0 = irStmtInfo[irs].tCall.firstIrCallResult;
-                        IrReg rreg = irCallResultInfo[cr0].tgtreg;
-                        X64StackLoc rloc = find_stack_loc(rreg);
-                        emit_mov_64_stack_reg(calleeloc, X64_R11);
-                        emit_call_reg(X64_R11);
-                        emit_mov_64_reg_stack(X64_RAX, rloc);
-			break;
-                }
-                case IRSTMT_CONDGOTO: {
-                        IrReg condreg = irStmtInfo[irs].tCondGoto.condreg;
-                        X64StackLoc condloc = find_stack_loc(condreg);
-                        IrStmt tgtstmt = irStmtInfo[irs].tCondGoto.tgtstmt;
-                        emit_local_conditional_jump(condloc, tgtstmt);
-                        break;
-                }
-                case IRSTMT_GOTO: {
-                        IrStmt tgtstmt = irStmtInfo[irs].tGoto.tgtstmt;
-                        emit_local_jump(tgtstmt);
-                        break;
-                }
-                case IRSTMT_RETURN: {
-                        IrReturnval result = irStmtInfo[irs].tReturn.firstResult;
-                        if (result != -1) {
-                                IrReg irreg = irReturnvalInfo[result].resultReg;
-                                X64StackLoc loc = find_stack_loc(irreg);
-                                emit_mov_64_stack_reg(loc, X64_RAX);
-                        }
-                        /* if it's not the last statement then emit an extra
-                         * return */
-                        if (irs+1 < irStmtCnt &&
-                            irStmtInfo[irs+1].proc == irStmtInfo[irs].proc) {
-                                emit_function_epilogue();
-                        }
-			break;
-                }
-                default:
-                        UNHANDLED_CASE();
-                }
+                x64asm_irstmt(irs);
         }
         emit_function_epilogue();
         end_symbol();
