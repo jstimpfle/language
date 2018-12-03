@@ -30,7 +30,7 @@ Type pointer_type(Type t)
 {
         // TODO: cache pointer-to version of this type
         Type r = typeCnt++;
-        RESIZE_GLOBAL_BUFFER(typeInfo, r);
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[r].kind = TYPE_POINTER;
         typeInfo[r].tPointer.tp = t;
         typeInfo[r].isComplete = 0; //XXX?
@@ -345,6 +345,7 @@ void check_stmt_types(Stmt a)
 
 void check_types(void)
 {
+        ASSERT(globalBufferAlloc[BUFFER_isExprEvaluated].cap == 0);
         ASSERT(globalBufferAlloc[BUFFER_exprType].cap == 0);
         RESIZE_GLOBAL_BUFFER(isExprEvaluated, exprCnt);
         RESIZE_GLOBAL_BUFFER(exprType, exprCnt);
