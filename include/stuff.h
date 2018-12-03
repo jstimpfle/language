@@ -118,6 +118,7 @@ enum {
         BUFFER_symrefInfo,
         BUFFER_symrefToSym,
         BUFFER_exprInfo,
+        BUFFER_isExprEvaluated,
         BUFFER_exprType,
         BUFFER_stmtInfo,
         BUFFER_childStmtInfo,

@@ -83,13 +83,15 @@ bad:
         DEBUG("Resolve type references...\n");
         resolve_type_references();
 
-        DEBUG("Check types...\n");
-        check_types();
-
+        /* XXX: this must currently come *after* resolve phase. TODO move the
+         * relevant code that fixes the indices out of resolve.c. */
         if (doPrettyPrintAst) {
                 DEBUG("Pretty print input...\n\n");
                 prettyprint();
         }
+
+        DEBUG("Check types...\n");
+        check_types();
 
         DEBUG("Compile to IR...\n");
         compile_to_IR();

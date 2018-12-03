@@ -102,7 +102,7 @@ typedef int Export;
  * each possible kind).
  *
  * \struct{ScopeInfo}: Represents a scope. TODO
- * 
+ *
  * \struct{SymrefInfo}: Represents a reference to a symbol that is (hopefully)
  * defined somewhere else in the code. The reference itself can occur at various
  * places in the grammar, such as as expressions or type definitions.

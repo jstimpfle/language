@@ -47,9 +47,9 @@ typedef int IrLabel;
 /**
  * \enum{IrStmtKind} defines the possible kinds of IR statements.
  *
- * \enum{IrOp1} defines the possible primitive operations on 1 register.
- * \enum{IrOp2} defines the possible primitive operations on 2 registers.
- * \enum{IrCmp} defines the possible comparison operations on 2 registers.
+ * \enum{IrOp1Kind} defines the possible primitive operations on 1 register.
+ * \enum{IrOp2Kind} defines the possible primitive operations on 2 registers.
+ * \enum{IrCmpKind} defines the possible comparison operations on 2 registers.
  */
 
 enum IrStmtKind {
@@ -68,26 +68,33 @@ enum IrStmtKind {
         IRSTMT_RETURN,
 };
 
-enum IrOp1 {
+enum IrOp1Kind {
         IROP1_NEG,
         IROP1_BITNEG,
+        NUM_IROP1_KINDS,
 };
 
-enum IrOp2 {
+enum IrOp2Kind {
         IROP2_ADD,
         IROP2_SUB,
         IROP2_MUL,
         IROP2_DIV,
+        NUM_IROP2_KINDS,
 };
 
-enum IrCmp {
+enum IrCmpKind {
         IRCMP_LT,
         IRCMP_GT,
         IRCMP_LE,
         IRCMP_GE,
         IRCMP_EQ,
         IRCMP_NE,
+        NUM_IRCMP_KINDS,
 };
+
+extern const char *const irOp1String[NUM_IROP1_KINDS];
+extern const char *const irOp2String[NUM_IROP2_KINDS];
+extern const char *const irCmpString[NUM_IRCMP_KINDS];
 
 /**
  */
@@ -124,12 +131,11 @@ struct IrSymbolInfo {
 
 struct IrRegInfo {
         IrProc proc;
-
         /* TODO: think about IrReg names and their relation
         to the Symbols on the language level */
         String name;
         Symbol sym;
-        Type tp; //XXX
+        Type tp;
 };
 
 struct IrCallArgInfo {

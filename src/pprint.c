@@ -209,8 +209,7 @@ void pp_array_stmt(Stmt stmt)
 INTERNAL
 void pp_childstmt(Stmt stmt)
 {
-        int isCompound = stmtInfo[stmt].kind == STMT_COMPOUND;
-        if (isCompound) {
+        if (stmtInfo[stmt].kind == STMT_COMPOUND) {
                 outs(" ");
                 pp_stmt(stmt);
         }

@@ -96,6 +96,31 @@ void irp_proc(IrProc p)
                         outs(", ");
                         irp_reg(irStmtInfo[i].tRegreg.tgtreg);
                         break;
+                case IRSTMT_OP1:
+                        outs(irOp1String[irStmtInfo[i].tOp1.kind]);
+                        outs(" ");
+                        irp_reg(irStmtInfo[i].tOp1.reg);
+                        outs(", ");
+                        irp_reg(irStmtInfo[i].tOp1.tgtreg);
+                        break;
+                case IRSTMT_OP2:
+                        outs(irOp2String[irStmtInfo[i].tOp2.kind]);
+                        outs(" (");
+                        irp_reg(irStmtInfo[i].tOp2.reg1);
+                        outs(", ");
+                        irp_reg(irStmtInfo[i].tOp2.reg2);
+                        outs("), ");
+                        irp_reg(irStmtInfo[i].tOp2.tgtreg);
+                        break;
+                case IRSTMT_CMP:
+                        outs(irCmpString[irStmtInfo[i].tCmp.kind]);
+                        outs(" (");
+                        irp_reg(irStmtInfo[i].tCmp.reg1);
+                        outs(", ");
+                        irp_reg(irStmtInfo[i].tCmp.reg2);
+                        outs("), ");
+                        irp_reg(irStmtInfo[i].tCmp.tgtreg);
+                        break;
                 case IRSTMT_CALL: {
                         outs("CALL  ");
                         irp_reg(irStmtInfo[i].tCall.calleeReg);

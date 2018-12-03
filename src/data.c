@@ -67,6 +67,32 @@ const char *const typeKindString[] = {
 #undef MAKE
 };
 
+const char *const irOp1String[NUM_IROP1_KINDS] = {
+#define MAKE(x, y) [x] = y
+        MAKE( IROP1_NEG,    "NEG" ),
+        MAKE( IROP1_BITNEG, "BITNEG" ),
+#undef MAKE
+};
+
+const char *const irOp2String[NUM_IROP2_KINDS] = {
+#define MAKE(x, y) [x] = y
+        MAKE( IROP2_ADD, "ADD" ),
+        MAKE( IROP2_SUB, "SUB" ),
+        MAKE( IROP2_MUL, "MUL" ),
+        MAKE( IROP2_DIV, "DIV" ),
+#undef MAKE
+};
+
+const char *const irCmpString[NUM_IRCMP_KINDS] = {
+#define MAKE(x, y) [x] = y
+        MAKE( IRCMP_LT, "cmp<" ),
+        MAKE( IRCMP_GT, "cmp>" ),
+        MAKE( IRCMP_LE, "cmp<=" ),
+        MAKE( IRCMP_GE, "cmp>=" ),
+        MAKE( IRCMP_EQ, "cmp==" ),
+        MAKE( IRCMP_NE, "cmp!=" ),
+#undef MAKE
+};
 
 const struct ToktypeToPrefixUnop toktypeToPrefixUnop[] = {
         { TOKEN_TILDE,       UNOP_INVERTBITS },
@@ -185,6 +211,7 @@ const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
         MAKE( symrefInfo ),
         MAKE( symrefToSym ),
         MAKE( exprInfo ),
+        MAKE( isExprEvaluated ),
         MAKE( exprType ),
         MAKE( stmtInfo ),
         MAKE( childStmtInfo ),

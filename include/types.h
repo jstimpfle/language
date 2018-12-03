@@ -99,6 +99,22 @@ extern const struct BasetypeToBeInitialized basetypesToBeInitialized[];
 extern const int basetypesToBeInitializedCnt;
 
 /**
+ * \data{isExprEvaluated} indicates whether the expression is used in an
+ * evaluation context. This is the case if it is not the left operand of an
+ * assignment expression ("lvalue") and not the operand of an UNOP_ADDRESSOF
+ * operator expression.
+ *
+ * Note that in general, expressions that are not evaluated are composed of
+ * sub-expressions that *are* evaluated. For example, the expression
+ *
+ *    foo[i] = 3
+ *
+ * is an assignment expression. The sub-expression foo[i] is not evaluated, but
+ * in turn its subexpression, the index i, must be evaluated nevertheless.
+ *
+ * \data{exprType} maps the expression to its type, taking into account the
+ * value of \data{isExprEvaluated}. If the expression is not evaluated, the
+ * type is a pointer type.
  */
 
 extern const char *const typeKindString[];
@@ -108,5 +124,6 @@ DATA int paramCnt;
 
 DATA struct TypeInfo *typeInfo;
 DATA struct ParamInfo *paramInfo;
+DATA char *isExprEvaluated;
 DATA Type *exprType;
 DATA Type *procType;
