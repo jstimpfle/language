@@ -660,9 +660,6 @@ Proc parse_proc(void)
         typeInfo[ptype].kind = TYPE_PROC;
         typeInfo[ptype].tProc.rettp = rettp;
         typeInfo[ptype].tProc.nparams = nparams;
-        typeInfo[ptype].tProc.firstParam = 0; /* TODO: we can't do this here
-                                                  since param must be sorted
-                                                  first */
         return proc;
 }
 

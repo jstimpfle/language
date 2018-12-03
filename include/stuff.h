@@ -94,59 +94,62 @@ struct StringToBeInterned {
  * Global Buffers
  */
 
+/* Here we are using an old technique for avoiding code duplication, called
+ * "X-macros". See locations of usage to understand better. */
+
+#define GLOBAL_BUFFERS_X_MACRO  \
+        MAKE_GLOBAL_BUFFER(  arrayCnt,           arrayInfo            ),  \
+        MAKE_GLOBAL_BUFFER(  callArgCnt,         callArgInfo          ),  \
+        MAKE_GLOBAL_BUFFER(  childStmtCnt,       childStmtInfo        ),  \
+        MAKE_GLOBAL_BUFFER(  codeSectionCnt,     codeSection          ),  \
+        MAKE_GLOBAL_BUFFER(  dataCnt,            dataInfo             ),  \
+        MAKE_GLOBAL_BUFFER(  dataCnt,            dataToIrReg          ),  \
+        MAKE_GLOBAL_BUFFER(  dataSectionCnt,     dataSection          ),  \
+        MAKE_GLOBAL_BUFFER(  exportCnt,          exportInfo           ),  \
+        MAKE_GLOBAL_BUFFER(  exprCnt,            exprInfo             ),  \
+        MAKE_GLOBAL_BUFFER(  exprCnt,            exprToIrReg          ),  \
+        MAKE_GLOBAL_BUFFER(  exprCnt,            exprType             ),  \
+        MAKE_GLOBAL_BUFFER(  exprCnt,            isExprEvaluated      ),  \
+        MAKE_GLOBAL_BUFFER(  fileCnt,            fileInfo             ),  \
+        MAKE_GLOBAL_BUFFER(  gotoCnt,            gotoInfo             ),  \
+        MAKE_GLOBAL_BUFFER(  irCallArgCnt,       irCallArgInfo        ),  \
+        MAKE_GLOBAL_BUFFER(  irCallResultCnt,    irCallResultInfo     ),  \
+        MAKE_GLOBAL_BUFFER(  irLabelCnt,         irLabelInfo          ),  \
+        MAKE_GLOBAL_BUFFER(  irOriginCnt,        irOrigin             ),  \
+        MAKE_GLOBAL_BUFFER(  irProcCnt,          irProcInfo           ),  \
+        MAKE_GLOBAL_BUFFER(  irProcCnt,          irprocToCodepos      ),  \
+        MAKE_GLOBAL_BUFFER(  irRegCnt,           irRegInfo            ),  \
+        MAKE_GLOBAL_BUFFER(  irReturnvalCnt,     irReturnvalInfo      ),  \
+        MAKE_GLOBAL_BUFFER(  irStmtCnt,          irStmtInfo           ),  \
+        MAKE_GLOBAL_BUFFER(  irStmtCnt,          irstmtToCodepos      ),  \
+        MAKE_GLOBAL_BUFFER(  irSymbolCnt,        irSymbolInfo         ),  \
+        MAKE_GLOBAL_BUFFER(  lexbufCnt,          lexbuf               ),  \
+        MAKE_GLOBAL_BUFFER(  paramCnt,           paramInfo            ),  \
+        MAKE_GLOBAL_BUFFER(  procCnt,            procInfo             ),  \
+        MAKE_GLOBAL_BUFFER(  procCnt,            procToIrProc         ),  \
+        MAKE_GLOBAL_BUFFER(  procCnt,            procToType           ),  \
+        MAKE_GLOBAL_BUFFER(  relocCnt,           relocInfo            ),  \
+        MAKE_GLOBAL_BUFFER(  rodataSectionCnt,   rodataSection        ),  \
+        MAKE_GLOBAL_BUFFER(  scopeCnt,           scopeInfo            ),  \
+        MAKE_GLOBAL_BUFFER(  stmtCnt,            stmtInfo             ),  \
+        MAKE_GLOBAL_BUFFER(  strBucketCnt,       strBucketInfo        ),  \
+        MAKE_GLOBAL_BUFFER(  strbufCnt,          strbuf               ),  \
+        MAKE_GLOBAL_BUFFER(  stringCnt,          stringInfo           ),  \
+        MAKE_GLOBAL_BUFFER(  symbolCnt,          isSymbolExported     ),  \
+        MAKE_GLOBAL_BUFFER(  symbolCnt,          symbolInfo           ),  \
+        MAKE_GLOBAL_BUFFER(  symDefCnt,          symDefInfo           ),  \
+        MAKE_GLOBAL_BUFFER(  symrefCnt,          symrefInfo           ),  \
+        MAKE_GLOBAL_BUFFER(  symrefCnt,          symrefToSym          ),  \
+        MAKE_GLOBAL_BUFFER(  symrefCnt,          symrefToToken        ),  \
+        MAKE_GLOBAL_BUFFER(  tokenCnt ,          tokenInfo            ),  \
+        MAKE_GLOBAL_BUFFER(  typeCnt,            typeInfo             ),  \
+        MAKE_GLOBAL_BUFFER(  typeCnt,            firstProctypeParam   ),  \
+        MAKE_GLOBAL_BUFFER(  x64StackLocCnt,     x64StackLocInfo      ),
+
 enum {
-        /* String */
-        BUFFER_stringInfo,
-        BUFFER_strBucketInfo,
-        /* parsing */
-        BUFFER_lexbuf,
-        BUFFER_strbuf,
-        BUFFER_fileInfo,
-        BUFFER_tokenInfo,
-        BUFFER_symrefToToken,
-        BUFFER_typeInfo,
-        BUFFER_symbolInfo,
-        BUFFER_isSymbolExported,
-        BUFFER_dataInfo,
-        BUFFER_arrayInfo,
-        BUFFER_scopeInfo,
-        BUFFER_procInfo,
-        BUFFER_procToType,
-        BUFFER_paramInfo,
-        BUFFER_exportInfo,
-        BUFFER_symrefInfo,
-        BUFFER_symrefToSym,
-        BUFFER_exprInfo,
-        BUFFER_isExprEvaluated,
-        BUFFER_exprType,
-        BUFFER_stmtInfo,
-        BUFFER_childStmtInfo,
-        BUFFER_callArgInfo,
-        /* AST -> IR */
-        BUFFER_procToIrProc,
-        BUFFER_dataToIrReg,
-        BUFFER_exprToIrReg,
-        /* IR */
-        BUFFER_irSymbolInfo,
-        BUFFER_irRegInfo,
-        BUFFER_irStmtInfo,
-        BUFFER_irCallArgInfo,
-        BUFFER_irCallResultInfo,
-        BUFFER_irReturnvalInfo,
-        BUFFER_irProcInfo,
-        BUFFER_irLabelInfo,
-        BUFFER_irOrigin,
-        /* Codegen */
-        BUFFER_rodataSection,
-        BUFFER_dataSection,
-        BUFFER_codeSection,
-        BUFFER_symDefInfo,
-        BUFFER_gotoInfo,
-        BUFFER_relocInfo,
-        BUFFER_irstmtToCodepos,
-        BUFFER_irprocToCodepos,
-        /* X64 Asm */
-        BUFFER_x64StackLocInfo,
+#define MAKE_GLOBAL_BUFFER(cnt, ptr) BUFFER_##ptr
+        GLOBAL_BUFFERS_X_MACRO
+#undef MAKE_GLOBAL_BUFFER
         /* */
         NUM_BUFFERS,
 };

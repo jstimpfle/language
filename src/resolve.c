@@ -132,11 +132,12 @@ void resolve_symbol_references(void)
         sort_array(paramInfo, paramCnt, sizeof *paramInfo,
                    compare_ParamInfo);
 
+        RESIZE_GLOBAL_BUFFER(firstProctypeParam, typeCnt);
         for (Param param = paramCnt; param --> 0;) {
                 Type proctp = paramInfo[param].proctp;
-                ASSERT(proctp >= 0 && proctp < typeCnt);
+                ASSERT(0 <= proctp && proctp < typeCnt);
                 ASSERT(typeInfo[proctp].kind == TYPE_PROC);
-                typeInfo[proctp].tProc.firstParam = param;
+                firstProctypeParam[proctp] = param;
         }
 
         sort_array(childStmtInfo, childStmtCnt, sizeof *childStmtInfo,
@@ -235,7 +236,7 @@ void resolve_ref_type(Type t)
                 resolve_ref_type(rettp);
                 isComplete = isComplete && typeInfo[rettp].isComplete;
 
-                for (Param i = typeInfo[t].tProc.firstParam;
+                for (Param i = firstProctypeParam[t];
                      i < paramCnt && paramInfo[i].proctp == t;
                      i++) {
                         Type pt = paramInfo[i].tp;

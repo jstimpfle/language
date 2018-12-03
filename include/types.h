@@ -54,7 +54,6 @@ struct PointertypeInfo {
 struct ProctypeInfo {
         Type rettp;
         int nparams; // XXX: needed?
-        int firstParam; // speed-up
 };
 
 /**
@@ -134,3 +133,4 @@ DATA struct ParamInfo *paramInfo;
 DATA char *isExprEvaluated;
 DATA Type *exprType;
 DATA Type *procType;
+DATA Param *firstProctypeParam;

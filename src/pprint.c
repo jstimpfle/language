@@ -295,7 +295,7 @@ void pp_proc(Proc p)
         outs(" ");
         outs(SS(procInfo[p].sym));
         outs("(");
-        int firstParam = typeInfo[procToType[p]].tProc.firstParam;
+        int firstParam = firstProctypeParam[procToType[p]];
         for (int i = 0; i < procInfo[p].nparams; i++) {
                 if (i > 0)
                         outs(", ");

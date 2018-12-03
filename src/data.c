@@ -188,59 +188,7 @@ const int toktypeToBinopCnt = LENGTH(toktypeToBinop);
 const int basetypesToBeInitializedCnt = LENGTH(basetypesToBeInitialized);
 
 const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
-#define MAKE(b, cnt) [BUFFER_##b] = { (void **) &b, sizeof *b, #b, &cnt }
-        /* str.h */
-        MAKE( stringInfo, stringCnt ),
-        MAKE( strBucketInfo, strBucketCnt ),
-        /* parsing */
-        MAKE( lexbuf, lexbufCnt ),
-        MAKE( strbuf, strbufCnt ),
-        MAKE( fileInfo, fileCnt ),
-        MAKE( tokenInfo, tokenCnt  ),
-        MAKE( symrefToToken, symrefCnt ),
-        MAKE( typeInfo, typeCnt ),
-        MAKE( symbolInfo, symbolCnt ),
-        MAKE( isSymbolExported, symbolCnt ),
-        MAKE( dataInfo, dataCnt ),
-        MAKE( arrayInfo, arrayCnt ),
-        MAKE( scopeInfo, scopeCnt ),
-        MAKE( procInfo, procCnt ),
-        MAKE( procToType, procCnt ),
-        MAKE( paramInfo, paramCnt ),
-        MAKE( exportInfo, exportCnt ),
-        MAKE( symrefInfo, symrefCnt ),
-        MAKE( symrefToSym, symrefCnt ),
-        MAKE( exprInfo, exprCnt ),
-        MAKE( isExprEvaluated, exprCnt ),
-        MAKE( exprType, exprCnt ),
-        MAKE( stmtInfo, stmtCnt ),
-        MAKE( childStmtInfo, childStmtCnt ),
-        MAKE( callArgInfo, callArgCnt ),
-        /* AST -> IR */
-        MAKE( procToIrProc, procCnt ),
-        MAKE( dataToIrReg, dataCnt ),
-        MAKE( exprToIrReg, exprCnt ),
-        /* IR */
-        MAKE( irSymbolInfo, irSymbolCnt ),
-        MAKE( irRegInfo, irRegCnt ),
-        MAKE( irStmtInfo, irStmtCnt ),
-        MAKE( irCallArgInfo, irCallArgCnt ),
-        MAKE( irCallResultInfo, irCallResultCnt ),
-        MAKE( irReturnvalInfo, irReturnvalCnt ),
-        MAKE( irProcInfo, irProcCnt ),
-        MAKE( irLabelInfo, irLabelCnt ),
-        MAKE( irOrigin, irOriginCnt ),
-        /* Codegen */
-        MAKE( rodataSection, rodataSectionCnt ),
-        MAKE( dataSection, dataSectionCnt ),
-        MAKE( codeSection, codeSectionCnt ),
-        MAKE( symDefInfo, symDefCnt ),
-        MAKE( gotoInfo, gotoCnt ),
-        MAKE( relocInfo, relocCnt ),
-        MAKE( irstmtToCodepos, irStmtCnt ),
-        MAKE( irprocToCodepos, irProcCnt ),
-        /* X64 Asm */
-        MAKE( x64StackLocInfo, x64StackLocCnt ),
-        /* */
-#undef MAKE
+#define MAKE_GLOBAL_BUFFER(cnt, b) [BUFFER_##b] = { (void **) &b, sizeof *b, #b, &cnt }
+        GLOBAL_BUFFERS_X_MACRO
+#undef MAKE_GLOBAL_BUFFER
 };

@@ -585,7 +585,7 @@ void x64asm_proc(IrProc irp)
         {
                 int j = 0;
                 X64StackLoc loc = -8; //XXX
-                for (Param i = typeInfo[tp].tProc.firstParam;
+                for (Param i = firstProctypeParam[tp];
                      i < paramCnt && paramInfo[i].proctp == tp;
                      i++, j++) {
                         emit_mov_64_reg_stack(cc[j], loc);;
