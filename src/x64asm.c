@@ -785,27 +785,23 @@ void x64asm_return_irstmt(IrStmt irs)
         }
 }
 
-INTERNAL
-void x64asm_irstmt(IrStmt irs)
-{
-        irstmtToCodepos[irs] = codeSectionCnt; // correct?
-        switch (irStmtInfo[irs].kind) {
-        case IRSTMT_LOADCONSTANT:     x64asm_loadconstant_irstmt(irs); break;
-        case IRSTMT_LOADSYMBOLADDR:   x64asm_loadsymboladdr_irstmt(irs); break;
-        case IRSTMT_LOADREGADDR:      x64asm_loadregaddr_irstmt(irs); break;
-        case IRSTMT_LOAD:             x64asm_load_irstmt(irs); break;
-        case IRSTMT_STORE:            x64asm_store_irstmt(irs); break;
-        case IRSTMT_REGREG:           x64asm_regreg_irstmt(irs); break;
-        case IRSTMT_OP1:              x64asm_op1_irstmt(irs); break;
-        case IRSTMT_OP2:              x64asm_op2_irstmt(irs); break;
-        case IRSTMT_CMP:              x64asm_cmp_irstmt(irs); break;
-        case IRSTMT_CALL:             x64asm_call_irstmt(irs); break;
-        case IRSTMT_CONDGOTO:         x64asm_condgoto_irstmt(irs); break;
-        case IRSTMT_GOTO:             x64asm_goto_irstmt(irs); break;
-        case IRSTMT_RETURN:           x64asm_return_irstmt(irs); break;
-        default: UNHANDLED_CASE();
-        }
-}
+INTERNAL void (*irStmtKindToX64asmHandler[NUM_IRSTMT_KINDS])(IrStmt irs) = {
+#define MAKE(x, y) [x] = &y
+        MAKE( IRSTMT_LOADCONSTANT,    x64asm_loadconstant_irstmt    ),
+        MAKE( IRSTMT_LOADSYMBOLADDR,  x64asm_loadsymboladdr_irstmt  ),
+        MAKE( IRSTMT_LOADREGADDR,     x64asm_loadregaddr_irstmt     ),
+        MAKE( IRSTMT_LOAD,            x64asm_load_irstmt            ),
+        MAKE( IRSTMT_STORE,           x64asm_store_irstmt           ),
+        MAKE( IRSTMT_REGREG,          x64asm_regreg_irstmt          ),
+        MAKE( IRSTMT_OP1,             x64asm_op1_irstmt             ),
+        MAKE( IRSTMT_OP2,             x64asm_op2_irstmt             ),
+        MAKE( IRSTMT_CMP,             x64asm_cmp_irstmt             ),
+        MAKE( IRSTMT_CALL,            x64asm_call_irstmt            ),
+        MAKE( IRSTMT_CONDGOTO,        x64asm_condgoto_irstmt        ),
+        MAKE( IRSTMT_GOTO,            x64asm_goto_irstmt            ),
+        MAKE( IRSTMT_RETURN,          x64asm_return_irstmt          ),
+#undef MAKE
+};
 
 INTERNAL
 void x64asm_proc(IrProc irp)
@@ -833,7 +829,10 @@ void x64asm_proc(IrProc irp)
         for (IrStmt irs = irProcInfo[irp].firstIrStmt;
              irs < irStmtCnt && irStmtInfo[irs].proc == irp;
              irs++) {
-                x64asm_irstmt(irs);
+                irstmtToCodepos[irs] = codeSectionCnt; // correct?
+                int kind = irStmtInfo[irs].kind;
+                ASSERT(0 <= kind && kind < NUM_IRSTMT_KINDS);
+                irStmtKindToX64asmHandler [kind] (irs);
         }
         emit_function_epilogue();
         end_symbol();

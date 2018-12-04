@@ -67,6 +67,24 @@ const char *const typeKindString[] = {
 #undef MAKE
 };
 
+const char* const irStmtString[NUM_IRSTMT_KINDS] = {
+#define MAKE(x) [x] = #x
+        MAKE( IRSTMT_LOADCONSTANT ),
+        MAKE( IRSTMT_LOADSYMBOLADDR ),
+        MAKE( IRSTMT_LOADREGADDR ),
+        MAKE( IRSTMT_LOAD ),
+        MAKE( IRSTMT_STORE ),
+        MAKE( IRSTMT_REGREG ),
+        MAKE( IRSTMT_OP1 ),
+        MAKE( IRSTMT_OP2 ),
+        MAKE( IRSTMT_CMP ),
+        MAKE( IRSTMT_CALL ),
+        MAKE( IRSTMT_CONDGOTO ),
+        MAKE( IRSTMT_GOTO ),
+        MAKE( IRSTMT_RETURN ),
+#undef MAKE
+};
+
 const char *const irOp1String[NUM_IROP1_KINDS] = {
 #define MAKE(x, y) [x] = y
         MAKE( IROP1_NEG,    "NEG" ),

@@ -66,6 +66,7 @@ enum IrStmtKind {
         IRSTMT_CONDGOTO,
         IRSTMT_GOTO,
         IRSTMT_RETURN,
+        NUM_IRSTMT_KINDS,
 };
 
 enum IrOp1Kind {
@@ -92,6 +93,7 @@ enum IrCmpKind {
         NUM_IRCMP_KINDS,
 };
 
+extern const char *const irStmtString[NUM_IRSTMT_KINDS];
 extern const char *const irOp1String[NUM_IROP1_KINDS];
 extern const char *const irOp2String[NUM_IROP2_KINDS];
 extern const char *const irCmpString[NUM_IRCMP_KINDS];

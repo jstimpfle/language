@@ -59,6 +59,9 @@ int type_equal(Type a, Type b)
 }
 
 INTERNAL
+Type check_expr_type(Expr x, int evaluated);
+
+INTERNAL
 Type check_literal_expr_type(Expr x)
 {
         (void) x;
@@ -93,9 +96,6 @@ Type check_symref_expr_type(Expr x)
                         UNHANDLED_CASE();
         }
 }
-
-INTERNAL
-Type check_expr_type(Expr x, int evaluated);
 
 INTERNAL
 Type check_unop_expr_type(Expr x)
@@ -266,21 +266,29 @@ Type check_call_expr_type(Expr x)
 }
 
 INTERNAL
+Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
+#define MAKE(x, y) [x] = &y
+        MAKE(  EXPR_LITERAL,    check_literal_expr_type    ),
+        MAKE(  EXPR_SYMREF,     check_symref_expr_type     ),
+        MAKE(  EXPR_UNOP,       check_unop_expr_type       ),
+        MAKE(  EXPR_BINOP,      check_binop_expr_type      ),
+        MAKE(  EXPR_MEMBER,     check_member_expr_type     ),
+        MAKE(  EXPR_SUBSCRIPT,  check_subscript_expr_type  ),
+        MAKE(  EXPR_CALL,       check_call_expr_type       ),
+#undef MAKE
+};
+
+INTERNAL
 Type check_expr_type(Expr x, int evaluated)
 {
         ASSERT(0 <= x && x < exprCnt);
         Type tp = -1;
         isExprEvaluated[x] = evaluated; // set *before* checking type
-        switch (exprInfo[x].kind) {
-        case EXPR_LITERAL:      tp = check_literal_expr_type(x); break;
-        case EXPR_SYMREF:       tp = check_symref_expr_type(x); break;
-        case EXPR_UNOP:         tp = check_unop_expr_type(x); break;
-        case EXPR_BINOP:        tp = check_binop_expr_type(x); break;
-        case EXPR_MEMBER:       tp = check_member_expr_type(x); break;
-        case EXPR_SUBSCRIPT:    tp = check_subscript_expr_type(x); break;
-        case EXPR_CALL:         tp = check_call_expr_type(x); break;
-        default:                UNHANDLED_CASE();
-        }
+
+        int kind = exprInfo[x].kind;
+        ASSERT(0 <= kind && kind < NUM_EXPR_KINDS);
+        tp = exprKindToTypecheckFunc [kind] (x);
+
         if (tp != (Type) -1) {
                 exprType[x] = evaluated ? tp : pointer_type(tp);
                 return referenced_type(exprType[x]);
@@ -291,6 +299,7 @@ Type check_expr_type(Expr x, int evaluated)
         }
 }
 
+INTERNAL
 void check_stmt_types(Stmt a)
 {
         switch (stmtInfo[a].kind) {

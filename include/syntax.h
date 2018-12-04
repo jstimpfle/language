@@ -189,6 +189,7 @@ enum ExprKind {
         EXPR_MEMBER,
         EXPR_SUBSCRIPT,
         EXPR_CALL,
+        NUM_EXPR_KINDS,
 };
 
 enum StmtKind {
@@ -201,6 +202,7 @@ enum StmtKind {
         STMT_COMPOUND,
         STMT_DATA,
         STMT_ARRAY,
+        NUM_STMT_KINDS,
 };
 
 

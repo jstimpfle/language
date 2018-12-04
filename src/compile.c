@@ -266,6 +266,18 @@ void compile_subscript_expr(Expr x)
 }
 
 INTERNAL
+void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x) = {
+#define MAKE(x, y) [x] = &y
+        MAKE( EXPR_LITERAL,    compile_literal_expr   ),
+        MAKE( EXPR_UNOP,       compile_unop_expr      ),
+        MAKE( EXPR_BINOP,      compile_binop_expr     ),
+        MAKE( EXPR_SYMREF,     compile_symref_expr    ),
+        MAKE( EXPR_CALL,       compile_call_expr      ),
+        MAKE( EXPR_SUBSCRIPT,  compile_subscript_expr ),
+#undef MAKE
+};
+
+INTERNAL
 void compile_expr(Expr x)
 {
         if (! isExprEvaluated[x] &&
@@ -278,113 +290,146 @@ void compile_expr(Expr x)
                  * been caught during type checking. */
                 UNREACHABLE();
         }
-        switch (exprInfo[x].kind) {
-        case EXPR_LITERAL:    compile_literal_expr(x); break;
-        case EXPR_UNOP:       compile_unop_expr(x); break;
-        case EXPR_BINOP:      compile_binop_expr(x); break;
-        case EXPR_SYMREF:     compile_symref_expr(x); break;
-        case EXPR_CALL:       compile_call_expr(x); break;
-        case EXPR_SUBSCRIPT:  compile_subscript_expr(x); break;
-        default: UNHANDLED_CASE();
-        }
+
+        int kind = exprInfo[x].kind;
+        ASSERT(0 <= kind && kind < NUM_EXPR_KINDS);
+        exprKindToCompileFunc [kind] (x);
 }
+
+INTERNAL
+void compile_stmt(IrProc irp, Stmt stmt);
+
+INTERNAL
+void compile_data_stmt(IrProc irp, Stmt stmt)
+{
+        (void) irp;
+        (void) stmt;
+        /* We have allocated a register in compile_to_IR() */
+}
+
+INTERNAL
+void compile_array_stmt(IrProc irp, Stmt stmt)
+{
+        (void) irp;
+        (void) stmt;
+        UNHANDLED_CASE();
+}
+
+INTERNAL
+void compile_expr_stmt(IrProc irp, Stmt stmt)
+{
+        (void) irp;
+        compile_expr(stmtInfo[stmt].tExpr.expr);
+}
+
+INTERNAL
+void compile_compound_stmt(IrProc irp, Stmt stmt)
+{
+        Stmt first = stmtInfo[stmt].tCompound.firstChildStmtIdx;
+        Stmt last = first + stmtInfo[stmt].tCompound.numStatements;
+        for (int cld = first; cld < last; cld++)
+                compile_stmt(irp, childStmtInfo[cld].child);
+}
+
+INTERNAL
+void compile_if_stmt(IrProc irp, Stmt stmt)
+{
+        Expr condExpr = stmtInfo[stmt].tIf.condExpr;
+        Stmt ifbody = stmtInfo[stmt].tIf.ifbody;
+        compile_expr(condExpr);
+        IrStmt irs = irStmtCnt++;
+        compile_stmt(irp, ifbody);
+        IrStmt stmtAfterBlock = irStmtCnt;
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irStmtInfo[irs].proc = irp;
+        irStmtInfo[irs].kind = IRSTMT_CONDGOTO;
+        irStmtInfo[irs].tCondGoto.condreg = exprToIrReg[condExpr];
+        irStmtInfo[irs].tCondGoto.tgtstmt = stmtAfterBlock;
+        irStmtInfo[irs].tCondGoto.isNeg = 1;
+}
+
+INTERNAL
+void compile_ifelse_stmt(IrProc irp, Stmt stmt)
+{
+        Expr condExpr = stmtInfo[stmt].tIfelse.condExpr;
+        Stmt ifbody = stmtInfo[stmt].tIfelse.ifbody;
+        Stmt elsebody = stmtInfo[stmt].tIfelse.elsebody;
+        compile_expr(condExpr);
+        IrStmt j0 = irStmtCnt++;
+        compile_stmt(irp, ifbody);
+        IrStmt j1 = irStmtCnt++;
+        IrStmt firstinelse = irStmtCnt;
+        compile_stmt(irp, elsebody);
+        IrStmt firstafterelse = irStmtCnt;
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irStmtInfo[j0].proc = irp;
+        irStmtInfo[j0].kind = IRSTMT_CONDGOTO;
+        irStmtInfo[j0].tCondGoto.condreg = exprToIrReg[condExpr];
+        irStmtInfo[j0].tCondGoto.tgtstmt = firstinelse;
+        irStmtInfo[j0].tCondGoto.isNeg = 1;
+        irStmtInfo[j1].proc = irp;
+        irStmtInfo[j1].kind = IRSTMT_GOTO;
+        irStmtInfo[j1].tGoto.tgtstmt = firstafterelse;
+}
+
+INTERNAL
+void compile_while_stmt(IrProc irp, Stmt stmt)
+{
+        Expr condExpr = stmtInfo[stmt].tWhile.condExpr;
+        Stmt whilebody = stmtInfo[stmt].tWhile.whilebody;
+        IrStmt condStmt = irStmtCnt;
+        compile_expr(condExpr);
+        IrStmt irs = irStmtCnt++;
+        compile_stmt(irp, whilebody);
+        IrStmt backJmp = irStmtCnt++;
+        IrStmt stmtAfterBlock = irStmtCnt;
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irStmtInfo[irs].proc = irp;
+        irStmtInfo[irs].kind = IRSTMT_CONDGOTO;
+        irStmtInfo[irs].tCondGoto.condreg = exprToIrReg[condExpr];
+        irStmtInfo[irs].tCondGoto.tgtstmt = stmtAfterBlock;
+        irStmtInfo[irs].tCondGoto.isNeg = 1;
+        irStmtInfo[backJmp].proc = irp;
+        irStmtInfo[backJmp].kind = IRSTMT_GOTO;
+        irStmtInfo[backJmp].tGoto.tgtstmt = condStmt;
+}
+
+INTERNAL
+void compile_return_stmt(IrProc irp, Stmt stmt)
+{
+        Expr resultExpr = stmtInfo[stmt].tReturn.expr;
+        compile_expr(resultExpr);
+        IrStmt irs = irStmtCnt++;
+        IrReturnval ret = irReturnvalCnt++;
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        RESIZE_GLOBAL_BUFFER(irReturnvalInfo, irReturnvalCnt);
+        irStmtInfo[irs].proc = irp;
+        irStmtInfo[irs].kind = IRSTMT_RETURN;
+        irStmtInfo[irs].tReturn.firstResult = ret;
+        irReturnvalInfo[ret].returnStmt = irs;
+        irReturnvalInfo[ret].resultReg = exprToIrReg[resultExpr];
+}
+
+INTERNAL
+void (*const stmtKindToCompileFunc[NUM_STMT_KINDS])(IrProc irp, Stmt stmt) = {
+#define MAKE(x, y) [x] = &y
+        MAKE( STMT_DATA,      compile_data_stmt     ),
+        MAKE( STMT_ARRAY,     compile_array_stmt    ),
+        MAKE( STMT_EXPR,      compile_expr_stmt     ),
+        MAKE( STMT_COMPOUND,  compile_compound_stmt ),
+        MAKE( STMT_IF,        compile_if_stmt       ),
+        MAKE( STMT_IFELSE,    compile_ifelse_stmt   ),
+        MAKE( STMT_WHILE,     compile_while_stmt    ),
+        MAKE( STMT_RETURN,    compile_return_stmt   ),
+#undef MAKE
+};
 
 INTERNAL
 void compile_stmt(IrProc irp, Stmt stmt)
 {
-        switch (stmtInfo[stmt].kind) {
-        case STMT_DATA: {
-                /* We have allocated a register in compile_to_IR() */
-                break;
-        }
-        case STMT_ARRAY: {
-                break;
-        }
-        case STMT_EXPR: {
-                compile_expr(stmtInfo[stmt].tExpr.expr);
-                break;
-        }
-        case STMT_COMPOUND: {
-                Stmt first = stmtInfo[stmt].tCompound.firstChildStmtIdx;
-                Stmt last = first + stmtInfo[stmt].tCompound.numStatements;
-                for (int cld = first; cld < last; cld++)
-                        compile_stmt(irp, childStmtInfo[cld].child);
-                break;
-        }
-        case STMT_IF: {
-                Expr condExpr = stmtInfo[stmt].tIf.condExpr;
-                Stmt ifbody = stmtInfo[stmt].tIf.ifbody;
-                compile_expr(condExpr);
-                IrStmt irs = irStmtCnt++;
-                compile_stmt(irp, ifbody);
-                IrStmt stmtAfterBlock = irStmtCnt;
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[irs].proc = irp;
-                irStmtInfo[irs].kind = IRSTMT_CONDGOTO;
-                irStmtInfo[irs].tCondGoto.condreg = exprToIrReg[condExpr];
-                irStmtInfo[irs].tCondGoto.tgtstmt = stmtAfterBlock;
-                irStmtInfo[irs].tCondGoto.isNeg = 1;
-                break;
-        }
-        case STMT_IFELSE: {
-                Expr condExpr = stmtInfo[stmt].tIfelse.condExpr;
-                Stmt ifbody = stmtInfo[stmt].tIfelse.ifbody;
-                Stmt elsebody = stmtInfo[stmt].tIfelse.elsebody;
-                compile_expr(condExpr);
-                IrStmt j0 = irStmtCnt++;
-                compile_stmt(irp, ifbody);
-                IrStmt j1 = irStmtCnt++;
-                IrStmt firstinelse = irStmtCnt;
-                compile_stmt(irp, elsebody);
-                IrStmt firstafterelse = irStmtCnt;
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[j0].proc = irp;
-                irStmtInfo[j0].kind = IRSTMT_CONDGOTO;
-                irStmtInfo[j0].tCondGoto.condreg = exprToIrReg[condExpr];
-                irStmtInfo[j0].tCondGoto.tgtstmt = firstinelse;
-                irStmtInfo[j0].tCondGoto.isNeg = 1;
-                irStmtInfo[j1].proc = irp;
-                irStmtInfo[j1].kind = IRSTMT_GOTO;
-                irStmtInfo[j1].tGoto.tgtstmt = firstafterelse;
-                break;
-        }
-        case STMT_WHILE: {
-                Expr condExpr = stmtInfo[stmt].tWhile.condExpr;
-                Stmt whilebody = stmtInfo[stmt].tWhile.whilebody;
-                IrStmt condStmt = irStmtCnt;
-                compile_expr(condExpr);
-                IrStmt irs = irStmtCnt++;
-                compile_stmt(irp, whilebody);
-                IrStmt backJmp = irStmtCnt++;
-                IrStmt stmtAfterBlock = irStmtCnt;
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[irs].proc = irp;
-                irStmtInfo[irs].kind = IRSTMT_CONDGOTO;
-                irStmtInfo[irs].tCondGoto.condreg = exprToIrReg[condExpr];
-                irStmtInfo[irs].tCondGoto.tgtstmt = stmtAfterBlock;
-                irStmtInfo[irs].tCondGoto.isNeg = 1;
-                irStmtInfo[backJmp].proc = irp;
-                irStmtInfo[backJmp].kind = IRSTMT_GOTO;
-                irStmtInfo[backJmp].tGoto.tgtstmt = condStmt;
-                break;
-        }
-        case STMT_RETURN: {
-                Expr resultExpr = stmtInfo[stmt].tReturn.expr;
-                compile_expr(resultExpr);
-                IrStmt irs = irStmtCnt++;
-                IrReturnval ret = irReturnvalCnt++;
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                RESIZE_GLOBAL_BUFFER(irReturnvalInfo, irReturnvalCnt);
-                irStmtInfo[irs].proc = irp;
-                irStmtInfo[irs].kind = IRSTMT_RETURN;
-                irStmtInfo[irs].tReturn.firstResult = ret;
-                irReturnvalInfo[ret].returnStmt = irs;
-                irReturnvalInfo[ret].resultReg = exprToIrReg[resultExpr];
-                break;
-        }
-        default:
-                UNHANDLED_CASE();
-        }
+        int kind = stmtInfo[stmt].kind;
+        ASSERT(0 <= kind && kind < NUM_STMT_KINDS);
+        stmtKindToCompileFunc [kind] (irp, stmt);
 }
 
 void compile_to_IR(void)
