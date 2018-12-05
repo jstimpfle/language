@@ -227,14 +227,19 @@ void compile_to_IR(void);
 void irprint(void);
 
 /*
- * elfobject.c
+ * x64asm.c
+ */
+void codegen_x64(void);
+
+/*
+ * elf64.c
  */
 void write_elf64_object(const char *outfilepath);
 
 /*
- * x64asm.c
+ * pe64.c
  */
-void codegen_x64(void);
+void write_pe64_object(const char *outfilepath);
 
 /*
  * main.c

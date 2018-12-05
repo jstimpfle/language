@@ -11,7 +11,7 @@
   #define UNUSED __pragma(warning(suppress: 4100 4101))
   #define UNUSEDFUNC
   #define NORETURN __declspec(noreturn)
-  #define UNREACHABLE() assert(0);
+  #define UNREACHABLE() ASSERT(0);
 #else
   #define UNUSED __attribute__((unused))
   #define UNUSEDFUNC __attribute__((unused))

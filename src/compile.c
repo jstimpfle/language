@@ -50,7 +50,7 @@ void compile_unop_expr(Expr x)
         }
         case UNOP_DEREF: {
                 compile_expr(e1);
-                if (!isExprEvaluated[x]) {
+                if (!isExprUsedAsLvalue[x]) {
                         exprToIrReg[x] = exprToIrReg[e1]; //XXX
                 }
                 else {
@@ -145,7 +145,7 @@ void compile_symref_expr(Expr x)
             scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
                 Data data = symbolInfo[sym].tData.optionaldata;
                 ASSERT(data != (Data) -1);  // proc-local data must exist
-                if (isExprEvaluated[x]) {
+                if (isExprUsedAsLvalue[x]) {
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[y].proc = exprInfo[x].proc;
@@ -169,7 +169,7 @@ void compile_symref_expr(Expr x)
                 irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
                 irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
                 irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
-                if (isExprEvaluated[x]) {
+                if (isExprUsedAsLvalue[x]) {
                         IrStmt s1 = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[s1].proc = exprInfo[x].proc;
@@ -255,7 +255,7 @@ void compile_subscript_expr(Expr x)
         irStmtInfo[y].tOp2.reg1 = exprToIrReg[e1];
         irStmtInfo[y].tOp2.reg2 = exprToIrReg[e2];
         irStmtInfo[y].tOp2.tgtreg = exprToIrReg[x];
-        if (isExprEvaluated[x]) {
+        if (isExprUsedAsLvalue[x]) {
                 IrStmt z = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[z].proc = exprInfo[x].proc;
@@ -280,7 +280,7 @@ void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x) = {
 INTERNAL
 void compile_expr(Expr x)
 {
-        if (! isExprEvaluated[x] &&
+        if (isExprUsedAsLvalue[x] &&
             !( exprInfo[x].kind == EXPR_SYMREF ) &&
             !( exprInfo[x].kind == EXPR_MEMBER ) &&
             !( exprInfo[x].kind == EXPR_SUBSCRIPT ) &&
@@ -288,6 +288,8 @@ void compile_expr(Expr x)
                exprInfo[x].tUnop.kind == UNOP_DEREF)) {
                 /* Expression cannot be an lvalue. This condition should have
                  * been caught during type checking. */
+                DEBUG("Expression kind: %s\n", exprKindString[exprInfo[x].kind]);
+                MSG_AT_EXPR(lvl_error, x, "This error should not happen!\n");
                 UNREACHABLE();
         }
 

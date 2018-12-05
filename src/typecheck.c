@@ -4,8 +4,8 @@
 #define LOG_TYPE_ERROR_EXPR(...) MSG_AT_EXPR(lvl_error, __VA_ARGS__)
 
 enum {
-        NOTEVALUATED = 0,
-        EVALUATED = 1,
+        NOT_USED_AS_LVALUE = 0,
+        USED_AS_LVALUE = 1,
 };
 
 INTERNAL
@@ -59,7 +59,7 @@ int type_equal(Type a, Type b)
 }
 
 INTERNAL
-Type check_expr_type(Expr x, int evaluated);
+Type check_expr_type(Expr x, int usedAsLvalue);
 
 INTERNAL
 Type check_literal_expr_type(Expr x)
@@ -104,7 +104,7 @@ Type check_unop_expr_type(Expr x)
         Expr xx = exprInfo[x].tUnop.expr;
         switch (op) {
         case UNOP_ADDRESSOF: {
-                Type tt = check_expr_type(xx, NOTEVALUATED);
+                Type tt = check_expr_type(xx, USED_AS_LVALUE);
                 if (!is_lvalue_expression(xx)) {
                         LOG_TYPE_ERROR_EXPR(xx,
                                 "Cannot take the address of this expression\n");
@@ -116,7 +116,7 @@ Type check_unop_expr_type(Expr x)
                 break;
         }
         case UNOP_DEREF: {
-                Type tt = check_expr_type(xx, EVALUATED);
+                Type tt = check_expr_type(xx, NOT_USED_AS_LVALUE);
                 if (tt != (Type) -1) {
                         int k = typeInfo[tt].kind;
                         if (k == TYPE_POINTER)
@@ -132,7 +132,7 @@ Type check_unop_expr_type(Expr x)
         case UNOP_PREINCREMENT:
         case UNOP_POSTDECREMENT:
         case UNOP_POSTINCREMENT: {
-                Type tt = check_expr_type(xx, EVALUATED);
+                Type tt = check_expr_type(xx, NOT_USED_AS_LVALUE);
                 if (tt != (Type) -1) {
                         int k = typeInfo[tt].kind;
                         if (k == TYPE_BASE)
@@ -153,13 +153,13 @@ Type check_binop_expr_type(Expr x)
         Expr x1 = exprInfo[x].tBinop.expr1;
         Expr x2 = exprInfo[x].tBinop.expr2;
         if (op == BINOP_ASSIGN) {
-                /*Type t1 =*/ check_expr_type(x1, NOTEVALUATED);
-                Type t2 = check_expr_type(x2, EVALUATED);
+                /*Type t1 =*/ check_expr_type(x1, USED_AS_LVALUE);
+                Type t2 = check_expr_type(x2, NOT_USED_AS_LVALUE);
                 return t2;
         }
 
-        Type t1 = check_expr_type(x1, EVALUATED);
-        Type t2 = check_expr_type(x2, EVALUATED);
+        Type t1 = check_expr_type(x1, NOT_USED_AS_LVALUE);
+        Type t2 = check_expr_type(x2, NOT_USED_AS_LVALUE);
         if (t1 != -1 && t2 != -1) {
                 int k1 = typeInfo[t1].kind;
                 int k2 = typeInfo[t2].kind;
@@ -201,7 +201,7 @@ Type check_binop_expr_type(Expr x)
 INTERNAL
 Type check_member_expr_type(Expr x)
 {
-        check_expr_type(exprInfo[x].tMember.expr, EVALUATED);
+        check_expr_type(exprInfo[x].tMember.expr, NOT_USED_AS_LVALUE);
         return (Type) -1; //TODO
 }
 
@@ -210,8 +210,8 @@ Type check_subscript_expr_type(Expr x)
 {
         Expr x1 = exprInfo[x].tSubscript.expr1;
         Expr x2 = exprInfo[x].tSubscript.expr2;
-        Type t1 = check_expr_type(x1, EVALUATED);
-        Type t2 = check_expr_type(x2, EVALUATED);
+        Type t1 = check_expr_type(x1, NOT_USED_AS_LVALUE);
+        Type t2 = check_expr_type(x2, NOT_USED_AS_LVALUE);
         Type tp = -1;
         if (t1 == -1 || is_bad_type(t1))
                 LOG_TYPE_ERROR_EXPR(x,
@@ -245,19 +245,20 @@ Type check_call_expr_type(Expr x)
 {
         Type tp = -1;
         Expr calleeExpr = exprInfo[x].tCall.callee;
-        Type calleeTp = check_expr_type(calleeExpr, EVALUATED);
+        Type calleeTp = check_expr_type(calleeExpr, NOT_USED_AS_LVALUE);
         if (calleeTp == -1) {
                 LOG_TYPE_ERROR_EXPR(x, "Type of callee is unknown\n");
         }
         else if (typeInfo[calleeTp].kind != TYPE_PROC) {
-                LOG_TYPE_ERROR_EXPR(x, "Not a callable\n");
+                LOG_TYPE_ERROR_EXPR(x, "Not a callable but a %s\n",
+                                    typeKindString[typeInfo[calleeTp].kind]);
         }
         else {
-                check_expr_type(exprInfo[x].tCall.callee, EVALUATED);
+                check_expr_type(exprInfo[x].tCall.callee, NOT_USED_AS_LVALUE);
                 int first = exprInfo[x].tCall.firstArgIdx;
                 int last = first + exprInfo[x].tCall.nargs;
                 for (int i = first; i < last; i++) {
-                        check_expr_type(callArgInfo[i].argExpr, EVALUATED);
+                        check_expr_type(callArgInfo[i].argExpr, NOT_USED_AS_LVALUE);
                 }
                 // TODO: match arguments with function parameters
                 tp = typeInfo[calleeTp].tProc.rettp;
@@ -279,18 +280,18 @@ Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
 };
 
 INTERNAL
-Type check_expr_type(Expr x, int evaluated)
+Type check_expr_type(Expr x, int usedAsLvalue)
 {
         ASSERT(0 <= x && x < exprCnt);
         Type tp = -1;
-        isExprEvaluated[x] = evaluated; // set *before* checking type
+        isExprUsedAsLvalue[x] = usedAsLvalue; // set *before* checking type
 
         int kind = exprInfo[x].kind;
         ASSERT(0 <= kind && kind < NUM_EXPR_KINDS);
         tp = exprKindToTypecheckFunc [kind] (x);
 
         if (tp != (Type) -1) {
-                exprType[x] = evaluated ? tp : pointer_type(tp);
+                exprType[x] = usedAsLvalue ? pointer_type(tp) : tp;
                 return referenced_type(exprType[x]);
         }
         else {
@@ -304,34 +305,34 @@ void check_stmt_types(Stmt a)
 {
         switch (stmtInfo[a].kind) {
         case STMT_IF: {
-                check_expr_type(stmtInfo[a].tIf.condExpr, EVALUATED);
+                check_expr_type(stmtInfo[a].tIf.condExpr, NOT_USED_AS_LVALUE);
                 check_stmt_types(stmtInfo[a].tIf.ifbody);
                 break;
         }
         case STMT_IFELSE: {
-                check_expr_type(stmtInfo[a].tIfelse.condExpr, EVALUATED);
+                check_expr_type(stmtInfo[a].tIfelse.condExpr, NOT_USED_AS_LVALUE);
                 check_stmt_types(stmtInfo[a].tIfelse.ifbody);
                 check_stmt_types(stmtInfo[a].tIfelse.elsebody);
                 break;
         }
         case STMT_FOR: {
                 check_stmt_types(stmtInfo[a].tFor.initStmt);
-                check_expr_type(stmtInfo[a].tFor.condExpr, EVALUATED);
+                check_expr_type(stmtInfo[a].tFor.condExpr, NOT_USED_AS_LVALUE);
                 check_stmt_types(stmtInfo[a].tFor.stepStmt);
                 check_stmt_types(stmtInfo[a].tFor.forbody);
                 break;
         }
         case STMT_WHILE: {
-                check_expr_type(stmtInfo[a].tWhile.condExpr, EVALUATED);
+                check_expr_type(stmtInfo[a].tWhile.condExpr, NOT_USED_AS_LVALUE);
                 check_stmt_types(stmtInfo[a].tWhile.whilebody);
                 break;
         }
         case STMT_RETURN: {
-                check_expr_type(stmtInfo[a].tReturn.expr, EVALUATED);
+                check_expr_type(stmtInfo[a].tReturn.expr, NOT_USED_AS_LVALUE);
                 break;
         }
         case STMT_EXPR: {
-                check_expr_type(stmtInfo[a].tExpr.expr, NOTEVALUATED);
+                check_expr_type(stmtInfo[a].tExpr.expr, NOT_USED_AS_LVALUE);
                 break;
         }
         case STMT_COMPOUND: {
@@ -354,13 +355,13 @@ void check_stmt_types(Stmt a)
 
 void check_types(void)
 {
-        ASSERT(globalBufferAlloc[BUFFER_isExprEvaluated].cap == 0);
+        ASSERT(globalBufferAlloc[BUFFER_isExprUsedAsLvalue].cap == 0);
         ASSERT(globalBufferAlloc[BUFFER_exprType].cap == 0);
-        RESIZE_GLOBAL_BUFFER(isExprEvaluated, exprCnt);
+        RESIZE_GLOBAL_BUFFER(isExprUsedAsLvalue, exprCnt);
         RESIZE_GLOBAL_BUFFER(exprType, exprCnt);
 
-        for (Stmt a = 0; a < stmtCnt; a++)
-                check_stmt_types(a);
+        for (Proc p = 0; p < procCnt; p++)
+                check_stmt_types(procInfo[p].body);
 
         int bad = 0;
         for (Expr x = 0; x < exprCnt; x++) {

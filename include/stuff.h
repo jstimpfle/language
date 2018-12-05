@@ -3,6 +3,16 @@
 #endif
 
 
+
+/**
+ * PE 64
+ *
+ * TODO: find better place for these declarations
+ * */
+int pe64strCnt;
+char *pe64strtab;
+
+
 /*
  * \typedef{File}: A file known to the compiler. Probably its contents will
  * be processed.
@@ -109,7 +119,7 @@ struct StringToBeInterned {
         MAKE_GLOBAL_BUFFER(  exprCnt,            exprInfo             ),  \
         MAKE_GLOBAL_BUFFER(  exprCnt,            exprToIrReg          ),  \
         MAKE_GLOBAL_BUFFER(  exprCnt,            exprType             ),  \
-        MAKE_GLOBAL_BUFFER(  exprCnt,            isExprEvaluated      ),  \
+        MAKE_GLOBAL_BUFFER(  exprCnt,            isExprUsedAsLvalue   ),  \
         MAKE_GLOBAL_BUFFER(  fileCnt,            fileInfo             ),  \
         MAKE_GLOBAL_BUFFER(  gotoCnt,            gotoInfo             ),  \
         MAKE_GLOBAL_BUFFER(  irCallArgCnt,       irCallArgInfo        ),  \
@@ -144,7 +154,9 @@ struct StringToBeInterned {
         MAKE_GLOBAL_BUFFER(  tokenCnt ,          tokenInfo            ),  \
         MAKE_GLOBAL_BUFFER(  typeCnt,            typeInfo             ),  \
         MAKE_GLOBAL_BUFFER(  typeCnt,            firstProctypeParam   ),  \
-        MAKE_GLOBAL_BUFFER(  x64StackLocCnt,     x64StackLocInfo      ),
+        MAKE_GLOBAL_BUFFER(  x64StackLocCnt,     x64StackLocInfo      ),  \
+        MAKE_GLOBAL_BUFFER(  pe64strCnt,         pe64strtab           ),
+
 
 enum {
 #define MAKE_GLOBAL_BUFFER(cnt, ptr) BUFFER_##ptr

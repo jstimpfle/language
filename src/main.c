@@ -107,6 +107,9 @@ bad:
         DEBUG("Write elf object file...\n");
         write_elf64_object("out.o");
 
+        DEBUG("Write PE64 object file...\n");
+        write_pe64_object("out.obj");
+
         DEBUG("Success. Cleanup and terminate program.\n");
         cleanup();
 
