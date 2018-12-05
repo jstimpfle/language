@@ -125,6 +125,14 @@ struct PE_FileHeader {
         PED_DWORD  PEH_PointerToSymbolTable;  /* The offset of the symbol table,
                                                  in bytes, or zero if no PE
                                                  symbol table exists. */
+        PED_DWORD  PEH_NumberOfSymbols;       /* The number of entries in the
+                                                 symbol table. This data can be
+                                                 used to locate the string
+                                                 table, which immediately
+                                                 follows the symbol table. This
+                                                 value should be zero for an
+                                                 image because COFF debugging
+                                                 information is deprecated. */
         PED_WORD  PEH_SizeOfOptionalHeader;
 
         PED_WORD  PEH_Characteristics;        /* See 3.3.2 Characteristics */
@@ -236,6 +244,8 @@ struct PE_SectionHeader {
                                            information. */
 };
 
+#define IMAGE_SIZEONDISK_OF_FileHeader     (sizeof (struct PE_FileHeader) - sizeof (PED_DWORD)) /* XXX: first element not written */
+#define IMAGE_SIZEONDISK_OF_SectionHeader  (sizeof (struct PE_SectionHeader)) /* XXX */
 
 /*
    4.1 Section Flags
@@ -332,6 +342,37 @@ struct PE_SectionHeader {
 #define IMAGE_SCN_MEM_READ        0x40000000  /* Section can be read. */
 #define IMAGE_SCN_MEM_WRITE       0x80000000  /* Section can be written to. */
 
+
+/*
+   5.2 COFF Relocations
+ */
+
+struct PE_Relocation {
+        PED_DWORD  PER_VirtualAddress;    /* Address of the item to which
+                                             relocation is applied: this is the
+                                             offset from the beginning of the
+                                             section, plus the value of the
+                                             section’s RVA/Offset field (see
+                                             Section 4, “Section Table.”). For
+                                             example, if the first byte of the
+                                             section has an address of 0x10, the
+                                             third byte has an address of 0x12.
+                                             */
+        PED_DWORD  PER_SymbolTableIndex;  /* A zero-based index into the symbol
+                                             table. This symbol gives the
+                                             address to be used for the
+                                             relocation. If the specified symbol
+                                             has section storage class, then the
+                                             symbol’s address is the address
+                                             with the first section of the same
+                                             name. */
+        PED_DWORD  PER_Type;              /* A value indicating what kind of
+                                             relocation should be performed.
+                                             Valid relocation types depend on
+                                             machine type. See Section 5.2.1,
+                                             “Type Indicators.” */
+};
+
 INTERNAL
 void write_PED_BYTE(FILE *f, PED_BYTE x)
 {
@@ -355,51 +396,89 @@ void write_PED_DWORD(FILE *f, PED_DWORD x)
 }
 
 INTERNAL
-void write_PE_FileHeader(FILE *f, const struct PE_FileHeader *hdr)
+void write_PE_FileHeader(FILE *f, const struct PE_FileHeader *x)
 {
-        write_PED_DWORD (f, hdr->PEH_Signature);
-        write_PED_WORD  (f, hdr->PEH_Machine);
-        write_PED_WORD  (f, hdr->PEH_NumberOfSections);
-        write_PED_DWORD (f, hdr->PEH_TimeDataStamp);
-        write_PED_DWORD (f, hdr->PEH_PointerToSymbolTable);
-        write_PED_WORD  (f, hdr->PEH_SizeOfOptionalHeader);
-        write_PED_WORD  (f, hdr->PEH_Characteristics);
+        //write_PED_DWORD (f, x->PEH_Signature);
+        write_PED_WORD  (f, x->PEH_Machine);
+        write_PED_WORD  (f, x->PEH_NumberOfSections);
+        write_PED_DWORD (f, x->PEH_TimeDataStamp);
+        write_PED_DWORD (f, x->PEH_PointerToSymbolTable);
+        write_PED_DWORD (f, x->PEH_NumberOfSymbols);
+        write_PED_WORD  (f, x->PEH_SizeOfOptionalHeader);
+        write_PED_WORD  (f, x->PEH_Characteristics);
 }
 
 INTERNAL
-void write_PE_OptionalHeader(FILE *f, const struct PE_OptionalHeader *hdr)
+void write_PE_OptionalHeader(FILE *f, const struct PE_OptionalHeader *x)
 {
-        write_PED_WORD   (f, hdr->PEO_Magic);
-        write_PED_BYTE   (f, hdr->PEO_MajorLinkerVersion);
-        write_PED_BYTE   (f, hdr->PEO_MinorLinkerVersion);
-        write_PED_DWORD  (f, hdr->PEO_SizeOfCode);
-        write_PED_DWORD  (f, hdr->PEO_SizeOfInitializedData);
-        write_PED_DWORD  (f, hdr->PEO_SizeOfUninitializedData);
-        write_PED_DWORD  (f, hdr->PEO_AddressOfEntryPoint);
-        write_PED_DWORD  (f, hdr->PEO_BaseOfCode);
-        write_PED_DWORD  (f, hdr->PEO_BaseOfData);
-        write_PED_DWORD  (f, hdr->PEO_ImageBase);
-        write_PED_DWORD  (f, hdr->PEO_SectionAlignment);
-        write_PED_DWORD  (f, hdr->PEO_FileAlignment);
-        write_PED_WORD   (f, hdr->PEO_MajorOperatingSystemVersion);
-        write_PED_WORD   (f, hdr->PEO_MinorOperatingSystemVersion);
-        write_PED_WORD   (f, hdr->PEO_MajorImageVersion);
-        write_PED_WORD   (f, hdr->PEO_MinorImageVersion);
-        write_PED_WORD   (f, hdr->PEO_MajorSubsystemVersion);
-        write_PED_WORD   (f, hdr->PEO_MinorSubsystemVersion);
-        write_PED_DWORD  (f, hdr->PEO_Reserved1);
-        write_PED_DWORD  (f, hdr->PEO_SizeOfImage);
-        write_PED_DWORD  (f, hdr->PEO_SizeOfHeaders);
-        write_PED_DWORD  (f, hdr->PEO_CheckSum);
-        write_PED_WORD   (f, hdr->PEO_Subsystem);
-        write_PED_WORD   (f, hdr->PEO_DllCharacteristics);
-        write_PED_DWORD  (f, hdr->PEO_SizeOfStackReserve);
-        write_PED_DWORD  (f, hdr->PEO_SizeOfStackCommit);
-        write_PED_DWORD  (f, hdr->PEO_SizeOfHeapReserve);
-        write_PED_DWORD  (f, hdr->PEO_SizeOfHeapCommit);
-        write_PED_DWORD  (f, hdr->PEO_LoaderFlags);
-        write_PED_DWORD  (f, hdr->PEO_NumberOfRvaAndSizes);
+        write_PED_WORD   (f, x->PEO_Magic);
+        write_PED_BYTE   (f, x->PEO_MajorLinkerVersion);
+        write_PED_BYTE   (f, x->PEO_MinorLinkerVersion);
+        write_PED_DWORD  (f, x->PEO_SizeOfCode);
+        write_PED_DWORD  (f, x->PEO_SizeOfInitializedData);
+        write_PED_DWORD  (f, x->PEO_SizeOfUninitializedData);
+        write_PED_DWORD  (f, x->PEO_AddressOfEntryPoint);
+        write_PED_DWORD  (f, x->PEO_BaseOfCode);
+        write_PED_DWORD  (f, x->PEO_BaseOfData);
+        write_PED_DWORD  (f, x->PEO_ImageBase);
+        write_PED_DWORD  (f, x->PEO_SectionAlignment);
+        write_PED_DWORD  (f, x->PEO_FileAlignment);
+        write_PED_WORD   (f, x->PEO_MajorOperatingSystemVersion);
+        write_PED_WORD   (f, x->PEO_MinorOperatingSystemVersion);
+        write_PED_WORD   (f, x->PEO_MajorImageVersion);
+        write_PED_WORD   (f, x->PEO_MinorImageVersion);
+        write_PED_WORD   (f, x->PEO_MajorSubsystemVersion);
+        write_PED_WORD   (f, x->PEO_MinorSubsystemVersion);
+        write_PED_DWORD  (f, x->PEO_Reserved1);
+        write_PED_DWORD  (f, x->PEO_SizeOfImage);
+        write_PED_DWORD  (f, x->PEO_SizeOfHeaders);
+        write_PED_DWORD  (f, x->PEO_CheckSum);
+        write_PED_WORD   (f, x->PEO_Subsystem);
+        write_PED_WORD   (f, x->PEO_DllCharacteristics);
+        write_PED_DWORD  (f, x->PEO_SizeOfStackReserve);
+        write_PED_DWORD  (f, x->PEO_SizeOfStackCommit);
+        write_PED_DWORD  (f, x->PEO_SizeOfHeapReserve);
+        write_PED_DWORD  (f, x->PEO_SizeOfHeapCommit);
+        write_PED_DWORD  (f, x->PEO_LoaderFlags);
+        write_PED_DWORD  (f, x->PEO_NumberOfRvaAndSizes);
 }
+
+INTERNAL
+void write_PE_SectionHeader(FILE *f, const struct PE_SectionHeader *x)
+{
+        fwrite(x->PES_Name, sizeof x->PES_Name, 1, f);
+        write_PED_DWORD  (f, x->PES_VirtualSize);
+        write_PED_DWORD  (f, x->PES_VirtualAddress);
+        write_PED_DWORD  (f, x->PES_SizeOfRawData);
+        write_PED_DWORD  (f, x->PES_PointerToRawData);
+        write_PED_DWORD  (f, x->PES_PointerToRelocations);
+        write_PED_DWORD  (f, x->PES_PointerToLinenumbers);
+        write_PED_WORD   (f, x->PES_NumberOfRelocations);
+        write_PED_WORD   (f, x->PES_NumberOfLinenumbers);
+        write_PED_DWORD  (f, x->PES_Characteristics);
+}
+
+INTERNAL
+void write_PER_Relocation(FILE *f, const struct PE_Relocation *x)
+{
+        write_PED_DWORD  (f, x->PER_VirtualAddress);
+        write_PED_DWORD  (f, x->PER_SymbolTableIndex);
+        write_PED_DWORD  (f, x->PER_Type);
+}
+
+
+
+
+/* The sections that we use to map our own code to PE format */
+enum {
+        PESEC_DATA,  /* initialized data */
+        PESEC_RDATA, /* read-only initialized data */
+        PESEC_BSS,   /* uninitialized data */
+        PESEC_TEXT,  /* executable code */
+        PESEC_RELOC,  /* image relocations */
+        NUM_PESEC_KINDS,
+};
+
 
 INTERNAL
 void pe64_add_to_strtab(const char *str, int len)
@@ -411,24 +490,106 @@ void pe64_add_to_strtab(const char *str, int len)
         pe64strtab[pos+len] = '\0';
 }
 
+INTERNAL
+void set_PE_Section_Name(struct PE_SectionHeader *shdr, const char *name)
+{
+        int len = cstr_length(name);
+
+        /* If the length is longer than 8 characters, we can store it somewhere
+         * else. But that scheme is not implemented currently! */
+        ASSERT(len <= 8);
+
+        clear_mem(&shdr->PES_Name, 8);
+        copy_mem(&shdr->PES_Name, name, len);
+}
+
 void write_pe64_object(const char *filepath)
 {
-        struct PE_FileHeader fh;
-
         FILE *f = fopen(filepath, "wb");
         if (f == NULL)
                 FATAL("Failed to open %s\n", filepath);
 
+        struct PE_FileHeader fh;
+        struct PE_SectionHeader sh[NUM_PESEC_KINDS];
+
         CLEAR(fh);
+        CLEAR(sh);
+
         fh.PEH_Machine = IMAGE_FILE_MACHINE_AMD64;
-        fh.PEH_NumberOfSections = 0;
+        fh.PEH_NumberOfSections = NUM_PESEC_KINDS;
         fh.PEH_TimeDataStamp = 0;
         fh.PEH_PointerToSymbolTable = 0;
+        fh.PEH_NumberOfSymbols = 0;
         fh.PEH_SizeOfOptionalHeader = 0;
         fh.PEH_Characteristics = IMAGE_FILE_LINE_NUMS_STRIPPED |
                                  IMAGE_FILE_LOCAL_SYMS_STRIPPED;
 
+        set_PE_Section_Name(&sh[PESEC_DATA], ".data");
+        set_PE_Section_Name(&sh[PESEC_RDATA], ".rdata");
+        set_PE_Section_Name(&sh[PESEC_BSS], ".bss");
+        set_PE_Section_Name(&sh[PESEC_TEXT], ".text");
+        set_PE_Section_Name(&sh[PESEC_RELOC], ".reloc");
+
+        sh[PESEC_DATA].PES_VirtualSize = dataSectionCnt;
+        sh[PESEC_RDATA].PES_VirtualSize = rodataSectionCnt;
+        sh[PESEC_BSS].PES_VirtualSize = zerodataSectionCnt;
+        sh[PESEC_TEXT].PES_VirtualSize = codeSectionCnt;
+
+        sh[PESEC_DATA].PES_SizeOfRawData = dataSectionCnt;
+        sh[PESEC_RDATA].PES_SizeOfRawData = rodataSectionCnt;
+        sh[PESEC_BSS].PES_SizeOfRawData = 0;
+        sh[PESEC_TEXT].PES_SizeOfRawData = codeSectionCnt;
+
+        /* sections come after section headers */
+        sh[PESEC_DATA].PES_PointerToRawData =
+                IMAGE_SIZEONDISK_OF_FileHeader +
+                (IMAGE_SIZEONDISK_OF_SectionHeader * NUM_PESEC_KINDS);
+#define AFTER(x) (sh[x].PES_PointerToRawData + sh[x].PES_SizeOfRawData)
+        sh[PESEC_RDATA].PES_PointerToRawData = AFTER(PESEC_DATA);
+        sh[PESEC_BSS].PES_PointerToRawData = AFTER(PESEC_RDATA);
+        sh[PESEC_TEXT].PES_PointerToRawData = AFTER(PESEC_BSS);
+#undef AFTER
+
+        sh[PESEC_DATA].PES_Characteristics =
+                                        IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                        IMAGE_SCN_MEM_READ |
+                                        IMAGE_SCN_MEM_WRITE;
+        sh[PESEC_RDATA].PES_Characteristics =
+                                        IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                        IMAGE_SCN_MEM_READ;
+        sh[PESEC_BSS].PES_Characteristics =
+                                        IMAGE_SCN_CNT_UNINITIALIZED_DATA |
+                                        IMAGE_SCN_MEM_READ |
+                                        IMAGE_SCN_MEM_WRITE;
+        sh[PESEC_TEXT].PES_Characteristics =
+                                        IMAGE_SCN_CNT_CODE |
+                                        IMAGE_SCN_MEM_EXECUTE |
+                                        IMAGE_SCN_MEM_READ;
+
+
+        for (int i = 0; i < NUM_PESEC_KINDS; i++)
+                DEBUG("pointer to rawdata of secton %d: %d\n",
+                      i, (int) sh[i].PES_PointerToRawData);
+
+        /* Write File Header */
         write_PE_FileHeader(f, &fh);
+
+        /* !! No optional header. This is an .obj file. */
+
+        /* Write Section Header Table */
+        for (int i = 0; i < NUM_PESEC_KINDS; i++)
+                write_PE_SectionHeader(f, &sh[i]);
+
+        /* Write section data */
+        fwrite(dataSection, dataSectionCnt, 1, f);
+        fwrite(rodataSection, rodataSectionCnt, 1, f);
+        fwrite(codeSection, codeSectionCnt, 1, f);
+
+        /* Write symbol table */
+
+        /* Write string table */
+        write_PED_DWORD(f, 4 + pe64strCnt);
+        fwrite(pe64strtab, pe64strCnt, 1, f);
 
         if (ferror(f))
                 FATAL("Errors while writing file %s\n", filepath);
