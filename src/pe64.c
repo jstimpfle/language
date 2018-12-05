@@ -11,7 +11,7 @@ typedef long  PED_DWORD;  // 4 bytes
 
 /*
    3.3.1. Machine Types
-  
+
    The Machine field has one of the following values, defined below, which
    specify its machine (CPU) type. An image file can be run only on the
    specified machine, or a system emulating it.
@@ -40,7 +40,7 @@ typedef long  PED_DWORD;  // 4 bytes
 
 /*
    3.3.2. Characteristics
-  
+
    The Characteristics field contains flags that indicate attributes of the
    object or image file. The following flags are currently defined:
  */
@@ -373,6 +373,154 @@ struct PE_Relocation {
                                              “Type Indicators.” */
 };
 
+
+/*
+   5.2 COFF Symbol Table
+ */
+
+struct PE_Symbol {
+        /*
+           5.4.1. Symbol Name Representation
+
+           The Name field in a symbol table consists of eight bytes that contain
+           the name itself, if not too long, or else give an offset into the
+           String Table. To determine whether the name itself or an offset is
+           given, test the first four bytes for equality to zero.
+         */
+        union {
+                char shortName[8];  /* An array of eight bytes. This array is
+                                       padded with nulls on the right if the
+                                       name is less than eight bytes long. */
+                struct {
+                        PED_DWORD zeroes;   /* Set to all zeros if the name is
+                                               longer than eight bytes. */
+                        PED_DWORD offset;   /* Offset into the String Table. */
+                };
+        } PESy_Name;
+
+        PED_DWORD PESy_Value;    /* Value associated with the symbol. The
+                                    interpretation of this field depends on
+                                    Section Number and Storage Class. A typical
+                                    meaning is the relocatable address. */
+
+        PED_WORD  PESy_SectionNumber;  /* Signed integer identifying the
+                                          section, using a one-based index into
+                                          the Section Table. Some values have
+                                          special meaning defined in 5.4.2.
+                                          Section Number Values */
+
+        PED_WORD  PESy_Type;    /* A number representing type. Microsoft tools
+                                   set this field to 0x20 (function) or 0x0 (not
+                                   a function). See Section 5.4.3, ¿Type
+                                   Representation,¿ for more information. */
+
+        char PESy_StorageClass;    /* Enumerated value representing storage
+                                      class.  See Section 5.4.4, ¿Storage
+                                      Class,¿ for more information. */
+
+        char PESy_NumberOfAuxSymbols;    /* Number of auxiliary symbol table
+                                            entries that follow this record. */
+};
+
+/*
+   5.4.2. Section Number Values
+
+   Normally, the Section Value field in a symbol table entry is a
+   one-based index into the Section Table. However, this field is a
+   signed integer and may take negative values. The following values,
+   less than one, have special meanings:
+ */
+
+#define IMAGE_SYM_UNDEFINED    0    /* Symbol record is not yet assigned a
+                                       section. If the value is 0 this indicates
+                                       a references to an external symbol
+                                       defined elsewhere. If the value is
+                                       non-zero this is a common symbol with a
+                                       size specified by the value. */
+#define IMAGE_SYM_ABSOLUTE    -1    /* The symbol has an absolute
+                                       (non-relocatable) value and is not an
+                                       address. */
+#define IMAGE_SYM_DEBUG       -2    /* The symbol provides general type or
+                                       debugging information but does not
+                                       correspond to a section.  Microsoft tools
+                                       use this setting along with .file records
+                                       (storage class FILE). */
+
+/*
+   5.4.3 Type Representation
+
+   The Type field of a symbol table entry contains two bytes, each byte
+   representing type information. The least-significant byte represents simple
+   (base) data type, and the most-significant byte represents complex type, if
+   any:
+
+   MSB   Complex type: none, pointer, function, array.
+   LSB   Base type: integer, floating-point, etc.
+
+   The following values are defined for base type, although Microsoft tools
+   generally do not use this field, setting the least-significant byte to 0.
+   Instead, CodeView information is used to indicate types. However, the
+   possible COFF values are listed here for completeness.
+ */
+
+#define IMAGE_SYM_TYPE_NULL     0 /* No type information or unknown base type.
+                                     Microsoft tools use this setting. */
+#define IMAGE_SYM_TYPE_VOID     1 /* No valid type; used with void pointers and
+                                     functions. */
+#define IMAGE_SYM_TYPE_CHAR     2 /* Character (signed byte). */
+#define IMAGE_SYM_TYPE_SHORT    3 /* Two-byte signed integer. */
+#define IMAGE_SYM_TYPE_INT      4 /* Natural integer type (normally four bytes
+                                     in Windows NT). */
+#define IMAGE_SYM_TYPE_LONG     5 /* Four-byte signed integer. */
+#define IMAGE_SYM_TYPE_FLOAT    6 /* Four-byte floating-point number. */
+#define IMAGE_SYM_TYPE_DOUBLE   7 /* Eight-byte floating-point number. */
+#define IMAGE_SYM_TYPE_STRUCT   8 /* Structure. */
+#define IMAGE_SYM_TYPE_UNION    9 /* Union. */
+#define IMAGE_SYM_TYPE_ENUM    10 /* Enumerated type. */
+#define IMAGE_SYM_TYPE_MOE     11 /* Member of enumeration (a specific value).
+                                     */
+#define IMAGE_SYM_TYPE_BYTE    12 /* Byte; unsigned one-byte integer. */
+#define IMAGE_SYM_TYPE_WORD    13 /* Word; unsigned two-byte integer. */
+#define IMAGE_SYM_TYPE_UINT    14 /* Unsigned integer of natural size
+                                     (normally, four define bytes). */
+#define IMAGE_SYM_TYPE_DWORD   15 /* Unsigned four-byte integer. */
+
+/*
+The most significant byte specifies whether the symbol is a pointer to, function
+returning, or array of the base type specified in the least significant byte.
+Microsoft tools use this field only to indicate whether or not the symbol is a
+function, so that the only two resulting values are 0x0 and 0x20 for the Type
+field. However, other tools can use this field to communicate more information.
+It is very important to specify the function attribute correctly. This
+information is required for incremental linking to work correctly. For some
+architectures the information may be required for other purposes.
+*/
+
+#define IMAGE_SYM_DTYPE_NULL      0   /* No derived type; the symbol is a
+                                          simple scalar variable. */
+#define IMAGE_SYM_DTYPE_POINTER   1   /* Pointer to base type. */
+#define IMAGE_SYM_DTYPE_FUNCTION  2   /* Function returning base type. */
+#define IMAGE_SYM_DTYPE_ARRAY     3   /* Array of base type. */
+
+
+/*
+   5.4.4. Storage Class
+
+   The Storage Class field of the Symbol Table indicates what kind of definition
+   a symbol represents. The following table shows possible values. Note that the
+   Storage Class field is an unsigned one-byte integer. The special value -1
+   should therefore be taken to mean its unsigned equivalent, 0xFF.
+   
+   Although traditional COFF format makes use of many storage-class values,
+   Microsoft tools rely on CodeView format for most symbolic information and
+   generally use only four storage-class values: EXTERNAL (2), STATIC (3),
+   FUNCTION (101), and STATIC (103). Except in the second column heading below,
+   ¿Value¿ should be taken to mean the Value field of the symbol record (whose
+   interpretation depends on the number found as the storage class).
+ */
+
+/* (#define's still missing) */
+
 INTERNAL
 void write_PED_BYTE(FILE *f, PED_BYTE x)
 {
@@ -459,14 +607,27 @@ void write_PE_SectionHeader(FILE *f, const struct PE_SectionHeader *x)
 }
 
 INTERNAL
-void write_PER_Relocation(FILE *f, const struct PE_Relocation *x)
+void write_PE_Relocation(FILE *f, const struct PE_Relocation *x)
 {
         write_PED_DWORD  (f, x->PER_VirtualAddress);
         write_PED_DWORD  (f, x->PER_SymbolTableIndex);
         write_PED_DWORD  (f, x->PER_Type);
 }
 
+INTERNAL
+void write_PE_Symbol(FILE *f, const struct PE_Symbol *x)
+{
+        /* XXX: not clear about byte order??? */
+        write_PED_DWORD(f, x->PESy_Name.zeroes);
+        write_PED_DWORD(f, x->PESy_Name.offset);
+        /**/
 
+        write_PED_DWORD(f, x->PESy_Value);
+        write_PED_WORD(f, x->PESy_SectionNumber);
+        write_PED_WORD(f, x->PESy_Type);
+        fputc(x->PESy_StorageClass, f);
+        fputc(x->PESy_NumberOfAuxSymbols, f);
+}
 
 
 /* The sections that we use to map our own code to PE format */
@@ -480,14 +641,25 @@ enum {
 };
 
 
+INTERNAL int pe64relocCnt;
+INTERNAL int pe64symCnt;
+
+INTERNAL struct Alloc pe64relocAlloc;
+INTERNAL struct Alloc pe64symAlloc;
+
+INTERNAL struct PE_Relocation *pe64relocTab;
+INTERNAL struct PE_Symbol *pe64sym;
+
+
 INTERNAL
-void pe64_add_to_strtab(const char *str, int len)
+int pe64_add_to_strtab(const char *str, int len)
 {
         int pos = pe64strCnt;
         pe64strCnt += len + 1;
         RESIZE_GLOBAL_BUFFER(pe64strtab, pe64strCnt);
         copy_mem(&pe64strtab[pos], str, len);
         pe64strtab[pos+len] = '\0';
+        return pos;
 }
 
 INTERNAL
@@ -503,52 +675,105 @@ void set_PE_Section_Name(struct PE_SectionHeader *shdr, const char *name)
         copy_mem(&shdr->PES_Name, name, len);
 }
 
+INTERNAL
+void set_PE_Symbol_Name(struct PE_Symbol *stab, const char *name)
+{
+        int len = cstr_length(name);
+
+        /* we put all symbol names in the string table */
+        stab->PESy_Name.zeroes = 0;
+        /* We need to add 4 because the first 4 bytes in the on-disk
+         * representation are occupied by the length field indicating the size
+         * of the string table */
+        stab->PESy_Name.offset = pe64_add_to_strtab(name, len) + 4;
+}
+
 void write_pe64_object(const char *filepath)
 {
         FILE *f = fopen(filepath, "wb");
         if (f == NULL)
                 FATAL("Failed to open %s\n", filepath);
 
-        struct PE_FileHeader fh;
-        struct PE_SectionHeader sh[NUM_PESEC_KINDS];
 
-        CLEAR(fh);
+        BUF_INIT(&pe64relocTab, &pe64relocAlloc);
+        BUF_RESERVE(&pe64relocTab, &pe64relocAlloc, pe64relocCnt);
+
+        int xyz = pe64_add_to_strtab("DUMMY STRING", 12);
+        MSG(lvl_error, "offset: %d\n", xyz);
+        xyz = pe64_add_to_strtab("DUMMY STRING", 12);
+        MSG(lvl_error, "offset: %d\n", xyz);
+
+        /* Add defined symbols */
+        for (int i = 0; i < symDefCnt; i++) {
+                int sttKind;  // STT_
+                int isProc;
+                int sectionNumber;
+                int value = symDefInfo[i].offset;
+                int size = symDefInfo[i].size;
+                Symbol sym = symDefInfo[i].symbol;
+                int sectionKind = symDefInfo[i].kind;  // SECTION_
+                switch (sectionKind) {
+                case SECTION_DATA:
+                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].tData.optionaldata != -1);
+                        isProc = 0;
+                        sectionNumber = PESEC_DATA;
+                        break;
+                case SECTION_RODATA:
+                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].tData.optionaldata != -1);
+                        isProc = 0;
+                        sectionNumber = PESEC_RDATA;
+                        break;
+                case SECTION_ZERODATA:
+                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].tData.optionaldata == -1);
+                        isProc = 0;
+                        sectionNumber = PESEC_BSS;
+                        break;
+                case SECTION_CODE:
+                        ASSERT(symbolInfo[sym].kind == SYMBOL_PROC);
+                        ASSERT(symbolInfo[sym].tProc.optionalproc != -1);
+                        isProc = 1;
+                        sectionNumber = PESEC_TEXT;
+                        break;
+                default:
+                        UNHANDLED_CASE();
+                }
+
+                int x = pe64symCnt++;
+                BUF_RESERVE(&pe64sym, &pe64symAlloc, pe64symCnt);
+                CLEAR(pe64sym[x]);
+                set_PE_Symbol_Name(&pe64sym[x],
+                                   string_buffer(symbolInfo[sym].name));
+                pe64sym[x].PESy_Value = 42;  // XXX
+                pe64sym[x].PESy_Type = isProc ? 0x20 : 0x00;
+                // TODO: only export symbols that have an export statement
+                pe64sym[x].PESy_StorageClass = 0x02; //IMAGE_SYM_CLASS_EXTERNAL
+                pe64sym[x].PESy_SectionNumber = sectionNumber + 1;  // 1-based
+        }
+
+        struct PE_SectionHeader sh[NUM_PESEC_KINDS];
         CLEAR(sh);
 
-        fh.PEH_Machine = IMAGE_FILE_MACHINE_AMD64;
-        fh.PEH_NumberOfSections = NUM_PESEC_KINDS;
-        fh.PEH_TimeDataStamp = 0;
-        fh.PEH_PointerToSymbolTable = 0;
-        fh.PEH_NumberOfSymbols = 0;
-        fh.PEH_SizeOfOptionalHeader = 0;
-        fh.PEH_Characteristics = IMAGE_FILE_LINE_NUMS_STRIPPED |
-                                 IMAGE_FILE_LOCAL_SYMS_STRIPPED;
-
-        set_PE_Section_Name(&sh[PESEC_DATA], ".data");
-        set_PE_Section_Name(&sh[PESEC_RDATA], ".rdata");
-        set_PE_Section_Name(&sh[PESEC_BSS], ".bss");
-        set_PE_Section_Name(&sh[PESEC_TEXT], ".text");
-        set_PE_Section_Name(&sh[PESEC_RELOC], ".reloc");
-
-        sh[PESEC_DATA].PES_VirtualSize = dataSectionCnt;
+        sh[PESEC_DATA ].PES_VirtualSize = dataSectionCnt;
         sh[PESEC_RDATA].PES_VirtualSize = rodataSectionCnt;
-        sh[PESEC_BSS].PES_VirtualSize = zerodataSectionCnt;
-        sh[PESEC_TEXT].PES_VirtualSize = codeSectionCnt;
+        sh[PESEC_BSS  ].PES_VirtualSize = zerodataSectionCnt;
+        sh[PESEC_TEXT ].PES_VirtualSize = codeSectionCnt;
 
-        sh[PESEC_DATA].PES_SizeOfRawData = dataSectionCnt;
+        sh[PESEC_DATA ].PES_SizeOfRawData = dataSectionCnt;
         sh[PESEC_RDATA].PES_SizeOfRawData = rodataSectionCnt;
-        sh[PESEC_BSS].PES_SizeOfRawData = 0;
-        sh[PESEC_TEXT].PES_SizeOfRawData = codeSectionCnt;
+        sh[PESEC_BSS  ].PES_SizeOfRawData = 0;
+        sh[PESEC_TEXT ].PES_SizeOfRawData = codeSectionCnt;
 
         /* sections come after section headers */
-        sh[PESEC_DATA].PES_PointerToRawData =
+        sh[PESEC_DATA ].PES_PointerToRawData =
                 IMAGE_SIZEONDISK_OF_FileHeader +
                 (IMAGE_SIZEONDISK_OF_SectionHeader * NUM_PESEC_KINDS);
 #define AFTER(x) (sh[x].PES_PointerToRawData + sh[x].PES_SizeOfRawData)
         sh[PESEC_RDATA].PES_PointerToRawData = AFTER(PESEC_DATA);
-        sh[PESEC_BSS].PES_PointerToRawData = AFTER(PESEC_RDATA);
-        sh[PESEC_TEXT].PES_PointerToRawData = AFTER(PESEC_BSS);
-#undef AFTER
+        sh[PESEC_BSS  ].PES_PointerToRawData = AFTER(PESEC_RDATA);
+        sh[PESEC_TEXT ].PES_PointerToRawData = AFTER(PESEC_BSS);
 
         sh[PESEC_DATA].PES_Characteristics =
                                         IMAGE_SCN_CNT_INITIALIZED_DATA |
@@ -565,7 +790,29 @@ void write_pe64_object(const char *filepath)
                                         IMAGE_SCN_CNT_CODE |
                                         IMAGE_SCN_MEM_EXECUTE |
                                         IMAGE_SCN_MEM_READ;
+        sh[PESEC_RELOC].PES_Characteristics =
+                                        IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                        IMAGE_SCN_MEM_READ |
+                                        IMAGE_SCN_MEM_DISCARDABLE;
 
+        struct PE_FileHeader fh;
+        CLEAR(fh);
+
+        fh.PEH_Machine = IMAGE_FILE_MACHINE_AMD64;
+        fh.PEH_NumberOfSections = NUM_PESEC_KINDS;
+        fh.PEH_TimeDataStamp = 0;
+        fh.PEH_PointerToSymbolTable = AFTER(PESEC_TEXT);  // Achtung!
+        fh.PEH_NumberOfSymbols = pe64symCnt;
+        fh.PEH_SizeOfOptionalHeader = 0;
+#undef AFTER
+        fh.PEH_Characteristics = IMAGE_FILE_LINE_NUMS_STRIPPED |
+                                 IMAGE_FILE_LOCAL_SYMS_STRIPPED;
+
+        set_PE_Section_Name(&sh[PESEC_DATA], ".data");
+        set_PE_Section_Name(&sh[PESEC_RDATA], ".rdata");
+        set_PE_Section_Name(&sh[PESEC_BSS], ".bss");
+        set_PE_Section_Name(&sh[PESEC_TEXT], ".text");
+        set_PE_Section_Name(&sh[PESEC_RELOC], ".reloc");
 
         for (int i = 0; i < NUM_PESEC_KINDS; i++)
                 DEBUG("pointer to rawdata of secton %d: %d\n",
@@ -586,6 +833,8 @@ void write_pe64_object(const char *filepath)
         fwrite(codeSection, codeSectionCnt, 1, f);
 
         /* Write symbol table */
+        for (int i = 0; i < pe64symCnt; i++)
+                write_PE_Symbol(f, &pe64sym[i]);
 
         /* Write string table */
         write_PED_DWORD(f, 4 + pe64strCnt);
@@ -595,4 +844,7 @@ void write_pe64_object(const char *filepath)
                 FATAL("Errors while writing file %s\n", filepath);
         if (fclose(f))
                 FATAL("Errors while closing file %s\n", filepath);
+
+
+        BUF_EXIT(&pe64relocTab, &pe64relocAlloc);
 }
