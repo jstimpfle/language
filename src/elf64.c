@@ -678,17 +678,18 @@ void write_elf64_object(const char *outfilepath)
                 if (scopeInfo[symbolInfo[sym].scope].kind != SCOPE_GLOBAL)
                         continue;
                 int sttKind;
-                if (symbolInfo[sym].kind == SYMBOL_PROC) {
+                switch (symbolInfo[sym].kind) {
+                case SYMBOL_PROC:
                         if (symbolInfo[sym].tProc.optionalproc != -1)
                                 continue;  // the proc is defined
                         sttKind = STT_FUNC;
-                }
-                else if (symbolInfo[sym].kind == SYMBOL_DATA) {
+                        break;
+                case SYMBOL_DATA:
                         if (symbolInfo[sym].tData.optionaldata != -1)
                                 continue;  // the data is defined
                         sttKind = STT_OBJECT;
-                }
-                else {
+                        break;
+                default:
                         continue;
                 }
                 int x = elfsymCnt++;
