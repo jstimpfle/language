@@ -817,12 +817,18 @@ void x64asm_proc(IrProc irp)
 
         {
                 int j = 0;
-                X64StackLoc loc = -8; //XXX
                 for (Param i = firstProctypeParam[tp];
                      i < paramCnt && paramInfo[i].proctp == tp;
                      i++, j++) {
-                        emit_mov_64_reg_stack(cc[j], loc);;
-                        loc -= 8; //XXX
+                        Symbol sym = paramInfo[i].sym;
+                        ASSERT(scopeInfo[symbolInfo[sym].scope].kind
+                               == SCOPE_PROC);
+                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        Data data = symbolInfo[sym].tData.optionaldata;
+                        ASSERT(data != -1);
+                        IrReg reg = dataToIrReg[data];
+                        X64StackLoc loc = find_stack_loc(reg);
+                        emit_mov_64_reg_stack(cc[j], loc);
                 }
         }
 
