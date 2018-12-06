@@ -244,9 +244,10 @@ struct PE_SectionHeader {
                                            information. */
 };
 
-#define IMAGE_SIZEONDISK_OF_FileHeader     (sizeof (struct PE_FileHeader) - sizeof (PED_DWORD)) /* XXX: first element not written */
-#define IMAGE_SIZEONDISK_OF_SectionHeader  (sizeof (struct PE_SectionHeader)) /* XXX */
-#define IMAGE_SIZEONDISK_OF_Reloc          12
+#define IMAGE_SIZEONDISK_OF_FileHeader     20  /* NOTE: first element not
+                                                  written */
+#define IMAGE_SIZEONDISK_OF_SectionHeader  40
+#define IMAGE_SIZEONDISK_OF_Reloc          10
 
 /*
    4.1 Section Flags
@@ -671,7 +672,6 @@ void write_PE_Relocation(FILE *f, const struct PE_Relocation *x)
         write_PED_DWORD  (f, x->PER_VirtualAddress);
         write_PED_DWORD  (f, x->PER_SymbolTableIndex);
         write_PED_WORD   (f, x->PER_Type);
-        write_PED_WORD   (f, 0);  // XXX padding needed?
 }
 
 INTERNAL
@@ -696,7 +696,6 @@ enum {
         PESEC_RDATA, /* read-only initialized data */
         PESEC_BSS,   /* uninitialized data */
         PESEC_TEXT,  /* executable code */
-        PESEC_RELOC,  /* image relocations */
         NUM_PESEC_KINDS,
 };
 
@@ -838,10 +837,10 @@ void write_pe64_object(const char *filepath)
                 BUF_RESERVE(&pe64symTab, &pe64symTabAlloc, pe64symCnt);
                 CLEAR(pe64symTab[x]);
                 set_PE_Symbol_Name(&pe64symTab[x], SS(sym));
-                pe64symTab[x].PESy_Value = 0;  // XXX
+                pe64symTab[x].PESy_Value = 0;  // see IMAGE_SYM_UNDEFINED
                 pe64symTab[x].PESy_Type = isProc ? 0x20 : 0x00;
-                pe64symTab[x].PESy_StorageClass = IMAGE_SYM_UNDEFINED;
-                pe64symTab[x].PESy_SectionNumber = 0;
+                pe64symTab[x].PESy_StorageClass = 0x02; //IMAGE_SYM_CLASS_EXTERNAL
+                pe64symTab[x].PESy_SectionNumber = 0;  // IMAGE_SYM_UNDEFINED
 
                 symbolToPe64sym[sym] = x;
         }
@@ -854,6 +853,7 @@ void write_pe64_object(const char *filepath)
                 int offset = relocInfo[i].offset;
                 int pesym;
                 if (sym == -1) {
+                        FATAL("Not implemented: %d, %p\n", kind, sectionToPe64section);
                         int esec = sectionToPe64section[kind];
                         pesym = pe64sectionToPe64sym[esec];
                 }
@@ -881,14 +881,11 @@ void write_pe64_object(const char *filepath)
         sh[PESEC_RDATA].PES_VirtualSize = rodataSectionCnt;
         sh[PESEC_BSS  ].PES_VirtualSize = zerodataSectionCnt;
         sh[PESEC_TEXT ].PES_VirtualSize = codeSectionCnt;
-        sh[PESEC_RELOC].PES_VirtualSize = 0; // XXX ???
 
         sh[PESEC_DATA ].PES_SizeOfRawData = dataSectionCnt;
         sh[PESEC_RDATA].PES_SizeOfRawData = rodataSectionCnt;
         sh[PESEC_BSS  ].PES_SizeOfRawData = 0;
         sh[PESEC_TEXT ].PES_SizeOfRawData = codeSectionCnt;
-        sh[PESEC_RELOC].PES_SizeOfRawData =
-                pe64relocCnt * IMAGE_SIZEONDISK_OF_Reloc;
 
         /* sections come after section headers */
         sh[PESEC_DATA ].PES_PointerToRawData =
@@ -898,7 +895,6 @@ void write_pe64_object(const char *filepath)
         sh[PESEC_RDATA].PES_PointerToRawData = AFTER(PESEC_DATA);
         sh[PESEC_BSS  ].PES_PointerToRawData = AFTER(PESEC_RDATA);
         sh[PESEC_TEXT ].PES_PointerToRawData = AFTER(PESEC_BSS);
-        sh[PESEC_RELOC].PES_PointerToRawData = AFTER(PESEC_TEXT);
 
         sh[PESEC_DATA].PES_Characteristics =
                                         IMAGE_SCN_CNT_INITIALIZED_DATA |
@@ -915,16 +911,17 @@ void write_pe64_object(const char *filepath)
                                         IMAGE_SCN_CNT_CODE |
                                         IMAGE_SCN_MEM_EXECUTE |
                                         IMAGE_SCN_MEM_READ;
-        sh[PESEC_RELOC].PES_Characteristics =
-                                        IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                        IMAGE_SCN_MEM_READ |
-                                        IMAGE_SCN_MEM_DISCARDABLE;
 
         /* XXX: PE wants to have the relocation sorted by section. Currently we
          * only have relocations for the .text section, but that will change.
          */
-        sh[PESEC_TEXT ].PES_PointerToRelocations
-                = sh[PESEC_RELOC].PES_PointerToRawData;
+        sh[PESEC_TEXT ].PES_PointerToRelocations = AFTER(PESEC_TEXT);
+        sh[PESEC_TEXT ].PES_NumberOfRelocations = pe64relocCnt;
+
+        set_PE_Section_Name(&sh[PESEC_DATA], ".data");
+        set_PE_Section_Name(&sh[PESEC_RDATA], ".rdata");
+        set_PE_Section_Name(&sh[PESEC_BSS], ".bss");
+        set_PE_Section_Name(&sh[PESEC_TEXT], ".text");
 
         struct PE_FileHeader fh;
         CLEAR(fh);
@@ -932,25 +929,21 @@ void write_pe64_object(const char *filepath)
         fh.PEH_Machine = IMAGE_FILE_MACHINE_AMD64;
         fh.PEH_NumberOfSections = NUM_PESEC_KINDS;
         fh.PEH_TimeDataStamp = 0;
-        fh.PEH_PointerToSymbolTable = AFTER(PESEC_RELOC);  // Achtung!
+        fh.PEH_PointerToSymbolTable = AFTER(PESEC_TEXT)
+                + pe64relocCnt * IMAGE_SIZEONDISK_OF_Reloc; // ACHTUNG
+#undef AFTER
         fh.PEH_NumberOfSymbols = pe64symCnt;
         fh.PEH_SizeOfOptionalHeader = 0;
-#undef AFTER
         fh.PEH_Characteristics = IMAGE_FILE_LINE_NUMS_STRIPPED |
                                  IMAGE_FILE_LOCAL_SYMS_STRIPPED |
                                  IMAGE_FILE_DEBUG_STRIPPED |
                                  IMAGE_FILE_LARGE_ADDRESS_AWARE;
 
-
-        set_PE_Section_Name(&sh[PESEC_DATA], ".data");
-        set_PE_Section_Name(&sh[PESEC_RDATA], ".rdata");
-        set_PE_Section_Name(&sh[PESEC_BSS], ".bss");
-        set_PE_Section_Name(&sh[PESEC_TEXT], ".text");
-        set_PE_Section_Name(&sh[PESEC_RELOC], ".reloc");
-
+        /*
         for (int i = 0; i < NUM_PESEC_KINDS; i++)
                 DEBUG("pointer to rawdata of secton %d: %d\n",
                       i, (int) sh[i].PES_PointerToRawData);
+                      */
 
         /* Write File Header */
         write_PE_FileHeader(f, &fh);
@@ -965,6 +958,8 @@ void write_pe64_object(const char *filepath)
         fwrite(dataSection, dataSectionCnt, 1, f);
         fwrite(rodataSection, rodataSectionCnt, 1, f);
         fwrite(codeSection, codeSectionCnt, 1, f);
+
+        /* Write relocations */
         for (int i = 0; i < pe64relocCnt; i++)
                 write_PE_Relocation(f, &pe64relocTab[i]);
 
