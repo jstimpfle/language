@@ -133,6 +133,10 @@ void resolve_symbol_references(void)
                    compare_ParamInfo);
 
         RESIZE_GLOBAL_BUFFER(firstProctypeParam, typeCnt);
+        for (int i = 0; i < typeCnt; i++)
+                firstProctypeParam[i] = 0; /* some proctypes do not have params.
+                                              we should initialize the value
+                                              nevertheless */
         for (Param param = paramCnt; param --> 0;) {
                 Type proctp = paramInfo[param].proctp;
                 ASSERT(0 <= proctp && proctp < typeCnt);
@@ -235,7 +239,6 @@ void resolve_ref_type(Type t)
                 Type rettp = typeInfo[t].tProc.rettp;
                 resolve_ref_type(rettp);
                 isComplete = isComplete && typeInfo[rettp].isComplete;
-
                 for (Param i = firstProctypeParam[t];
                      i < paramCnt && paramInfo[i].proctp == t;
                      i++) {

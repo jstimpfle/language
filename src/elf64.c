@@ -717,8 +717,11 @@ void write_elf64_object(const char *outfilepath)
                 SORT(elfsym, elfsymCnt, compare_Elf64_Sym_by_visibility);
                 for (int i = 0; i < elfsymCnt; i++)
                         mapping[elfsym[i].index_before_sorting] = i;
-                for (Symbol sym = 0; sym < symbolCnt; sym++)
-                        symbolToElfsym[sym] = mapping[symbolToElfsym[sym]];
+                for (Symbol sym = 0; sym < symbolCnt; sym++) {
+                        if (symbolToElfsym[sym] != -1)
+                                symbolToElfsym[sym] =
+                                        mapping[symbolToElfsym[sym]];
+                }
                 BUF_EXIT(&mapping, &alloc);
         }
 

@@ -616,7 +616,7 @@ void write_PE_FileHeader(FILE *f, const struct PE_FileHeader *x)
         write_PED_WORD  (f, x->PEH_Characteristics);
 }
 
-INTERNAL
+INTERNAL UNUSEDFUNC
 void write_PE_OptionalHeader(FILE *f, const struct PE_OptionalHeader *x)
 {
         write_PED_WORD   (f, x->PEO_Magic);
@@ -759,17 +759,19 @@ void write_pe64_object(const char *filepath)
         if (f == NULL)
                 FATAL("Failed to open %s\n", filepath);
 
+        BUF_INIT(&pe64relocTab, &pe64relocTabAlloc);
+        BUF_INIT(&pe64symTab, &pe64symTabAlloc);
+        BUF_INIT(&symbolToPe64sym, &symbolToPe64symAlloc);
+
         BUF_RESERVE(&symbolToPe64sym, &symbolToPe64symAlloc, symbolCnt);
         for (Symbol sym = 0; sym < symbolCnt; sym++)
                 symbolToPe64sym[sym] = -1;
 
         /* Add defined symbols */
         for (int i = 0; i < symDefCnt; i++) {
-                int sttKind;  // STT_
                 int isProc;
                 int sectionNumber;
                 int value = symDefInfo[i].offset;
-                int size = symDefInfo[i].size;
                 Symbol sym = symDefInfo[i].symbol;
                 int sectionKind = symDefInfo[i].kind;  // SECTION_
                 switch (sectionKind) {
@@ -975,4 +977,8 @@ void write_pe64_object(const char *filepath)
                 FATAL("Errors while writing file %s\n", filepath);
         if (fclose(f))
                 FATAL("Errors while closing file %s\n", filepath);
+
+        BUF_EXIT(&pe64relocTab, &pe64relocTabAlloc);
+        BUF_EXIT(&pe64symTab, &pe64symTabAlloc);
+        BUF_EXIT(&symbolToPe64sym, &symbolToPe64symAlloc);
 }
