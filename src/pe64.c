@@ -246,6 +246,7 @@ struct PE_SectionHeader {
 
 #define IMAGE_SIZEONDISK_OF_FileHeader     (sizeof (struct PE_FileHeader) - sizeof (PED_DWORD)) /* XXX: first element not written */
 #define IMAGE_SIZEONDISK_OF_SectionHeader  (sizeof (struct PE_SectionHeader)) /* XXX */
+#define IMAGE_SIZEONDISK_OF_Reloc          12
 
 /*
    4.1 Section Flags
@@ -373,9 +374,67 @@ struct PE_Relocation {
                                              “Type Indicators.” */
 };
 
+/*
+   5.2.1 Symbol Table
+ */
 
 /*
-   5.2 COFF Symbol Table
+   x64 Processors
+
+   The following relocation type indicators are defined for x64 and compatible
+   processors.
+*/
+
+#define IMAGE_REL_AMD64_ABSOLUTE   0x0000   /* The relocation is ignored. */
+#define IMAGE_REL_AMD64_ADDR64     0x0001   /* The 64-bit VA of the relocation
+                                               target. */
+#define IMAGE_REL_AMD64_ADDR32     0x0002   /* The 32-bit VA of the relocation
+                                               target. */
+#define IMAGE_REL_AMD64_ADDR32NB   0x0003   /* The 32-bit address without an
+                                               image base (RVA). */
+#define IMAGE_REL_AMD64_REL32      0x0004   /* The 32-bit relative address from
+                                               the byte following the
+                                               relocation. */
+#define IMAGE_REL_AMD64_REL32_1    0x0005   /* The 32-bit address relative to
+                                               byte distance 1 from the
+                                               relocation. */
+#define IMAGE_REL_AMD64_REL32_2    0x0006   /* The 32-bit address relative to
+                                               byte distance 2 from the
+                                               relocation. */
+#define IMAGE_REL_AMD64_REL32_3    0x0007   /* The 32-bit address relative to
+                                               byte distance 3 from the
+                                               relocation. */
+#define IMAGE_REL_AMD64_REL32_4    0x0008   /* The 32-bit address relative to
+                                               byte distance 4 from the
+                                               relocation. */
+#define IMAGE_REL_AMD64_REL32_5    0x0009   /* The 32-bit address relative to
+                                               byte distance 5 from the
+                                               relocation. */
+#define IMAGE_REL_AMD64_SECTION    0x000A   /* The 16-bit section index of the
+                                               section that contains the target.
+                                               This is used to support debugging
+                                               information. */
+#define IMAGE_REL_AMD64_SECREL     0x000B   /* The 32-bit offset of the target
+                                               from the beginning of its
+                                               section. This is used to support
+                                               debugging information and static
+                                               thread local storage. */
+#define IMAGE_REL_AMD64_SECREL7    0x000C   /* A 7-bit unsigned offset from the
+                                               base of the section that contains
+                                               the target. */
+#define IMAGE_REL_AMD64_TOKEN      0x000D   /* CLR tokens. */
+#define IMAGE_REL_AMD64_SREL32     0x000E   /* A 32-bit signed span-dependent
+                                               value emitted into the object. */
+#define IMAGE_REL_AMD64_PAIR       0x000F   /* A pair that must immediately
+                                               follow every span-dependent
+                                               value. */
+#define IMAGE_REL_AMD64_SSPAN32    0x0010   /* A 32-bit signed span-dependent
+                                               value that is applied at link
+                                               time. */
+
+
+/*
+   5.4 COFF Symbol Table
  */
 
 struct PE_Symbol {
@@ -611,7 +670,8 @@ void write_PE_Relocation(FILE *f, const struct PE_Relocation *x)
 {
         write_PED_DWORD  (f, x->PER_VirtualAddress);
         write_PED_DWORD  (f, x->PER_SymbolTableIndex);
-        write_PED_DWORD  (f, x->PER_Type);
+        write_PED_WORD   (f, x->PER_Type);
+        write_PED_WORD   (f, 0);  // XXX padding needed?
 }
 
 INTERNAL
@@ -641,14 +701,20 @@ enum {
 };
 
 
-INTERNAL int pe64relocCnt;
-INTERNAL int pe64symCnt;
+int pe64symCnt;
+int pe64relocCnt;
 
-INTERNAL struct Alloc pe64relocAlloc;
-INTERNAL struct Alloc pe64symAlloc;
+struct PE_Relocation *pe64relocTab;
+struct PE_Symbol *pe64symTab;
+int *pe64sectionToPe64sym;
+int *symbolToPe64sym;
+int *sectionToPe64section;
 
-INTERNAL struct PE_Relocation *pe64relocTab;
-INTERNAL struct PE_Symbol *pe64sym;
+struct Alloc pe64relocTabAlloc;
+struct Alloc pe64symTabAlloc;
+struct Alloc pe64sectionToPe64symAlloc;
+struct Alloc symbolToPe64symAlloc;
+struct Alloc sectionToPe64sectionAlloc;
 
 
 INTERNAL
@@ -694,14 +760,9 @@ void write_pe64_object(const char *filepath)
         if (f == NULL)
                 FATAL("Failed to open %s\n", filepath);
 
-
-        BUF_INIT(&pe64relocTab, &pe64relocAlloc);
-        BUF_RESERVE(&pe64relocTab, &pe64relocAlloc, pe64relocCnt);
-
-        int xyz = pe64_add_to_strtab("DUMMY STRING", 12);
-        MSG(lvl_error, "offset: %d\n", xyz);
-        xyz = pe64_add_to_strtab("DUMMY STRING", 12);
-        MSG(lvl_error, "offset: %d\n", xyz);
+        BUF_RESERVE(&symbolToPe64sym, &symbolToPe64symAlloc, symbolCnt);
+        for (Symbol sym = 0; sym < symbolCnt; sym++)
+                symbolToPe64sym[sym] = -1;
 
         /* Add defined symbols */
         for (int i = 0; i < symDefCnt; i++) {
@@ -742,15 +803,75 @@ void write_pe64_object(const char *filepath)
                 }
 
                 int x = pe64symCnt++;
-                BUF_RESERVE(&pe64sym, &pe64symAlloc, pe64symCnt);
-                CLEAR(pe64sym[x]);
-                set_PE_Symbol_Name(&pe64sym[x],
-                                   string_buffer(symbolInfo[sym].name));
-                pe64sym[x].PESy_Value = 42;  // XXX
-                pe64sym[x].PESy_Type = isProc ? 0x20 : 0x00;
+                BUF_RESERVE(&pe64symTab, &pe64symTabAlloc, pe64symCnt);
+                CLEAR(pe64symTab[x]);
+                set_PE_Symbol_Name(&pe64symTab[x], SS(sym));
+                pe64symTab[x].PESy_Value = value;  // XXX
+                pe64symTab[x].PESy_Type = isProc ? 0x20 : 0x00;
                 // TODO: only export symbols that have an export statement
-                pe64sym[x].PESy_StorageClass = 0x02; //IMAGE_SYM_CLASS_EXTERNAL
-                pe64sym[x].PESy_SectionNumber = sectionNumber + 1;  // 1-based
+                pe64symTab[x].PESy_StorageClass = 0x02; //IMAGE_SYM_CLASS_EXTERNAL
+                pe64symTab[x].PESy_SectionNumber = sectionNumber + 1;  // 1-based
+
+                symbolToPe64sym[sym] = x;
+        }
+        /* Add undefined symbols */
+        for (Symbol sym = 0; sym < symbolCnt; sym++) {
+                if (scopeInfo[symbolInfo[sym].scope].kind != SCOPE_GLOBAL)
+                        continue;
+                int isProc;
+                switch (symbolInfo[sym].kind) {
+                case SYMBOL_PROC:
+                        if (symbolInfo[sym].tProc.optionalproc != -1)
+                                continue;  /* symbol is defined */
+                        isProc = 1;
+                        break;
+                case SYMBOL_DATA:
+                        if (symbolInfo[sym].tData.optionaldata != -1)
+                                continue;  /* symbol is defined */
+                        isProc = 0;
+                        break;
+                default:
+                        continue;
+                }
+
+                int x = pe64symCnt++;
+                BUF_RESERVE(&pe64symTab, &pe64symTabAlloc, pe64symCnt);
+                CLEAR(pe64symTab[x]);
+                set_PE_Symbol_Name(&pe64symTab[x], SS(sym));
+                pe64symTab[x].PESy_Value = 0;  // XXX
+                pe64symTab[x].PESy_Type = isProc ? 0x20 : 0x00;
+                pe64symTab[x].PESy_StorageClass = IMAGE_SYM_UNDEFINED;
+                pe64symTab[x].PESy_SectionNumber = 0;
+
+                symbolToPe64sym[sym] = x;
+        }
+
+        /* Add relocations */
+        for (int i = 0; i < relocCnt; i++) {
+                Symbol sym = relocInfo[i].symbol;
+                int kind = relocInfo[i].kind;
+                int addend = relocInfo[i].addend;
+                int offset = relocInfo[i].offset;
+                int pesym;
+                if (sym == -1) {
+                        int esec = sectionToPe64section[kind];
+                        pesym = pe64sectionToPe64sym[esec];
+                }
+                else {
+                        pesym = symbolToPe64sym[sym];
+                        if (pesym == -1)
+                                FATAL("There is a relocation for symbol %s "
+                                      "which is not in the symbol table "
+                                      "(is this an internal error?)\n",
+                                      SS(sym));
+                }
+
+                int x = pe64relocCnt++;
+                BUF_RESERVE(&pe64relocTab, &pe64relocTabAlloc, pe64relocCnt);
+                pe64relocTab[x].PER_VirtualAddress = offset;
+                pe64relocTab[x].PER_SymbolTableIndex = pesym;
+                pe64relocTab[x].PER_Type = IMAGE_REL_AMD64_ADDR64;
+                // TODO: what about the addend?
         }
 
         struct PE_SectionHeader sh[NUM_PESEC_KINDS];
@@ -760,11 +881,14 @@ void write_pe64_object(const char *filepath)
         sh[PESEC_RDATA].PES_VirtualSize = rodataSectionCnt;
         sh[PESEC_BSS  ].PES_VirtualSize = zerodataSectionCnt;
         sh[PESEC_TEXT ].PES_VirtualSize = codeSectionCnt;
+        sh[PESEC_RELOC].PES_VirtualSize = 0; // XXX ???
 
         sh[PESEC_DATA ].PES_SizeOfRawData = dataSectionCnt;
         sh[PESEC_RDATA].PES_SizeOfRawData = rodataSectionCnt;
         sh[PESEC_BSS  ].PES_SizeOfRawData = 0;
         sh[PESEC_TEXT ].PES_SizeOfRawData = codeSectionCnt;
+        sh[PESEC_RELOC].PES_SizeOfRawData =
+                pe64relocCnt * IMAGE_SIZEONDISK_OF_Reloc;
 
         /* sections come after section headers */
         sh[PESEC_DATA ].PES_PointerToRawData =
@@ -774,6 +898,7 @@ void write_pe64_object(const char *filepath)
         sh[PESEC_RDATA].PES_PointerToRawData = AFTER(PESEC_DATA);
         sh[PESEC_BSS  ].PES_PointerToRawData = AFTER(PESEC_RDATA);
         sh[PESEC_TEXT ].PES_PointerToRawData = AFTER(PESEC_BSS);
+        sh[PESEC_RELOC].PES_PointerToRawData = AFTER(PESEC_TEXT);
 
         sh[PESEC_DATA].PES_Characteristics =
                                         IMAGE_SCN_CNT_INITIALIZED_DATA |
@@ -795,18 +920,27 @@ void write_pe64_object(const char *filepath)
                                         IMAGE_SCN_MEM_READ |
                                         IMAGE_SCN_MEM_DISCARDABLE;
 
+        /* XXX: PE wants to have the relocation sorted by section. Currently we
+         * only have relocations for the .text section, but that will change.
+         */
+        sh[PESEC_TEXT ].PES_PointerToRelocations
+                = sh[PESEC_RELOC].PES_PointerToRawData;
+
         struct PE_FileHeader fh;
         CLEAR(fh);
 
         fh.PEH_Machine = IMAGE_FILE_MACHINE_AMD64;
         fh.PEH_NumberOfSections = NUM_PESEC_KINDS;
         fh.PEH_TimeDataStamp = 0;
-        fh.PEH_PointerToSymbolTable = AFTER(PESEC_TEXT);  // Achtung!
+        fh.PEH_PointerToSymbolTable = AFTER(PESEC_RELOC);  // Achtung!
         fh.PEH_NumberOfSymbols = pe64symCnt;
         fh.PEH_SizeOfOptionalHeader = 0;
 #undef AFTER
         fh.PEH_Characteristics = IMAGE_FILE_LINE_NUMS_STRIPPED |
-                                 IMAGE_FILE_LOCAL_SYMS_STRIPPED;
+                                 IMAGE_FILE_LOCAL_SYMS_STRIPPED |
+                                 IMAGE_FILE_DEBUG_STRIPPED |
+                                 IMAGE_FILE_LARGE_ADDRESS_AWARE;
+
 
         set_PE_Section_Name(&sh[PESEC_DATA], ".data");
         set_PE_Section_Name(&sh[PESEC_RDATA], ".rdata");
@@ -831,10 +965,12 @@ void write_pe64_object(const char *filepath)
         fwrite(dataSection, dataSectionCnt, 1, f);
         fwrite(rodataSection, rodataSectionCnt, 1, f);
         fwrite(codeSection, codeSectionCnt, 1, f);
+        for (int i = 0; i < pe64relocCnt; i++)
+                write_PE_Relocation(f, &pe64relocTab[i]);
 
         /* Write symbol table */
         for (int i = 0; i < pe64symCnt; i++)
-                write_PE_Symbol(f, &pe64sym[i]);
+                write_PE_Symbol(f, &pe64symTab[i]);
 
         /* Write string table */
         write_PED_DWORD(f, 4 + pe64strCnt);
@@ -844,7 +980,4 @@ void write_pe64_object(const char *filepath)
                 FATAL("Errors while writing file %s\n", filepath);
         if (fclose(f))
                 FATAL("Errors while closing file %s\n", filepath);
-
-
-        BUF_EXIT(&pe64relocTab, &pe64relocAlloc);
 }
