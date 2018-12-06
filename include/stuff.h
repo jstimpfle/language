@@ -107,6 +107,11 @@ struct StringToBeInterned {
 /* Here we are using an old technique for avoiding code duplication, called
  * "X-macros". See locations of usage to understand better. */
 
+/*
+   TODO: a better version of this table would be:
+       (bufferName, indexType, valueType)
+   grouped by topic / file name.
+*/
 #define GLOBAL_BUFFERS_X_MACRO  \
         MAKE_GLOBAL_BUFFER(  arrayCnt,           arrayInfo            ),  \
         MAKE_GLOBAL_BUFFER(  callArgCnt,         callArgInfo          ),  \
