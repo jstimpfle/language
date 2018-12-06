@@ -40,6 +40,10 @@ int main(int argc, const char **argv)
                                 doPrettyPrintAst = 1;
                         else if (cstr_equal(argv[i], "-dump-ir"))
                                 doDumpIr = 1;
+                        else if (cstr_equal(argv[i], "-write-elf-object"))
+                                doWriteElfObject = 1;
+                        else if (cstr_equal(argv[i], "-write-pe-object"))
+                                doWritePEObject = 1;
                         else {
                                 MSG(lvl_error, "Invalid command-line argument \"%s\"\n", argv[i]);
                                 goto bad;
@@ -104,11 +108,15 @@ bad:
         DEBUG("A little codegen test...\n");
         codegen_x64();
 
-        DEBUG("Write elf object file...\n");
-        write_elf64_object("out.o");
+        if (doWriteElfObject) {
+                DEBUG("Write elf object file...\n");
+                write_elf64_object("out.o");
+        }
 
-        DEBUG("Write PE64 object file...\n");
-        write_pe64_object("out.obj");
+        if (doWritePEObject) {
+                DEBUG("Write PE64 object file...\n");
+                write_pe64_object("out.obj");
+        }
 
         DEBUG("Success. Cleanup and terminate program.\n");
         cleanup();

@@ -46,11 +46,11 @@ You can now try and compile one of the example code files in the `test/`
 directory. Run for instance:
 
 ```sh
-build/language tests/fib.txt
+build/language tests/fib.txt -write-elf-object
 ```
 
-You can also try the `-debug`, `-prettyprint-ast`, and `-dump-ir` options
-accepted by the `build/language` program.
+You can also try one of the following options accepted by the `build/language`
+program: `-debug`, `-prettyprint-ast`, `-dump-ir`, `-write-pe-object`.
 
 If the compilation was successful, an ELF-64 object file named `out.o` was
 created in the current directory. An object file is a container for machine
@@ -70,7 +70,7 @@ Then run the executable `./out` to test the program.
 Here's a little function for your Linux shell that does these steps
 
 ```sh
-compile() { build/language "$@" && cc -Wall -o out runtime/support.c out.o; }
+compile() { build/language "$@" -write-elf-object && cc -Wall -o out runtime/support.c out.o; }
 docompile() { local dash=false; for i in "$@" ; do if [ "$i" = -- ] ; then dash=true; fi; if ! "$dash"; then set -- "$@" "$i"; fi; shift; done; compile "$@"; }
 dorun() { while [ "$#" -gt 0 ] && [ "$1" != -- ]; do shift; done; shift; ./out "$@"; }
 compileandrun() { docompile "$@" && dorun "$@"; }
