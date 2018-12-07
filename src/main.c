@@ -20,7 +20,7 @@ void print_usage(const char *progname)
         outf("\n");
         outf("Usage:\n");
         outf("  %s -help\n", progname);
-        outf("  %s [-debug] [-dump-ir] [-prettyprint-ast] <program.txt>\n",
+        outf("  %s [-debug] [-dump-ir] [-prettyprint-ast] [-write-elf-object] [-write-pe-object] <prog.txt>\n",
              progname);
         outf("\n");
 }
@@ -29,37 +29,34 @@ void print_usage(const char *progname)
 int main(int argc, const char **argv)
 {
         const char *progname = argv[0];
+        int badCmdline = 0;
 
         for (int i = 1; i < argc; i++) {
-                if (argv[i][0] == '-') {
-                        if (cstr_equal(argv[i], "-help"))
-                                wantHelp = 1;
-                        else if (cstr_equal(argv[i], "-debug"))
-                                doDebug = 1;
-                        else if (cstr_equal(argv[i], "-prettyprint-ast"))
-                                doPrettyPrintAst = 1;
-                        else if (cstr_equal(argv[i], "-dump-ir"))
-                                doDumpIr = 1;
-                        else if (cstr_equal(argv[i], "-write-elf-object"))
-                                doWriteElfObject = 1;
-                        else if (cstr_equal(argv[i], "-write-pe-object"))
-                                doWritePEObject = 1;
-                        else {
-                                MSG(lvl_error, "Invalid command-line argument \"%s\"\n", argv[i]);
-                                goto bad;
-                        }
-                }
-                else {
+                if (argv[i][0] != '-')
                         fileToParse = argv[i];
+                else if (cstr_equal(argv[i], "-help"))
+                        wantHelp = 1;
+                else if (cstr_equal(argv[i], "-debug"))
+                        doDebug = 1;
+                else if (cstr_equal(argv[i], "-prettyprint-ast"))
+                        doPrettyPrintAst = 1;
+                else if (cstr_equal(argv[i], "-dump-ir"))
+                        doDumpIr = 1;
+                else if (cstr_equal(argv[i], "-write-elf-object"))
+                        doWriteElfObject = 1;
+                else if (cstr_equal(argv[i], "-write-pe-object"))
+                        doWritePEObject = 1;
+                else {
+                        MSG(lvl_error, "Invalid command-line argument: "
+                            "\"%s\"\n", argv[i]);
+                        badCmdline = 1;
                 }
         }
         if (fileToParse == 0) {
                 MSG(lvl_error, "No file to compile given on command line\n");
-                goto bad;
+                badCmdline = 1;
         }
-
-        if (0) {  /* i wonder which compilers will trip on this */
-bad:
+        if (badCmdline) {
                 print_usage(progname);
                 MSG(lvl_error, "bad invocation! Terminating.\n");
                 return 1;
@@ -105,7 +102,7 @@ bad:
                 irprint();
         }
 
-        DEBUG("A little codegen test...\n");
+        DEBUG("Generate x64 code...\n");
         codegen_x64();
 
         if (doWriteElfObject) {
