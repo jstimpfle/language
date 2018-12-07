@@ -805,13 +805,13 @@ void write_pe64_object(const char *filepath)
 
                 int x = pe64symCnt++;
                 BUF_RESERVE(&pe64symTab, &pe64symTabAlloc, pe64symCnt);
-                CLEAR(pe64symTab[x]);
                 set_PE_Symbol_Name(&pe64symTab[x], SS(sym));
                 pe64symTab[x].PESy_Value = value;  // XXX
                 pe64symTab[x].PESy_Type = isProc ? 0x20 : 0x00;
                 // TODO: only export symbols that have an export statement
                 pe64symTab[x].PESy_StorageClass = 0x02; //IMAGE_SYM_CLASS_EXTERNAL
                 pe64symTab[x].PESy_SectionNumber = sectionNumber + 1;  // 1-based
+                pe64symTab[x].PESy_NumberOfAuxSymbols = 0;
 
                 symbolToPe64sym[sym] = x;
         }
@@ -837,12 +837,12 @@ void write_pe64_object(const char *filepath)
 
                 int x = pe64symCnt++;
                 BUF_RESERVE(&pe64symTab, &pe64symTabAlloc, pe64symCnt);
-                CLEAR(pe64symTab[x]);
                 set_PE_Symbol_Name(&pe64symTab[x], SS(sym));
                 pe64symTab[x].PESy_Value = 0;  // see IMAGE_SYM_UNDEFINED
                 pe64symTab[x].PESy_Type = isProc ? 0x20 : 0x00;
                 pe64symTab[x].PESy_StorageClass = 0x02; //IMAGE_SYM_CLASS_EXTERNAL
                 pe64symTab[x].PESy_SectionNumber = 0;  // IMAGE_SYM_UNDEFINED
+                pe64symTab[x].PESy_NumberOfAuxSymbols = 0;
 
                 symbolToPe64sym[sym] = x;
         }
@@ -854,12 +854,13 @@ void write_pe64_object(const char *filepath)
                 int addend = relocInfo[i].addend;
                 int offset = relocInfo[i].offset;
                 int pesym;
+
                 if (sym == -1) {
                         FATAL("Not implemented: %d, %p\n", kind, sectionToPe64section);
                         int esec = sectionToPe64section[kind];
                         pesym = pe64sectionToPe64sym[esec];
                 }
-                else {
+                else if (addend == 0) {
                         pesym = symbolToPe64sym[sym];
                         if (pesym == -1)
                                 FATAL("There is a relocation for symbol %s "
@@ -867,13 +868,35 @@ void write_pe64_object(const char *filepath)
                                       "(is this an internal error?)\n",
                                       SS(sym));
                 }
+                else {
+                        ASSERT(addend > 0);
+                        int other = symbolToPe64sym[sym];
+                        /* need an extra symbol, unnamed */
+                        ASSERT(other != -1); // should always be true
+                        /* addend > 0 should only be the case for jumps to
+                         * function+offsets places. These functions must be
+                         * defined. */
+                        ASSERT(pe64symTab[other].PESy_SectionNumber > 0);
+                        int x = pe64symCnt++;
+                        BUF_RESERVE(&pe64symTab, &pe64symTabAlloc, pe64symCnt);
+                        set_PE_Symbol_Name(&pe64symTab[x], "");
+                        pe64symTab[x].PESy_Value =
+                                pe64symTab[other].PESy_Value + addend;
+                        pe64symTab[x].PESy_Type = 0x00;  // ???
+                        // TODO: only export symbols that have an export statement
+                        pe64symTab[x].PESy_StorageClass = 0x03; //IMAGE_SYM_CLASS_STATIC
+                        pe64symTab[x].PESy_SectionNumber =
+                                pe64symTab[other].PESy_SectionNumber;
+                        pe64symTab[x].PESy_NumberOfAuxSymbols = 0;
+
+                        pesym = x;
+                }
 
                 int x = pe64relocCnt++;
                 BUF_RESERVE(&pe64relocTab, &pe64relocTabAlloc, pe64relocCnt);
                 pe64relocTab[x].PER_VirtualAddress = offset;
                 pe64relocTab[x].PER_SymbolTableIndex = pesym;
                 pe64relocTab[x].PER_Type = IMAGE_REL_AMD64_ADDR64;
-                // TODO: what about the addend?
         }
 
         struct PE_SectionHeader sh[NUM_PESEC_KINDS];
