@@ -168,6 +168,15 @@ void resolve_symbol_references(void)
                 scopeInfo[symbolInfo[i].scope].firstSymbol = i;
         }
 
+        for (Type t = 0; t < typeCnt; t++) {
+                if (typeInfo[t].kind == TYPE_STRUCT)
+                        typeInfo[t].tStruct.firstStructmember = -1;
+        }
+        for (Structmember m = structmemberCnt; m --> 0;) {
+                Type t = structmemberInfo[m].structTp;
+                typeInfo[t].tStruct.firstStructmember = m;
+        }
+
         RESIZE_GLOBAL_BUFFER(symrefToSym, symrefCnt);
         int bad = 0;
         for (Symref ref = 0; ref < symrefCnt; ref++) {
@@ -212,6 +221,7 @@ void resolve_ref_type(Type t)
                 return;
         }
         ASSERT(typeInfo[t].isComplete == -2);
+        typeInfo[t].isComplete = -1;
 
         const int UNASSIGNED = -42;
         int isComplete = UNASSIGNED;
@@ -219,6 +229,17 @@ void resolve_ref_type(Type t)
         switch (typeInfo[t].kind) {
         case TYPE_BASE:
                 isComplete = 1;
+                break;
+        case TYPE_STRUCT:
+                isComplete = 1;
+                for (Structmember m = typeInfo[t].tStruct.firstStructmember;
+                     m < structmemberCnt &&
+                     structmemberInfo[m].structTp == t;
+                     m++) {
+                        Type mt = structmemberInfo[m].memberTp;
+                        resolve_ref_type(mt);
+                        isComplete = isComplete & typeInfo[mt].isComplete;
+                }
                 break;
         case TYPE_ENTITY:
                 resolve_ref_type(typeInfo[t].tEntity.tp);
@@ -250,7 +271,6 @@ void resolve_ref_type(Type t)
         }
         case TYPE_REFERENCE: {
                 isComplete = 0;
-                typeInfo[t].isComplete = -1;
                 Symbol sym = symrefToSym[typeInfo[t].tRef.ref];
                 if (sym != -1 && symbolInfo[sym].kind == SYMBOL_TYPE) {
                         Type symtp = symbolInfo[sym].tType;
@@ -271,6 +291,11 @@ void resolve_ref_type(Type t)
 
 void resolve_type_references(void)
 {
+        for (Structmember m = structmemberCnt; m --> 0;) {
+                Type tp = structmemberInfo[m].structTp;
+                ASSERT(typeInfo[tp].kind == TYPE_STRUCT);
+                typeInfo[tp].tStruct.firstStructmember = m;
+        }
         /* isComplete -2 means "TO DO" */
         /* isComplete -1 means "currently resolving" */
         for (Type t = 0; t < typeCnt; t++)

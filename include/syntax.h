@@ -75,14 +75,11 @@ typedef int Stmt;
 /**
  * Top-level syntactic elements:
  *
- * \typedef{Data}: The result of parsing a data declaration. See also
- * \ref{DataInfo}.
+ * \typedef{Data}: Data declaration. See also \ref{DataInfo}.
  *
- * \typedef{Array}: The result of parsing an array definition. See also
- * \ref{ArrayInfo}.
+ * \typedef{Array}: Array definition. See also \ref{ArrayInfo}.
  *
- * \typedef{Proc}: The result of parsing a proc definition. See also
- * \ref{ProcInfo}.
+ * \typedef{Proc}: Procedure definition. See also \ref{ProcInfo}.
  */
 
 typedef int Data;
@@ -381,6 +378,7 @@ DATA int exprCnt;
 DATA int callArgCnt;
 DATA int stmtCnt;
 DATA int childStmtCnt;
+
 DATA int dataCnt;
 DATA int arrayCnt;
 DATA int procCnt;

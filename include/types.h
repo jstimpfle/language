@@ -5,10 +5,13 @@
 /**
  * \typedef{Type}: Type of a runtime value.
  * \typedef{Param}: Type of a formal Proc parameter. See also \ref{ParamInfo}
+ * \typedef{Structmember}: Member of a Struct type. See also
+ * \ref{StructmemberInfo}.
  */
 
 typedef int Type;
 typedef int Param;
+typedef int Structmember;
 
 /**
  * \enum{TypeKind}: Type kinds. Types are needed to compile efficient machine
@@ -22,6 +25,7 @@ typedef int Param;
 
 enum TypeKind {
         TYPE_BASE,
+        TYPE_STRUCT,
         TYPE_ENTITY,
         TYPE_ARRAY,
         TYPE_POINTER,
@@ -35,6 +39,18 @@ enum TypeKind {
 struct BasetypeInfo {
         String name;
         int size;
+};
+
+struct StructtypeInfo {
+        String name;
+        int size;
+        Structmember firstStructmember;  // speed-up
+};
+
+struct StructmemberInfo {
+        Type structTp;
+        Type memberTp;
+        String memberName;
 };
 
 struct EntitytypeInfo {
@@ -77,6 +93,7 @@ struct TypeInfo {
         int kind;  // TYPE_?
         union {
                 struct BasetypeInfo tBase;
+                struct StructtypeInfo tStruct;
                 struct EntitytypeInfo tEntity;
                 struct ArraytypeInfo tArray;
                 struct PointertypeInfo tPointer;
@@ -107,9 +124,11 @@ extern const int basetypesToBeInitializedCnt;
 extern const char *const typeKindString[];
 
 DATA int typeCnt;
+DATA int structmemberCnt;
 DATA int paramCnt;
 
 DATA struct TypeInfo *typeInfo;
+DATA struct StructmemberInfo *structmemberInfo;
 DATA struct ParamInfo *paramInfo;
 DATA Type *exprType;
 DATA Type *procType;

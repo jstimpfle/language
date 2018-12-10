@@ -39,6 +39,7 @@ enum ConstStrKind {
         CONSTSTR_FOR,
         CONSTSTR_RETURN,
         CONSTSTR_PROC,
+        CONSTSTR_STRUCT,
         CONSTSTR_DATA,
         CONSTSTR_ENTITY,
         CONSTSTR_ARRAY,
@@ -149,6 +150,7 @@ struct StringToBeInterned {
         MAKE_GLOBAL_BUFFER(  strBucketCnt,       strBucketInfo        ),  \
         MAKE_GLOBAL_BUFFER(  strbufCnt,          strbuf               ),  \
         MAKE_GLOBAL_BUFFER(  stringCnt,          stringInfo           ),  \
+        MAKE_GLOBAL_BUFFER(  structmemberCnt,    structmemberInfo     ),  \
         MAKE_GLOBAL_BUFFER(  symbolCnt,          isSymbolExported     ),  \
         MAKE_GLOBAL_BUFFER(  symbolCnt,          symbolInfo           ),  \
         MAKE_GLOBAL_BUFFER(  symDefCnt,          symDefInfo           ),  \

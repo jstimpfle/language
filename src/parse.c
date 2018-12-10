@@ -208,6 +208,40 @@ Array parse_array(void)
 }
 
 INTERNAL
+void parse_struct_member(Type structTp)
+{
+        Token tok = parse_token_kind(TOKEN_WORD);
+        if (tokenInfo[tok].tWord.string != constStr[CONSTSTR_DATA])
+                FATAL_PARSE_ERROR_AT_TOK(tok,
+                        "struct data member expected\n");
+        Type memberTp = parse_type();
+        String memberName = parse_name();
+        parse_token_kind(TOKEN_SEMICOLON);
+        Structmember y = structmemberCnt++;
+        RESIZE_GLOBAL_BUFFER(structmemberInfo, structmemberCnt);
+        structmemberInfo[y].structTp = structTp;
+        structmemberInfo[y].memberName = memberName;
+        structmemberInfo[y].memberTp = memberTp;
+}
+
+INTERNAL
+Type parse_struct(void)
+{
+        PARSE_LOG();
+        String name = parse_name();
+        Type tp = typeCnt++;
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+        typeInfo[tp].kind = TYPE_STRUCT;
+        typeInfo[tp].tStruct.name = name;
+        add_type_symbol(name, globalScope, tp);
+        parse_token_kind(TOKEN_LEFTBRACE);
+        while (look_token_kind(TOKEN_RIGHTBRACE) == -1)
+                parse_struct_member(tp);
+        parse_token_kind(TOKEN_RIGHTBRACE);
+        return tp;
+}
+
+INTERNAL
 Data parse_data(void)
 {
         PARSE_LOG();
@@ -688,6 +722,8 @@ void parse_global_scope(void)
                         parse_entity();
                 else if (s == constStr[CONSTSTR_ARRAY])
                         parse_array();
+                else if (s == constStr[CONSTSTR_STRUCT])
+                        parse_struct();
                 else if (s == constStr[CONSTSTR_DATA])
                         parse_data();
                 else if (s == constStr[CONSTSTR_PROC])
