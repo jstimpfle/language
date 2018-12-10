@@ -181,7 +181,7 @@ void emit32(uint32_t c)
         emit_bytes(bs, LENGTH(bs));
 }
 
-void emit64(uint32_t c)
+void emit64(uint64_t c)
 {
         unsigned char bs[] = {
                 BYTE(c, 0), BYTE(c, 1), BYTE(c, 2), BYTE(c, 3),
