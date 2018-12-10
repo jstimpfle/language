@@ -141,6 +141,58 @@ void compile_binop_expr(Expr x, int usedAsLvalue)
 }
 
 INTERNAL
+void compile_member_expr(Expr x, int usedAsLvalue)
+{
+        Expr e = exprInfo[x].tMember.expr;
+        String memberName = exprInfo[x].tMember.name;
+
+        compile_expr(e, USED_AS_LVALUE);
+        int offset = 8; //XXX determine from memberName
+
+        IrReg offsetReg = irRegCnt++;
+        IrReg addrReg = irRegCnt++;
+        IrStmt loadStmt = irStmtCnt++;
+        IrStmt addStmt = irStmtCnt++;
+        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+
+        irRegInfo[offsetReg].proc = procToIrProc[exprInfo[x].proc];
+        irRegInfo[offsetReg].name = -1;
+        irRegInfo[offsetReg].sym = -1;
+        irRegInfo[offsetReg].tp = -1; // TODO: integer type
+
+        irRegInfo[addrReg].proc = procToIrProc[exprInfo[x].proc];
+        irRegInfo[addrReg].name = -1;
+        irRegInfo[addrReg].sym = -1;
+        irRegInfo[addrReg].tp = irRegInfo[exprToIrReg[e]].tp;
+
+        irStmtInfo[loadStmt].proc = exprInfo[x].proc;
+        irStmtInfo[loadStmt].kind = IRSTMT_LOADCONSTANT;
+        irStmtInfo[loadStmt].tLoadConstant.kind = IRCONSTANT_INTEGER;
+        irStmtInfo[loadStmt].tLoadConstant.tInteger = offset;
+        irStmtInfo[loadStmt].tLoadConstant.tgtreg = offsetReg;
+
+        irStmtInfo[addStmt].proc = exprInfo[x].proc;
+        irStmtInfo[addStmt].kind = IRSTMT_OP2;
+        irStmtInfo[addStmt].tOp2.kind = IROP2_ADD;
+        irStmtInfo[addStmt].tOp2.reg1 = exprToIrReg[e];
+        irStmtInfo[addStmt].tOp2.reg2 = offsetReg;
+        irStmtInfo[addStmt].tOp2.tgtreg = addrReg;
+
+        if (usedAsLvalue) {
+                exprToIrReg[x] = addrReg;
+        }
+        else {
+                IrStmt y = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irStmtInfo[y].proc = exprInfo[x].proc;
+                irStmtInfo[y].kind = IRSTMT_LOAD;
+                irStmtInfo[y].tLoad.srcaddrreg = addrReg;
+                irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
+        }
+}
+
+INTERNAL
 void compile_symref_expr(Expr x, int usedAsLvalue)
 {
         Symref ref = exprInfo[x].tSymref.ref;
@@ -266,9 +318,10 @@ void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x, int usedAsLvalue) = 
         MAKE( EXPR_LITERAL,    compile_literal_expr   ),
         MAKE( EXPR_UNOP,       compile_unop_expr      ),
         MAKE( EXPR_BINOP,      compile_binop_expr     ),
+        MAKE( EXPR_MEMBER,     compile_member_expr    ),
+        MAKE( EXPR_SUBSCRIPT,  compile_subscript_expr ),
         MAKE( EXPR_SYMREF,     compile_symref_expr    ),
         MAKE( EXPR_CALL,       compile_call_expr      ),
-        MAKE( EXPR_SUBSCRIPT,  compile_subscript_expr ),
 #undef MAKE
 };
 

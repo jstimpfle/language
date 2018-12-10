@@ -197,7 +197,7 @@ INTERNAL
 Type check_member_expr_type(Expr x)
 {
         check_expr_type(exprInfo[x].tMember.expr);
-        return (Type) -1; //TODO
+        return (Type) 0; //TODO
 }
 
 INTERNAL
