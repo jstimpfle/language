@@ -196,8 +196,36 @@ Type check_binop_expr_type(Expr x)
 INTERNAL
 Type check_member_expr_type(Expr x)
 {
-        check_expr_type(exprInfo[x].tMember.expr);
-        return (Type) 0; //TODO
+        Expr e = exprInfo[x].tMember.expr;
+        String n = exprInfo[x].tMember.name;
+        Type t1 = check_expr_type(e);
+        Type tp = -1;
+        if (t1 == -1) {
+                /* bad */
+        }
+        else if (typeInfo[t1].kind != TYPE_STRUCT) {
+                LOG_TYPE_ERROR_EXPR(x,
+                        "Invalid member expression: "
+                        "Operand is not a struct type (it is %d)\n",
+                        typeInfo[t1].kind);
+        }
+        else {
+                for (Structmember m = typeInfo[t1].tStruct.firstStructmember;
+                     m < structmemberCnt && structmemberInfo[m].structTp == t1;
+                     m++) {
+                        if (structmemberInfo[m].memberName == n) {
+                                tp = structmemberInfo[m].memberTp;
+                                break;
+                        }
+                }
+                if (tp == -1) {
+                        LOG_TYPE_ERROR_EXPR(x,
+                                "struct %s has no member called %s\n",
+                                string_buffer(typeInfo[t1].tStruct.name),
+                                string_buffer(n));
+                }
+        }
+        return tp;
 }
 
 INTERNAL
@@ -224,7 +252,7 @@ Type check_subscript_expr_type(Expr x)
         else if (typeInfo[t2].kind != TYPE_BASE)
                 LOG_TYPE_ERROR_EXPR(x,
                         "Invalid type of index used in subscript expression. "
-                        "Need integral type: %d.\n",
+                        "Need integral type: %s.\n",
                         typeKindString[typeInfo[t2].kind]);
         else if (typeInfo[t1].kind == TYPE_POINTER) {
                 tp = typeInfo[t1].tPointer.tp;
