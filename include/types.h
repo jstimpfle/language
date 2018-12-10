@@ -104,15 +104,6 @@ struct BasetypeToBeInitialized {
 extern const struct BasetypeToBeInitialized basetypesToBeInitialized[];
 extern const int basetypesToBeInitializedCnt;
 
-/**
- * \data{isExprUsedAsLvalue} indicates whether the expression is used as an
- * lvalue, i.e., it is assigned to or its adress is taken.
- *
- * \data{exprType} maps the expression to its type, taking into account the
- * value of \data{isExprUsedAsLvalue}. If the expression is not evaluated, the
- * type is a pointer type.
- */
-
 extern const char *const typeKindString[];
 
 DATA int typeCnt;
@@ -120,7 +111,6 @@ DATA int paramCnt;
 
 DATA struct TypeInfo *typeInfo;
 DATA struct ParamInfo *paramInfo;
-DATA char *isExprUsedAsLvalue;
 DATA Type *exprType;
 DATA Type *procType;
 DATA Param *firstProctypeParam;

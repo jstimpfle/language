@@ -124,7 +124,6 @@ struct StringToBeInterned {
         MAKE_GLOBAL_BUFFER(  exprCnt,            exprInfo             ),  \
         MAKE_GLOBAL_BUFFER(  exprCnt,            exprToIrReg          ),  \
         MAKE_GLOBAL_BUFFER(  exprCnt,            exprType             ),  \
-        MAKE_GLOBAL_BUFFER(  exprCnt,            isExprUsedAsLvalue   ),  \
         MAKE_GLOBAL_BUFFER(  fileCnt,            fileInfo             ),  \
         MAKE_GLOBAL_BUFFER(  gotoCnt,            gotoInfo             ),  \
         MAKE_GLOBAL_BUFFER(  irCallArgCnt,       irCallArgInfo        ),  \

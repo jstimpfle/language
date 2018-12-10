@@ -5,11 +5,16 @@
 #include "defs.h"
 #include "api.h"
 
-INTERNAL
-void compile_expr(Expr x);
+enum {
+        NOT_USED_AS_LVALUE = 0,
+        USED_AS_LVALUE = 1,
+};
 
 INTERNAL
-void compile_literal_expr(Expr x)
+void compile_expr(Expr x, int usedAsLvalue);
+
+INTERNAL
+void compile_literal_expr(Expr x, int usedAsLvalue)
 {
         IrStmt y = irStmtCnt++;
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
@@ -39,18 +44,18 @@ void compile_literal_expr(Expr x)
 }
 
 INTERNAL
-void compile_unop_expr(Expr x)
+void compile_unop_expr(Expr x, int usedAsLvalue)
 {
         Expr e1 = exprInfo[x].tUnop.expr;
         switch (exprInfo[x].tUnop.kind) {
         case UNOP_ADDRESSOF: {
-                compile_expr(e1);
+                compile_expr(e1, USED_AS_LVALUE);
                 exprToIrReg[x] = exprToIrReg[e1]; //XXX
                 break;
         }
         case UNOP_DEREF: {
-                compile_expr(e1);
-                if (isExprUsedAsLvalue[x]) {
+                compile_expr(e1, NOT_USED_AS_LVALUE);
+                if (usedAsLvalue) {
                         exprToIrReg[x] = exprToIrReg[e1]; //XXX
                 }
                 else {
@@ -69,14 +74,14 @@ void compile_unop_expr(Expr x)
 }
 
 INTERNAL
-void compile_binop_expr(Expr x)
+void compile_binop_expr(Expr x, int usedAsLvalue)
 {
         int binopKind = exprInfo[x].tBinop.kind;
         Expr e1 = exprInfo[x].tBinop.expr1;
         Expr e2 = exprInfo[x].tBinop.expr2;
         if (binopKind == BINOP_ASSIGN) {
-                compile_expr(e1); // could optimize this for simple identifier assignments
-                compile_expr(e2);
+                compile_expr(e1, USED_AS_LVALUE); // could optimize this for simple identifier assignments
+                compile_expr(e2, NOT_USED_AS_LVALUE);
                 IrStmt y = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[y].proc = exprInfo[x].proc;
@@ -89,8 +94,8 @@ void compile_binop_expr(Expr x)
                  binopKind == BINOP_MINUS ||
                  binopKind == BINOP_MUL ||
                  binopKind == BINOP_DIV) {
-                compile_expr(e1);
-                compile_expr(e2);
+                compile_expr(e1, NOT_USED_AS_LVALUE);
+                compile_expr(e2, NOT_USED_AS_LVALUE);
                 int kind;
                 switch (exprInfo[x].tBinop.kind) {
                 case BINOP_PLUS:  kind = IROP2_ADD; break;
@@ -109,8 +114,8 @@ void compile_binop_expr(Expr x)
                 irStmtInfo[y].tOp2.tgtreg = exprToIrReg[x];
         }
         else {
-                compile_expr(e1);
-                compile_expr(e2);
+                compile_expr(e1, NOT_USED_AS_LVALUE);
+                compile_expr(e2, NOT_USED_AS_LVALUE);
                 int kind;
                 switch (exprInfo[x].tBinop.kind) {
                 case BINOP_LT: kind = IRCMP_LT; break;
@@ -136,7 +141,7 @@ void compile_binop_expr(Expr x)
 }
 
 INTERNAL
-void compile_symref_expr(Expr x)
+void compile_symref_expr(Expr x, int usedAsLvalue)
 {
         Symref ref = exprInfo[x].tSymref.ref;
         Symbol sym = symrefToSym[ref];
@@ -145,7 +150,7 @@ void compile_symref_expr(Expr x)
             scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
                 Data data = symbolInfo[sym].tData.optionaldata;
                 ASSERT(data != (Data) -1);  // proc-local data must exist
-                if (! isExprUsedAsLvalue[x]) {
+                if (! usedAsLvalue) {
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[y].proc = exprInfo[x].proc;
@@ -169,7 +174,7 @@ void compile_symref_expr(Expr x)
                 irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
                 irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
                 irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
-                if (! isExprUsedAsLvalue[x]) {
+                if (! usedAsLvalue) {
                         IrStmt s1 = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[s1].proc = exprInfo[x].proc;
@@ -181,7 +186,7 @@ void compile_symref_expr(Expr x)
 }
 
 INTERNAL
-void compile_call_expr(Expr x)
+void compile_call_expr(Expr x, int usedAsLvalue)
 {
         /*
          * Evaluate function arguments
@@ -189,27 +194,17 @@ void compile_call_expr(Expr x)
         int firstCallArg = exprInfo[x].tCall.firstArgIdx;
         int lastCallArg = firstCallArg + exprInfo[x].tCall.nargs;
         for (int i = firstCallArg; i < lastCallArg; i++)
-                compile_expr(callArgInfo[i].argExpr);
+                compile_expr(callArgInfo[i].argExpr, NOT_USED_AS_LVALUE);
         /*
          * Evaluate function to call. The usual case is also a special
          * case: If we call an EXPR_SYMREF, that symbol's value is not
          * loaded, but only its address.
          */
         Expr calleeExpr = exprInfo[x].tCall.callee;
-        if (exprInfo[calleeExpr].kind == EXPR_SYMREF) {
-                Symref ref = exprInfo[calleeExpr].tSymref.ref;
-                Symbol sym = symrefToSym[ref];
-                ASSERT(sym != (Symbol) -1);
-                IrStmt s0 = irStmtCnt++;
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[s0].proc = exprInfo[x].proc;
-                irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
-                irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
-                irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[calleeExpr];
-        }
-        else {
-                compile_expr(calleeExpr);
-        }
+        if (exprInfo[calleeExpr].kind == EXPR_SYMREF)
+                compile_expr(calleeExpr, USED_AS_LVALUE);
+        else
+                compile_expr(calleeExpr, NOT_USED_AS_LVALUE);
         /*
          * Emit calling code
          */
@@ -240,12 +235,12 @@ void compile_call_expr(Expr x)
 }
 
 INTERNAL
-void compile_subscript_expr(Expr x)
+void compile_subscript_expr(Expr x, int usedAsLvalue)
 {
         Expr e1 = exprInfo[x].tSubscript.expr1;
         Expr e2 = exprInfo[x].tSubscript.expr2;
-        compile_expr(e1);
-        compile_expr(e2);
+        compile_expr(e1, NOT_USED_AS_LVALUE);
+        compile_expr(e2, NOT_USED_AS_LVALUE);
         /* offset pointer */
         IrStmt y = irStmtCnt++;
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
@@ -255,7 +250,7 @@ void compile_subscript_expr(Expr x)
         irStmtInfo[y].tOp2.reg1 = exprToIrReg[e1];
         irStmtInfo[y].tOp2.reg2 = exprToIrReg[e2];
         irStmtInfo[y].tOp2.tgtreg = exprToIrReg[x];
-        if (! isExprUsedAsLvalue[x]) {
+        if (! usedAsLvalue) {
                 IrStmt z = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[z].proc = exprInfo[x].proc;
@@ -266,7 +261,7 @@ void compile_subscript_expr(Expr x)
 }
 
 INTERNAL
-void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x) = {
+void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x, int usedAsLvalue) = {
 #define MAKE(x, y) [x] = &y
         MAKE( EXPR_LITERAL,    compile_literal_expr   ),
         MAKE( EXPR_UNOP,       compile_unop_expr      ),
@@ -278,9 +273,9 @@ void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x) = {
 };
 
 INTERNAL
-void compile_expr(Expr x)
+void compile_expr(Expr x, int usedAsLvalue)
 {
-        if (isExprUsedAsLvalue[x] &&
+        if (usedAsLvalue &&
             !( exprInfo[x].kind == EXPR_SYMREF ) &&
             !( exprInfo[x].kind == EXPR_MEMBER ) &&
             !( exprInfo[x].kind == EXPR_SUBSCRIPT ) &&
@@ -295,7 +290,7 @@ void compile_expr(Expr x)
 
         int kind = exprInfo[x].kind;
         ASSERT(0 <= kind && kind < NUM_EXPR_KINDS);
-        exprKindToCompileFunc [kind] (x);
+        exprKindToCompileFunc [kind] (x, usedAsLvalue);
 }
 
 INTERNAL
@@ -321,7 +316,7 @@ INTERNAL
 void compile_expr_stmt(IrProc irp, Stmt stmt)
 {
         (void) irp;
-        compile_expr(stmtInfo[stmt].tExpr.expr);
+        compile_expr(stmtInfo[stmt].tExpr.expr, NOT_USED_AS_LVALUE);
 }
 
 INTERNAL
@@ -338,7 +333,7 @@ void compile_if_stmt(IrProc irp, Stmt stmt)
 {
         Expr condExpr = stmtInfo[stmt].tIf.condExpr;
         Stmt ifbody = stmtInfo[stmt].tIf.ifbody;
-        compile_expr(condExpr);
+        compile_expr(condExpr, NOT_USED_AS_LVALUE);
         IrStmt irs = irStmtCnt++;
         compile_stmt(irp, ifbody);
         IrStmt stmtAfterBlock = irStmtCnt;
@@ -356,7 +351,7 @@ void compile_ifelse_stmt(IrProc irp, Stmt stmt)
         Expr condExpr = stmtInfo[stmt].tIfelse.condExpr;
         Stmt ifbody = stmtInfo[stmt].tIfelse.ifbody;
         Stmt elsebody = stmtInfo[stmt].tIfelse.elsebody;
-        compile_expr(condExpr);
+        compile_expr(condExpr, NOT_USED_AS_LVALUE);
         IrStmt j0 = irStmtCnt++;
         compile_stmt(irp, ifbody);
         IrStmt j1 = irStmtCnt++;
@@ -380,7 +375,7 @@ void compile_while_stmt(IrProc irp, Stmt stmt)
         Expr condExpr = stmtInfo[stmt].tWhile.condExpr;
         Stmt whilebody = stmtInfo[stmt].tWhile.whilebody;
         IrStmt condStmt = irStmtCnt;
-        compile_expr(condExpr);
+        compile_expr(condExpr, NOT_USED_AS_LVALUE);
         IrStmt irs = irStmtCnt++;
         compile_stmt(irp, whilebody);
         IrStmt backJmp = irStmtCnt++;
@@ -400,7 +395,7 @@ INTERNAL
 void compile_return_stmt(IrProc irp, Stmt stmt)
 {
         Expr resultExpr = stmtInfo[stmt].tReturn.expr;
-        compile_expr(resultExpr);
+        compile_expr(resultExpr, NOT_USED_AS_LVALUE);
         IrStmt irs = irStmtCnt++;
         IrReturnval ret = irReturnvalCnt++;
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
