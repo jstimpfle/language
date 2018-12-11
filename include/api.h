@@ -28,6 +28,12 @@ typedef int Type; // needed in syntax. TODO think about dependencies
 
 /**/
 
+/*
+ * init.c
+ */
+
+void init_data(void);
+
 
 /*
  * io.c
@@ -184,7 +190,6 @@ static inline const char *TS(Token tok)
 String intern_string(const void *buf, int len);
 String intern_cstring(const char *str);
 
-
 /*
  * token.c
  */
@@ -214,6 +219,7 @@ void resolve_type_references(void);
 /*
  * typemetrics.c
  */
+
 Type referenced_type(Type tp);//XXX try to get rid of this
 int get_type_size(Type tp);
 

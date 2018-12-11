@@ -196,9 +196,9 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
 };
 
 const struct BasetypeToBeInitialized basetypesToBeInitialized[] = {
-        { "void", -42 },
-        { "int", 8 },
-        { "char", 1 },
+        { "void", -42,  &builtinType[BUILTINTYPE_VOID] },
+        { "int",    8,  &builtinType[BUILTINTYPE_INT] },
+        { "char",   1,  &builtinType[BUILTINTYPE_CHAR] },
 };
 
 const int toktypeToPrefixUnopCnt = LENGTH(toktypeToPrefixUnop);

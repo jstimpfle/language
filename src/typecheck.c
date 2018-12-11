@@ -51,8 +51,14 @@ Type check_expr_type(Expr x);
 INTERNAL
 Type check_literal_expr_type(Expr x)
 {
-        (void) x;
-        return (Type) 0;  // XXX
+        switch (exprInfo[x].tLiteral.kind) {
+        case LITERAL_INTEGER:
+                return builtinType[BUILTINTYPE_INT];
+        case LITERAL_STRING:
+                return pointer_type(builtinType[BUILTINTYPE_CHAR]);
+        default:
+                UNHANDLED_CASE();
+        }
 }
 
 INTERNAL
@@ -258,9 +264,9 @@ Type check_subscript_expr_type(Expr x)
 INTERNAL
 Type check_call_expr_type(Expr x)
 {
-        Type tp = -1;
         Expr calleeExpr = exprInfo[x].tCall.callee;
         Type calleeTp = check_expr_type(calleeExpr);
+        Type tp = -1;
         if (calleeTp == -1) {
                 LOG_TYPE_ERROR_EXPR(x, "Type of callee is unknown\n");
         }

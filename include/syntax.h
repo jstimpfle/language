@@ -393,4 +393,6 @@ DATA struct DataInfo *dataInfo;
 DATA struct ArrayInfo *arrayInfo;
 DATA struct ProcInfo *procInfo;
 DATA Type *procToType;
+DATA Data *firstDataOfProc;
+DATA Expr *firstExprOfProc;
 DATA struct ExportInfo *exportInfo;

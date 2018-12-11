@@ -33,6 +33,20 @@ enum TypeKind {
         TYPE_REFERENCE, // reference another type by name
 };
 
+
+/**
+ * \enum{BuiltintypeKind}. We have a few builtin types as internal dependencies.
+ * These get initialized early in the life of the process. The resulting types
+ * are stored in a lookup table, see \ref{builtinType}.
+ */
+
+enum BuiltinTypeKind {
+        BUILTINTYPE_VOID,
+        BUILTINTYPE_INT,
+        BUILTINTYPE_CHAR,
+        NUM_BUILTINTYPE_KINDS,
+};
+
 /**
  */
 
@@ -43,6 +57,8 @@ struct BasetypeInfo {
 
 struct StructtypeInfo {
         String name;
+        /* XXX: Really the struct size is backend-specific (basic type sizes,
+         * alignment etc) so this probably shouldn't be here */
         int size;
         Structmember firstStructmember;  // speed-up
 };
@@ -117,12 +133,15 @@ struct TypeInfo {
 struct BasetypeToBeInitialized {
         const char *name;
         int size;
+        Type *builtinTypePtr;
 };
 
 extern const struct BasetypeToBeInitialized basetypesToBeInitialized[];
 extern const int basetypesToBeInitializedCnt;
 
 extern const char *const typeKindString[];
+
+DATA Type builtinType[NUM_BUILTINTYPE_KINDS];  // initialized early
 
 DATA int typeCnt;
 DATA int structmemberCnt;

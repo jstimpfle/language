@@ -175,7 +175,7 @@ void compile_member_expr(Expr x, int usedAsLvalue)
         irRegInfo[offsetReg].proc = procToIrProc[exprInfo[x].proc];
         irRegInfo[offsetReg].name = -1;
         irRegInfo[offsetReg].sym = -1;
-        irRegInfo[offsetReg].tp = -1; // TODO: integer type
+        irRegInfo[offsetReg].tp = builtinType[BUILTINTYPE_INT];
 
         irRegInfo[addrReg].proc = procToIrProc[exprInfo[x].proc];
         irRegInfo[addrReg].name = -1;
@@ -256,26 +256,21 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
 INTERNAL
 void compile_call_expr(Expr x, int usedAsLvalue)
 {
-        /*
-         * Evaluate function arguments
-         */
+        /* Evaluate function arguments */
         int firstCallArg = exprInfo[x].tCall.firstArgIdx;
         int lastCallArg = firstCallArg + exprInfo[x].tCall.nargs;
         for (int i = firstCallArg; i < lastCallArg; i++)
                 compile_expr(callArgInfo[i].argExpr, NOT_USED_AS_LVALUE);
-        /*
-         * Evaluate function to call. The usual case is also a special
-         * case: If we call an EXPR_SYMREF, that symbol's value is not
-         * loaded, but only its address.
-         */
+
+        /* Evaluate what function to call. TODO: should callees be pointers or
+         * values? */
         Expr calleeExpr = exprInfo[x].tCall.callee;
         if (exprInfo[calleeExpr].kind == EXPR_SYMREF)
                 compile_expr(calleeExpr, USED_AS_LVALUE);
         else
                 compile_expr(calleeExpr, NOT_USED_AS_LVALUE);
-        /*
-         * Emit calling code
-         */
+
+        /* Do the call */
         IrStmt y = irStmtCnt++;
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
         irStmtInfo[y].proc = exprInfo[x].proc;
@@ -283,9 +278,7 @@ void compile_call_expr(Expr x, int usedAsLvalue)
         irStmtInfo[y].tCall.calleeReg = exprToIrReg[calleeExpr];
         irStmtInfo[y].tCall.firstIrCallArg = irCallArgCnt; // XXX: Achtung!
         irStmtInfo[y].tCall.firstIrCallResult = irCallResultCnt; // XXX: Achtung!
-        /*
-         * Fix up routing information for arguments
-         */
+        /* Plumbing of call args */
         for (int i = firstCallArg; i < lastCallArg; i++) {
                 Expr argExpr = callArgInfo[i].argExpr;
                 IrCallArg arg = irCallArgCnt++;
@@ -293,9 +286,7 @@ void compile_call_expr(Expr x, int usedAsLvalue)
                 irCallArgInfo[arg].callStmt = y;
                 irCallArgInfo[arg].srcreg = exprToIrReg[argExpr];
         }
-        /*
-         * Fix up routing information for result
-         */
+        /* Plumbing of result values */
         IrCallResult ret = irCallResultCnt++;
         RESIZE_GLOBAL_BUFFER(irCallResultInfo, irCallResultCnt);
         irCallResultInfo[ret].callStmt = y;
@@ -327,17 +318,17 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
         irRegInfo[scaleReg].proc = procToIrProc[exprInfo[x].proc];
         irRegInfo[scaleReg].name = -1;
         irRegInfo[scaleReg].sym = -1;
-        irRegInfo[scaleReg].tp = -1; // TODO: integer type
+        irRegInfo[scaleReg].tp = builtinType[BUILTINTYPE_INT];
 
         irRegInfo[offsetReg].proc = procToIrProc[exprInfo[x].proc];
         irRegInfo[offsetReg].name = -1;
         irRegInfo[offsetReg].sym = -1;
-        irRegInfo[offsetReg].tp = -1; // TODO: integer type
+        irRegInfo[offsetReg].tp = builtinType[BUILTINTYPE_INT];
 
         irRegInfo[addrReg].proc = procToIrProc[exprInfo[x].proc];
         irRegInfo[addrReg].name = -1;
         irRegInfo[addrReg].sym = -1;
-        irRegInfo[addrReg].tp = -1; // TODO: integer type
+        irRegInfo[addrReg].tp = builtinType[BUILTINTYPE_INT];
 
         irStmtInfo[loadStmt].proc = exprInfo[x].proc;
         irStmtInfo[loadStmt].kind = IRSTMT_LOADCONSTANT;
@@ -542,62 +533,110 @@ void compile_stmt(IrProc irp, Stmt stmt)
         stmtKindToCompileFunc [kind] (irp, stmt);
 }
 
-void compile_to_IR(void)
+INTERNAL
+void compile_proc(Proc p)
 {
-        DEBUG("For each expression find its proc.\n");
-        DEBUG("(TODO: think about adding this data already when parsing)?\n");
-        DEBUG("For each Proc make an IrProc\n");
-        RESIZE_GLOBAL_BUFFER(procToIrProc, procCnt);
-        for (Proc x = 0; x < procCnt; x++) {
-                IrProc ip = irProcCnt++;
-                procToIrProc[x] = ip;
-                RESIZE_GLOBAL_BUFFER(irProcInfo, irProcCnt);
-                irProcInfo[ip].symbol = procInfo[x].sym;
-                irProcInfo[ip].firstIrStmt = 0;
-                irProcInfo[ip].firstIrReg = 0;
+        /* make ir registers for all of the proc's local data declarations */
+        for (Data d = firstDataOfProc[p]; d < dataCnt; d++) {
+                Scope s = dataInfo[d].scope;
+                if (scopeInfo[s].kind != SCOPE_PROC)
+                        break;
+                if (scopeInfo[s].tProc.proc != p)
+                        break;
+                IrProc irp = procToIrProc[p];
+                IrReg r = irRegCnt++;
+                dataToIrReg[d] = r;
+                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+                irRegInfo[r].proc = irp;
+                irRegInfo[r].name = symbolInfo[dataInfo[d].sym].name;
+                irRegInfo[r].sym = dataInfo[d].sym;
+                irRegInfo[r].tp = dataInfo[d].tp;
         }
 
-        DEBUG("For each local variable make an IrReg to hold it\n");
-        RESIZE_GLOBAL_BUFFER(dataToIrReg, dataCnt);
-        for (Data x = 0; x < dataCnt; x++)
-                dataToIrReg[x] = (IrReg) -1;
-        for (Data x = 0; x < dataCnt; x++) {
-                Scope s = dataInfo[x].scope;
-                if (scopeInfo[s].kind == SCOPE_PROC) {
-                        Proc p = scopeInfo[s].tProc.proc;
-                        IrProc irp = procToIrProc[p];
-                        IrReg r = irRegCnt++;
-                        dataToIrReg[x] = r;
-                        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
-                        irRegInfo[r].proc = irp;
-                        irRegInfo[r].name = symbolInfo[dataInfo[x].sym].name;
-                        irRegInfo[r].sym = dataInfo[x].sym;
-                        irRegInfo[r].tp = dataInfo[x].tp;
-                }
-        }
-
-        DEBUG("For each expression make an IrReg to hold the result\n");
-        RESIZE_GLOBAL_BUFFER(exprToIrReg, exprCnt);
-        for (Expr x = 0; x < exprCnt; x++) {
-                Proc p = exprInfo[x].proc;
+        /* make ir registers for all of the proc's expressions */
+        for (Expr x = firstExprOfProc[p];
+             x < exprCnt && exprInfo[x].proc == p;
+             x++) {
                 IrReg r = irRegCnt++;
                 exprToIrReg[x] = r;
                 RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
                 irRegInfo[r].proc = procToIrProc[p];
-                irRegInfo[r].name = intern_cstring("(tmp)") /*XXX*/;
+                irRegInfo[r].name = -1;  // register from Expr's are unnamed
                 irRegInfo[r].sym = -1; // registers from Expr's are unnamed
                 irRegInfo[r].tp = exprType[x];
+
+                DEBUG("proc %d has irreg=%d of tp=%d (%s) for expr=%d (%s)\n",
+                      irRegInfo[r].proc, r, irRegInfo[r].tp,
+                      typeKindString[typeInfo[irRegInfo[r].tp].kind],
+                      x, exprKindString[exprInfo[x].kind]);
         }
 
-        DEBUG("For each proc add appropriate IrStmts\n");
+        DEBUG("Compile proc #%d %s\n", p, SS(procInfo[p].sym));
+        IrProc irp = procToIrProc[p];
+        irProcInfo[irp].symbol = procInfo[p].sym;
+        compile_stmt(irp, procInfo[p].body);
+}
+
+void compile_to_IR(void)
+{
+        RESIZE_GLOBAL_BUFFER(procToIrProc, procCnt);
+        RESIZE_GLOBAL_BUFFER(firstDataOfProc, procCnt);
+        RESIZE_GLOBAL_BUFFER(firstExprOfProc, procCnt);
+        RESIZE_GLOBAL_BUFFER(exprToIrReg, exprCnt);
+        RESIZE_GLOBAL_BUFFER(dataToIrReg, dataCnt);
+
+        DEBUG("For each local variable start without associated IrReg\n");
+        for (Data x = 0; x < dataCnt; x++)
+                dataToIrReg[x] = (IrReg) -1;
+
+        DEBUG("For each expression find its proc.\n");
+        DEBUG("(TODO: think about adding this data already when parsing)?\n");
+        DEBUG("For each Proc make an IrProc\n");
         for (Proc p = 0; p < procCnt; p++) {
-                DEBUG("Compile proc #%d %s\n", p, SS(procInfo[p].sym));
-                IrProc irp = procToIrProc[p];
-                irProcInfo[irp].symbol = procInfo[p].sym;
-                compile_stmt(irp, procInfo[p].body);
+                IrProc ip = irProcCnt++;
+                procToIrProc[p] = ip;
+                RESIZE_GLOBAL_BUFFER(irProcInfo, irProcCnt);
+                irProcInfo[ip].symbol = procInfo[p].sym;
+                irProcInfo[ip].firstIrStmt = 0;
+                irProcInfo[ip].firstIrReg = 0;
         }
+
+        DEBUG("For each proc find its first local variable\n");
+        for (Proc p = 0; p < procCnt; p++)
+                firstDataOfProc[p] = dataCnt;
+        for (Data d = dataCnt; d --> 0;) {
+                Scope s = dataInfo[d].scope;
+                if (scopeInfo[s].kind == SCOPE_PROC)
+                        firstDataOfProc[scopeInfo[s].tProc.proc] = d;
+        }
+        for (Data d = 0; d < dataCnt; d++) {
+                Scope s = dataInfo[d].scope;
+                if (scopeInfo[s].kind == SCOPE_PROC) {
+                        DEBUG("data=%d its proc=%d its first data=%d\n",
+                              d, scopeInfo[s].tProc.proc,
+                              firstDataOfProc[scopeInfo[s].tProc.proc]);
+                }
+        }
+        DEBUG("OK\n");
+
+        DEBUG("For each proc find its first expressions\n");
+        for (Proc p = 0; p < procCnt; p++)
+                firstExprOfProc[p] = exprCnt;
+        for (Expr x = exprCnt; x --> 0;)
+                firstExprOfProc[exprInfo[x].proc] = x;
+        for (Expr x = 0; x < exprCnt; x++)
+                DEBUG("expr=%d its proc=%d its first expr=%d\n",
+                      x, exprInfo[x].proc, firstExprOfProc[exprInfo[x].proc]);
+        DEBUG("OK\n");
+
+        DEBUG("For each proc add appropriate IrStmts\n");
+        for (Proc p = 0; p < procCnt; p++)
+                compile_proc(p);
         for (IrStmt i = irStmtCnt; i --> 0;)
                 irProcInfo[irStmtInfo[i].proc].firstIrStmt = i;
+
+        for (Data d = 0; d < dataCnt; d++)
+                DEBUG("data=%d irReg=%d\n", d, dataToIrReg[d]);
 
         DEBUG("Look for jump targets and sources and sort them by target)\n");
         for (IrStmt stmt = 0; stmt < irStmtCnt; stmt++) {

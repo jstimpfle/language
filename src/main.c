@@ -67,7 +67,8 @@ int main(int argc, const char **argv)
                 return 0;
         }
 
-        initialize_pseudo_constant_data();
+        init_data();
+
         {
         File x = fileCnt++;
         RESIZE_GLOBAL_BUFFER(fileInfo, fileCnt);

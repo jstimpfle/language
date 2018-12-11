@@ -143,6 +143,8 @@ struct StringToBeInterned {
         MAKE_GLOBAL_BUFFER(  procCnt,            procInfo             ),  \
         MAKE_GLOBAL_BUFFER(  procCnt,            procToIrProc         ),  \
         MAKE_GLOBAL_BUFFER(  procCnt,            procToType           ),  \
+        MAKE_GLOBAL_BUFFER(  procCnt,            firstDataOfProc      ),  \
+        MAKE_GLOBAL_BUFFER(  procCnt,            firstExprOfProc      ),  \
         MAKE_GLOBAL_BUFFER(  relocCnt,           relocInfo            ),  \
         MAKE_GLOBAL_BUFFER(  rodataSectionCnt,   rodataSection        ),  \
         MAKE_GLOBAL_BUFFER(  scopeCnt,           scopeInfo            ),  \

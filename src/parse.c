@@ -14,18 +14,6 @@ Symbol add_type_symbol(String name, Scope scope, Type tp)
 }
 
 INTERNAL
-Scope add_global_scope(void)
-{
-        Scope x = scopeCnt++;
-        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
-        scopeInfo[x].parentScope = -1;
-        scopeInfo[x].firstSymbol = -1;
-        scopeInfo[x].numSymbols = 0;
-        scopeInfo[x].kind = SCOPE_GLOBAL;
-        return x;
-}
-
-INTERNAL
 Expr add_unop_expr(int opkind, Token tok, Expr expr)
 {
         Expr x = exprCnt++;
@@ -36,26 +24,6 @@ Expr add_unop_expr(int opkind, Token tok, Expr expr)
         exprInfo[x].tUnop.tok = tok;
         exprInfo[x].tUnop.expr = expr;
         return x;
-}
-
-void initialize_pseudo_constant_data(void)
-{
-        for (int i = 0; i < LENGTH(stringsToBeInterned); i++) {
-                int idx = stringsToBeInterned[i].constant;
-                const char *str = stringsToBeInterned[i].string;
-                constStr[idx] = intern_cstring(str);
-        }
-
-        for (int i = 0; i < basetypesToBeInitializedCnt; i++) {
-                String name = intern_cstring(basetypesToBeInitialized[i].name);
-                int size = basetypesToBeInitialized[i].size;
-                Type tp = typeCnt++;
-                RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-                typeInfo[tp].kind = TYPE_BASE;
-                typeInfo[tp].tBase.name = name;
-                typeInfo[tp].tBase.size = size;
-                add_type_symbol(name, globalScope, tp);
-        }
 }
 
 INTERNAL
@@ -110,9 +78,12 @@ void push_scope(Scope scope)
 INTERNAL
 void pop_scope(void)
 {
-        ASSERT(scopeStackCnt > 1);
+        ASSERT(scopeStackCnt > 0);
         scopeStackCnt--;
-        currentScope = scopeStack[scopeStackCnt-1];
+        if (scopeStackCnt > 0)
+                currentScope = scopeStack[scopeStackCnt-1];
+        else
+                currentScope = -1;
 }
 
 INTERNAL
@@ -713,7 +684,6 @@ void parse_global_scope(void)
 {
         PARSE_LOG();
 
-        globalScope = add_global_scope();
         push_scope(globalScope);
         while (look_token_kind(TOKEN_WORD) != -1) {
                 Token tok = parse_token_kind(TOKEN_WORD);
@@ -734,4 +704,5 @@ void parse_global_scope(void)
                         FATAL_PARSE_ERROR_AT_TOK(tok,
                             "Unexpected word %s\n", TS(tok));
         }
+        pop_scope();
 }

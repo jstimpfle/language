@@ -73,7 +73,7 @@ void resolve_symbol_references(void)
 
                 RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
                 typeInfo[tp].kind = TYPE_PROC;
-                typeInfo[tp].tProc.rettp = (Type) 0; //XXX
+                typeInfo[tp].tProc.rettp = builtinType[BUILTINTYPE_INT]; //XXX
                 typeInfo[tp].tProc.nparams = 0;
 
                 RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);

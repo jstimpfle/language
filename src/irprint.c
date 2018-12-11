@@ -38,10 +38,7 @@ void irp_symbol(Symbol sym)
 INTERNAL
 void irp_reg(IrReg v)
 {
-        if (irRegInfo[v].sym >= 0)
-                outf("%s", SS(irRegInfo[v].sym));
-        else
-                outf("%%%d", v);
+        outf("%%%d", v);
 }
 
 INTERNAL
@@ -53,6 +50,9 @@ void irp_proc(IrProc p)
              reg++) {
                 outs("  Reg:  ");
                 irp_reg(reg);
+                if (irRegInfo[reg].sym >= 0)
+                        outf(" (%s)", SS(irRegInfo[reg].sym));
+                outf(" tp=%d", irRegInfo[reg].tp);
                 outs("\n");
         }
         for (IrStmt i = irProcInfo[p].firstIrStmt;

@@ -64,8 +64,14 @@ const char *x64regNames[NUM_X64REGS] = {
 };
 
 const int cc[] = { /* "calling convention" */
+/* XXX: for now, a compile-time switch will do for chosing the calling
+ * convention */
+#ifdef _MSC_VER
+        X64_RCX, X64_RDX, X64_R8, X64_R9,
+#else
         X64_RDI, X64_RSI, X64_RDX,
         X64_RCX, X64_R8, X64_R9
+#endif
 };
 
 INTERNAL
@@ -75,7 +81,14 @@ int find_stack_loc(IrReg irreg)
         int r = 8;
         while (irreg > 0 && irRegInfo[irreg-1].proc == irRegInfo[irreg].proc) {
                 irreg--;
-                r += 8;
+                Type tp = irRegInfo[irreg].tp;
+                ASSERT(tp != (Type) -1);
+                int size = get_type_size(tp);
+                if (size <= 0)
+                        MSG(lvl_error, "sizeof reg=%d proc=%d tp=%d is %d\n",
+                            irreg, irRegInfo[irreg].proc, tp, size);
+                ASSERT(size > 0);
+                r += get_type_size(irRegInfo[irreg].tp);
         }
         return -r;
 }
@@ -242,7 +255,8 @@ int make_sib_byte(unsigned scale, unsigned r1, unsigned r2)
  * d is the displacement (register relative offset, which applies to r1 or to r2
  * depending on the preceding opcode).
  */
-static inline void emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
+INTERNAL
+void emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
 {
         r1 &= 7;
         r2 &= 7;
