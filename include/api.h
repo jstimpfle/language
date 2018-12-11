@@ -212,9 +212,16 @@ void resolve_symbol_references(void);
 void resolve_type_references(void);
 
 /*
+ * typemetrics.c
+ */
+Type referenced_type(Type tp);//XXX try to get rid of this
+int get_type_size(Type tp);
+
+/*
  * typecheck.c
  */
 void check_types(void);
+
 
 /*
  * compile.c

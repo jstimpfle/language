@@ -11,6 +11,22 @@ enum {
 };
 
 INTERNAL
+int find_struct_offset(Type tp, String memberName)
+{
+        if (typeInfo[tp].kind == TYPE_REFERENCE) //XXX
+                tp = typeInfo[tp].tRef.resolvedTp;
+        ASSERT(typeInfo[tp].kind == TYPE_STRUCT);
+        for (Structmember m = typeInfo[tp].tStruct.firstStructmember;
+             m < structmemberCnt && structmemberInfo[m].structTp == tp;
+             m++) {
+                if (structmemberInfo[m].memberName == memberName) {
+                        return structmemberInfo[m].offset;
+                }
+        }
+        UNREACHABLE();
+}
+
+INTERNAL
 void compile_expr(Expr x, int usedAsLvalue);
 
 INTERNAL
@@ -147,7 +163,7 @@ void compile_member_expr(Expr x, int usedAsLvalue)
         String memberName = exprInfo[x].tMember.name;
 
         compile_expr(e, USED_AS_LVALUE);
-        int offset = 8; //XXX determine from memberName
+        int offset = find_struct_offset(exprType[e], memberName);
 
         IrReg offsetReg = irRegCnt++;
         IrReg addrReg = irRegCnt++;
@@ -293,21 +309,65 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
         Expr e2 = exprInfo[x].tSubscript.expr2;
         compile_expr(e1, NOT_USED_AS_LVALUE);
         compile_expr(e2, NOT_USED_AS_LVALUE);
+
+        ASSERT(typeInfo[exprType[e1]].kind == TYPE_POINTER);
+        int scale = get_type_size(typeInfo[exprType[e1]].tPointer.tp);
+
         /* offset pointer */
-        IrStmt y = irStmtCnt++;
+        IrReg scaleReg = irRegCnt++;
+        IrReg offsetReg = irRegCnt++;
+        IrReg addrReg = irRegCnt++;
+        IrStmt loadStmt = irStmtCnt++;
+        IrStmt mulStmt = irStmtCnt++;
+        IrStmt addStmt = irStmtCnt++;
+
+        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-        irStmtInfo[y].proc = exprInfo[x].proc;
-        irStmtInfo[y].kind = IRSTMT_OP2;
-        irStmtInfo[y].tOp2.kind = IROP2_ADD;
-        irStmtInfo[y].tOp2.reg1 = exprToIrReg[e1];
-        irStmtInfo[y].tOp2.reg2 = exprToIrReg[e2];
-        irStmtInfo[y].tOp2.tgtreg = exprToIrReg[x];
-        if (! usedAsLvalue) {
+
+        irRegInfo[scaleReg].proc = procToIrProc[exprInfo[x].proc];
+        irRegInfo[scaleReg].name = -1;
+        irRegInfo[scaleReg].sym = -1;
+        irRegInfo[scaleReg].tp = -1; // TODO: integer type
+
+        irRegInfo[offsetReg].proc = procToIrProc[exprInfo[x].proc];
+        irRegInfo[offsetReg].name = -1;
+        irRegInfo[offsetReg].sym = -1;
+        irRegInfo[offsetReg].tp = -1; // TODO: integer type
+
+        irRegInfo[addrReg].proc = procToIrProc[exprInfo[x].proc];
+        irRegInfo[addrReg].name = -1;
+        irRegInfo[addrReg].sym = -1;
+        irRegInfo[addrReg].tp = -1; // TODO: integer type
+
+        irStmtInfo[loadStmt].proc = exprInfo[x].proc;
+        irStmtInfo[loadStmt].kind = IRSTMT_LOADCONSTANT;
+        irStmtInfo[loadStmt].tLoadConstant.kind = IRCONSTANT_INTEGER;
+        irStmtInfo[loadStmt].tLoadConstant.tInteger = scale;
+        irStmtInfo[loadStmt].tLoadConstant.tgtreg = scaleReg;
+
+        irStmtInfo[mulStmt].proc = exprInfo[x].proc;
+        irStmtInfo[mulStmt].kind = IRSTMT_OP2;
+        irStmtInfo[mulStmt].tOp2.kind = IROP2_MUL;
+        irStmtInfo[mulStmt].tOp2.reg1 = scaleReg;
+        irStmtInfo[mulStmt].tOp2.reg2 = exprToIrReg[e2];
+        irStmtInfo[mulStmt].tOp2.tgtreg = offsetReg;
+
+        irStmtInfo[addStmt].proc = exprInfo[x].proc;
+        irStmtInfo[addStmt].kind = IRSTMT_OP2;
+        irStmtInfo[addStmt].tOp2.kind = IROP2_ADD;
+        irStmtInfo[addStmt].tOp2.reg1 = exprToIrReg[e1];
+        irStmtInfo[addStmt].tOp2.reg2 = offsetReg;
+        irStmtInfo[addStmt].tOp2.tgtreg = addrReg;
+
+        if (usedAsLvalue) {
+                exprToIrReg[x] = addrReg;
+        }
+        else {
                 IrStmt z = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[z].proc = exprInfo[x].proc;
                 irStmtInfo[z].kind = IRSTMT_LOAD;
-                irStmtInfo[z].tLoad.srcaddrreg = exprToIrReg[x];
+                irStmtInfo[z].tLoad.srcaddrreg = addrReg;
                 irStmtInfo[z].tLoad.tgtreg = exprToIrReg[x];
         }
 }

@@ -197,7 +197,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
 
 const struct BasetypeToBeInitialized basetypesToBeInitialized[] = {
         { "void", -42 },
-        { "int", 4 },
+        { "int", 8 },
         { "char", 1 },
 };
 

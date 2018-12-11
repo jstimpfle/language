@@ -51,6 +51,7 @@ struct StructmemberInfo {
         Type structTp;
         Type memberTp;
         String memberName;
+        int offset;
 };
 
 struct EntitytypeInfo {

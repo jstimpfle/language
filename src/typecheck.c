@@ -13,14 +13,6 @@ int is_lvalue_expression(Expr x)
 }
 
 INTERNAL
-Type referenced_type(Type t)
-{
-        while (typeInfo[t].kind == TYPE_REFERENCE)
-                t = typeInfo[t].tRef.resolvedTp;
-        return t;
-}
-
-INTERNAL
 Type pointer_type(Type t)
 {
         // TODO: cache pointer-to version of this type
@@ -28,7 +20,7 @@ Type pointer_type(Type t)
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[r].kind = TYPE_POINTER;
         typeInfo[r].tPointer.tp = t;
-        typeInfo[r].isComplete = 0; //XXX?
+        typeInfo[r].isComplete = typeInfo[t].isComplete; //XXX?
         return r;
 }
 
@@ -206,8 +198,8 @@ Type check_member_expr_type(Expr x)
         else if (typeInfo[t1].kind != TYPE_STRUCT) {
                 LOG_TYPE_ERROR_EXPR(x,
                         "Invalid member expression: "
-                        "Operand is not a struct type (it is %d)\n",
-                        typeInfo[t1].kind);
+                        "Operand is not a struct type (it is %s)\n",
+                        typeKindString[typeInfo[t1].kind]);
         }
         else {
                 for (Structmember m = typeInfo[t1].tStruct.firstStructmember;
@@ -388,5 +380,20 @@ void check_types(void)
         }
         if (bad) {
                 FATAL("Type errors detected\n");
+        }
+
+        {
+                for (Type tp = 0; tp < typeCnt; tp++)
+                        if (typeInfo[tp].kind == TYPE_STRUCT)
+                                typeInfo[tp].tStruct.size = 0;
+                for (Structmember m = 0; m < structmemberCnt; m++) {
+                        Type tp = structmemberInfo[m].structTp;
+                        if (tp != structmemberInfo[m-1].structTp)
+                                typeInfo[tp].tStruct.size = 0;
+                        int offset = typeInfo[tp].tStruct.size;
+                        structmemberInfo[m].offset = offset;
+                        offset += get_type_size(structmemberInfo[m].memberTp);
+                        typeInfo[tp].tStruct.size = offset;
+                }
         }
 }

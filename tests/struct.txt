@@ -1,0 +1,24 @@
+struct foo {
+    data int x;
+    data bar y;
+}
+
+struct bar {
+    data int x;
+    data int y;
+    data foo z;
+}
+
+proc int main()
+{
+    data foo a;
+    a.x = 3;
+    a.y.x = 5;
+    a.y.z = 6;
+    print64(a.x);
+    print64(a.y.x);
+    print64(a.y.z);
+    return 0;
+}
+
+export main;
