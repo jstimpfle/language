@@ -398,7 +398,19 @@ void check_types(void)
                                 typeInfo[tp].tStruct.size = 0;
                         int offset = typeInfo[tp].tStruct.size;
                         structmemberInfo[m].offset = offset;
-                        offset += get_type_size(structmemberInfo[m].memberTp);
+                        int size = get_type_size(structmemberInfo[m].memberTp);
+                        /* XXX: better handling and better error message needed
+                         *
+                         * We could theoretically allow declarations in any
+                         * order as long as there are no cycles. But would that
+                         * be a good idea too?
+                         */
+                        if (size == 0) {
+                                FATAL("Incomplete type: "
+                                      "Size of member %s is not yet known!\n",
+                                      string_buffer(structmemberInfo[m].memberName));
+                        }
+                        offset += size;
                         typeInfo[tp].tStruct.size = offset;
                 }
         }

@@ -77,20 +77,20 @@ const int cc[] = { /* "calling convention" */
 INTERNAL
 int find_stack_loc(IrReg irreg)
 {
-        // XXX
-        int r = 8;
-        while (irreg > 0 && irRegInfo[irreg-1].proc == irRegInfo[irreg].proc) {
-                irreg--;
-                Type tp = irRegInfo[irreg].tp;
+        int out = 0;
+        for (IrReg reg = irreg;
+             reg >= 0 && irRegInfo[reg].proc == irRegInfo[irreg].proc;
+             reg--) {
+                Type tp = irRegInfo[reg].tp;
                 ASSERT(tp != (Type) -1);
                 int size = get_type_size(tp);
                 if (size <= 0)
                         MSG(lvl_error, "sizeof reg=%d proc=%d tp=%d is %d\n",
-                            irreg, irRegInfo[irreg].proc, tp, size);
+                            reg, irRegInfo[reg].proc, tp, size);
                 ASSERT(size > 0);
-                r += get_type_size(irRegInfo[irreg].tp);
+                out += size;
         }
-        return -r;
+        return -out;
 }
 
 INTERNAL UNUSEDFUNC
@@ -867,7 +867,7 @@ void codegen_x64(void)
         for (Data x = 0; x < dataCnt; x++) {
                 if (scopeInfo[dataInfo[x].scope].kind != SCOPE_GLOBAL)
                         continue;
-                int size = 8; //XXX: size of the data object the symbol points to
+                int size = get_type_size(dataInfo[x].tp);
                 int offset = zerodataSectionCnt;
                 zerodataSectionCnt += size;
                 emit_symbol(dataInfo[x].sym, SECTION_DATA, size, offset);

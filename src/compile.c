@@ -163,6 +163,8 @@ void compile_member_expr(Expr x, int usedAsLvalue)
         String memberName = exprInfo[x].tMember.name;
 
         compile_expr(e, USED_AS_LVALUE);
+        /* XXX: The offset should not be here! struct layout should be done
+         * in the backend. */
         int offset = find_struct_offset(exprType[e], memberName);
 
         IrReg offsetReg = irRegCnt++;
