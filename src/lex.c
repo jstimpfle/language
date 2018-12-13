@@ -7,53 +7,6 @@ INTERNAL int savedChar;
 INTERNAL Token savedToken;
 
 INTERNAL
-Token add_word_token(File file, int offset, String string)
-{
-        Token x = tokenCnt++;
-        RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
-        tokenInfo[x].file = file;
-        tokenInfo[x].offset = offset;
-        tokenInfo[x].kind = TOKEN_WORD;
-        tokenInfo[x].tWord.string = string;
-        return x;
-}
-
-INTERNAL
-Token add_integer_token(File file, int offset, long long value)
-{
-        Token x = tokenCnt++;
-        RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
-        tokenInfo[x].file = file;
-        tokenInfo[x].offset = offset;
-        tokenInfo[x].kind = TOKEN_INTEGER;
-        tokenInfo[x].tInteger.value = value;
-        return x;
-}
-
-INTERNAL
-Token add_string_token(File file, int offset, String str)
-{
-        Token x = tokenCnt++;
-        RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
-        tokenInfo[x].file = file;
-        tokenInfo[x].offset = offset;
-        tokenInfo[x].kind = TOKEN_STRING;
-        tokenInfo[x].tString.value = str;
-        return x;
-}
-
-INTERNAL
-Token add_bare_token(File file, int offset, int kind)
-{
-        Token x = tokenCnt++;
-        RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
-        tokenInfo[x].file = file;
-        tokenInfo[x].offset = offset;
-        tokenInfo[x].kind = kind;
-        return x;
-}
-
-INTERNAL
 int look_char(void)
 {
         if (haveSavedChar)
@@ -84,7 +37,6 @@ int read_char(void)
 Token parse_next_token(void)
 {
         int c;
-        Token ans;
 
         if (haveSavedToken) {
                 haveSavedToken = 0;
@@ -132,19 +84,30 @@ Token parse_next_token(void)
                                 break;
                         read_char();
                 }
-                ans = add_word_token(currentFile, off,
-                                     intern_string(lexbuf, lexbufCnt));
+                Token x = tokenCnt++;
+                RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
+                tokenInfo[x].file = currentFile;
+                tokenInfo[x].offset = off;
+                tokenInfo[x].kind = TOKEN_WORD;
+                tokenInfo[x].tWord.string = intern_string(lexbuf, lexbufCnt);
+                return x;
         }
         else if ('0' <= c && c <= '9') {
-                long long x = c - '0';
+                long long value = c - '0';
                 for (;;) {
                         c = look_char();
                         if (!('0' <= c && c <= '9'))
                                 break;
                         read_char();
-                        x = 10 * x + c - '0';
+                        value = 10 * value + c - '0';
                 }
-                ans = add_integer_token(currentFile, off, x);
+                Token x = tokenCnt++;
+                RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
+                tokenInfo[x].file = currentFile;
+                tokenInfo[x].offset = off;
+                tokenInfo[x].kind = TOKEN_INTEGER;
+                tokenInfo[x].tInteger.value = value;
+                return x;
         }
         else if (c == '"') {
                 lexbufCnt = 0;
@@ -169,8 +132,13 @@ Token parse_next_token(void)
                         RESIZE_GLOBAL_BUFFER(lexbuf, lexbufCnt);
                         lexbuf[idx] = c;
                 }
-                ans = add_string_token(currentFile, off,
-                                       intern_string(lexbuf, lexbufCnt));
+                Token x = tokenCnt++;
+                RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
+                tokenInfo[x].file = currentFile;
+                tokenInfo[x].offset = off;
+                tokenInfo[x].kind = TOKEN_STRING;
+                tokenInfo[x].tString.value = intern_string(lexbuf, lexbufCnt);
+                return x;
         }
         else {
                 static const struct { char c; int kind; } t1[] = {
@@ -206,7 +174,6 @@ Token parse_next_token(void)
                         { '<', '=', TOKEN_LT, TOKEN_LE, },
                 };
 
-                ans = -1;
                 int tokenKind = -1;
 
                 for (int i = 0; i < LENGTH(t1); i++) {
@@ -233,10 +200,13 @@ Token parse_next_token(void)
                 FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
                                      "Failed to lex token\n");
 good:
-                ans = add_bare_token(currentFile, off, tokenKind);
+                Token x = tokenCnt++;
+                RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
+                tokenInfo[x].file = currentFile;
+                tokenInfo[x].offset = off;
+                tokenInfo[x].kind = tokenKind;
+                return x;
         }
-
-        return ans;
 }
 
 Token look_next_token(void)
