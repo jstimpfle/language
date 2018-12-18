@@ -191,13 +191,10 @@ String intern_string(const void *buf, int len);
 String intern_cstring(const char *str);
 
 /*
- * token.c
+ * lex.c
  */
 
-Token parse_next_token(void);
-Token look_next_token(void);
-Token parse_token_kind(int tkind);
-Token look_token_kind(int tkind);
+Token lex_token(void);
 
 /*
  * parse.c
