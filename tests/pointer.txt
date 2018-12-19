@@ -3,18 +3,16 @@ data int testint;
 proc int main()
 {
     data int a;
-    data int* x;
-    data int* s;
+    data int^ x;
     a = 3;
     x = &a;
-    s = "Hello";
     print64(x);
-    print64(*x);
+    print64(x^);
     a = 4;
-    print64(*x);
+    print64(x^);
     testint = 42;
-    *&*&x = &testint;
-    *x = 8;
+    (&(&x)^)^ = &testint;
+    x^ = 8;
     return testint;
 }
 

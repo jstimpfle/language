@@ -116,7 +116,6 @@ const struct ToktypeToPrefixUnop toktypeToPrefixUnop[] = {
         { TOKEN_TILDE,       UNOP_INVERTBITS },
         { TOKEN_BANG,        UNOP_NOT },
         { TOKEN_AMPERSAND,   UNOP_ADDRESSOF },
-        { TOKEN_ASTERISK,    UNOP_DEREF },
         { TOKEN_MINUS,       UNOP_NEGATIVE },
         { TOKEN_PLUS,        UNOP_POSITIVE },
         { TOKEN_DOUBLEMINUS, UNOP_PREDECREMENT },
@@ -124,6 +123,7 @@ const struct ToktypeToPrefixUnop toktypeToPrefixUnop[] = {
 };
 
 const struct ToktypeToPostfixUnop toktypeToPostfixUnop[] = {
+        { TOKEN_CARET,       UNOP_DEREF },
         { TOKEN_DOUBLEMINUS, UNOP_POSTDECREMENT },
         { TOKEN_DOUBLEPLUS,  UNOP_POSTINCREMENT },
 };
@@ -142,7 +142,9 @@ const struct ToktypeToBinop toktypeToBinop[] = {
         { TOKEN_SLASH,        BINOP_DIV     },
         { TOKEN_AMPERSAND,    BINOP_BITAND  },
         { TOKEN_PIPE,         BINOP_BITOR   },
-        { TOKEN_CARET,        BINOP_BITXOR  },
+        /* caret is our dereference operator now.
+         * { TOKEN_CARET,        BINOP_BITXOR  },
+         */
 };
 
 const struct UnopInfo unopInfo[NUM_UNOPS] = {
@@ -150,7 +152,7 @@ const struct UnopInfo unopInfo[NUM_UNOPS] = {
         MAKE( UNOP_INVERTBITS,    1, "~"  ),
         MAKE( UNOP_NOT,           1, "!"  ),
         MAKE( UNOP_ADDRESSOF,     1, "&"  ),
-        MAKE( UNOP_DEREF,         1, "*"  ),
+        MAKE( UNOP_DEREF,         1, "^"  ),
         MAKE( UNOP_NEGATIVE,      1, "-"  ),
         MAKE( UNOP_POSITIVE,      1, "+"  ),
         MAKE( UNOP_PREDECREMENT,  1, "--" ),

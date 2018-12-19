@@ -88,11 +88,9 @@ typedef int Proc;
 typedef int Export;
 
 /**
- * \struct{SymbolInfo}: Represents a name given to one of the various entity
- * that the programmer can define, such as data items, array items, or types.
- * This struct contains the name and scope of the symbol as well as a reference
- * to the named item (by means of a kind tag and union containing an index for
- * each possible kind).
+ * \struct{SymbolInfo}: Contains the name and scope of a symbol as well as a
+ * reference to the named item (by means of a kind tag and union containing an
+ * index for each possible kind).
  *
  * \struct{ScopeInfo}: Represents a scope. TODO
  *
@@ -100,12 +98,10 @@ typedef int Export;
  * defined somewhere else in the code. The reference itself can occur at various
  * places in the grammar, such as as expressions or type definitions.
  *
- * \struct{DataInfo}: Result from parsing a `data` declaration. Contains the
- * name, scope, and type of the data item.
+ * \struct{DataInfo}: Contains the name, scope, and type of a data declaration.
  *
- * \struct{ArrayInfo}: Result from parsing an `array` declaration. Contains the
- * name and scope of the data item as well as the type of indices needed and
- * the type of elements contained.
+ * \struct{ArrayInfo}: Contains the name and scope of a data declaration as well
+ * as the type of indices needed and the type of elements contained.
  *
  * \struct{ProcInfo}: Result from parsing a `proc` declaration.
  */
