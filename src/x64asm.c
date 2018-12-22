@@ -562,15 +562,17 @@ void emit_local_jump(IrStmt tgtstmt)
 }
 
 INTERNAL
-void emit_local_conditional_jump(X64StackLoc condloc, IrStmt tgtstmt)
+void emit_local_conditional_jump(X64StackLoc condloc, IrStmt tgtstmt, int isNeg)
 {
         emit_mov_64_stack_reg(condloc, X64_RAX);
         // CMP AL, imm8
         emit(0x3c);
         emit(0x00);
 
-        // JNZ
-        emit(0x75);
+        if (isNeg)
+                emit(0x75); // JNZ
+        else
+                emit(0x74); // JZ
         int oldpos = codeSectionCnt;
         emit(-1); // fix later
         emit_local_jump(tgtstmt);
@@ -793,7 +795,8 @@ void x64asm_condgoto_irstmt(IrStmt irs)
         IrReg condreg = irStmtInfo[irs].tCondGoto.condreg;
         X64StackLoc condloc = find_stack_loc(condreg);
         IrStmt tgtstmt = irStmtInfo[irs].tCondGoto.tgtstmt;
-        emit_local_conditional_jump(condloc, tgtstmt);
+        int isNeg = irStmtInfo[irs].tCondGoto.isNeg;
+        emit_local_conditional_jump(condloc, tgtstmt, isNeg);
 }
 
 INTERNAL

@@ -257,9 +257,10 @@ void pp_stmt(Stmt stmt)
                 break;
         }
         case STMT_RANGE: {
+                Symbol sym = dataInfo[stmtInfo[stmt].tRange.variable].sym;
                 pp_newline();
                 outs("for ");
-                outs(string_buffer(stmtInfo[stmt].tRange.varname));
+                outs(SS(sym));
                 outs(" from ");
                 pp_expr(stmtInfo[stmt].tRange.startExpr);
                 outs(" to ");

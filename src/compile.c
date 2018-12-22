@@ -554,13 +554,55 @@ void compile_for_stmt(IrProc irp, Stmt stmt)
 INTERNAL
 void compile_range_stmt(IrProc irp, Stmt stmt)
 {
+        Data variable = stmtInfo[stmt].tRange.variable;
         Expr e1 = stmtInfo[stmt].tRange.startExpr;
         Expr e2 = stmtInfo[stmt].tRange.stopExpr;
+        Stmt rangebody = stmtInfo[stmt].tRange.rangebody;
+
+        /* XXX Override: place start value directly in the IrReg of the
+         * iteration variable, instead of placing it in the automatically
+         * generated IrReg first. This must come before compile_expr(e1,...) */
+        exprToIrReg[e1] = dataToIrReg[variable];
+
         compile_expr(e1, NOT_USED_AS_LVALUE);
         compile_expr(e2, NOT_USED_AS_LVALUE);
-        IrReg ir1 = exprToIrReg[e1];
-        IrReg ir2 = exprToIrReg[e2];
-        // TODO: get loop variable and do the loop
+
+        IrReg varReg = dataToIrReg[variable];
+        IrReg stopvalueReg = exprToIrReg[e2];
+        IrReg cmpReg = irRegCnt++;
+
+        IrStmt checkStmt = irStmtCnt++;
+        IrStmt breakStmt = irStmtCnt++;
+        compile_stmt(irp, rangebody);
+        IrStmt stepStmt = irStmtCnt++;
+        IrStmt jumpStmt = irStmtCnt++;
+        IrStmt stmtAfterBlock = irStmtCnt;
+
+        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irRegInfo[cmpReg].proc = irp;
+        irRegInfo[cmpReg].name = -1;
+        irRegInfo[cmpReg].sym = -1;
+        irRegInfo[cmpReg].tp = builtinType[BUILTINTYPE_INT];
+        irStmtInfo[checkStmt].proc = irp;
+        irStmtInfo[checkStmt].kind = IRSTMT_CMP;
+        irStmtInfo[checkStmt].tCmp.kind = IRCMP_GE;
+        irStmtInfo[checkStmt].tCmp.reg1 = varReg;
+        irStmtInfo[checkStmt].tCmp.reg2 = stopvalueReg;
+        irStmtInfo[checkStmt].tCmp.tgtreg = cmpReg;
+        irStmtInfo[breakStmt].proc = irp;
+        irStmtInfo[breakStmt].kind = IRSTMT_CONDGOTO;
+        irStmtInfo[breakStmt].tCondGoto.condreg = cmpReg;
+        irStmtInfo[breakStmt].tCondGoto.tgtstmt = stmtAfterBlock;
+        irStmtInfo[breakStmt].tCondGoto.isNeg = 0;
+        irStmtInfo[stepStmt].proc = irp;
+        irStmtInfo[stepStmt].kind = IRSTMT_OP1;
+        irStmtInfo[stepStmt].tOp1.kind = IROP1_INC;
+        irStmtInfo[stepStmt].tOp1.reg = varReg;
+        irStmtInfo[stepStmt].tOp1.tgtreg = varReg;
+        irStmtInfo[jumpStmt].proc = irp;
+        irStmtInfo[jumpStmt].kind = IRSTMT_GOTO;
+        irStmtInfo[jumpStmt].tGoto.tgtstmt = checkStmt;
 }
 
 INTERNAL

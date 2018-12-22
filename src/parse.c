@@ -465,7 +465,9 @@ Stmt parse_compound_stmt(void)
 {
         PARSE_LOG();
         Stmt stmt = stmtCnt++;
+        Scope scope = scopeCnt++;
         parse_token_kind(TOKEN_LEFTBRACE);
+        push_scope(scope);
         while (look_token_kind(TOKEN_RIGHTBRACE) == -1) {
                 Stmt child = parse_stmt();
                 int x = childStmtCnt++;
@@ -474,7 +476,14 @@ Stmt parse_compound_stmt(void)
                 childStmtInfo[x].child = child;
                 childStmtInfo[x].rank = x;
         }
+        pop_scope();
         parse_token_kind(TOKEN_RIGHTBRACE);
+        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
+        scopeInfo[scope].parentScope = currentScope;
+        scopeInfo[scope].firstSymbol = -1;
+        scopeInfo[scope].numSymbols = 0;
+        scopeInfo[scope].kind = SCOPE_PROC; //XXX
+        scopeInfo[scope].tProc.proc = currentProc;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_COMPOUND;
         stmtInfo[stmt].tCompound.numStatements = 0;
@@ -625,15 +634,47 @@ Stmt parse_range_stmt(void)
                                 "Keyword 'do' expected, got: %s\n",
                                 string_buffer(word));
         }
+
+        /* Make an extra scope containing the iteration variable */
+        Scope scope = scopeCnt++;
+        Data data = dataCnt++;
+        Symbol sym = symbolCnt++;
+        /* for now only iteration over integers is possible */
+        Type dataTp = builtinType[BUILTINTYPE_INT];
+
+        push_scope(scope);
         Stmt rangebody = parse_imperative_statement();
+        pop_scope();
+
         Stmt stmt = stmtCnt++;
+        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
+        RESIZE_GLOBAL_BUFFER(dataInfo, dataCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+
+        scopeInfo[scope].parentScope = currentScope;
+        scopeInfo[scope].firstSymbol = -1;
+        scopeInfo[scope].numSymbols = 0;
+        scopeInfo[scope].kind = SCOPE_PROC; //XXX
+        scopeInfo[scope].tProc.proc = currentProc;
+
+        dataInfo[data].scope = scope;
+        dataInfo[data].tp = dataTp;
+        dataInfo[data].sym = sym;
+
+        symbolInfo[sym].name = varname;
+        symbolInfo[sym].scope = scope;
+        symbolInfo[sym].kind = SYMBOL_DATA;
+        symbolInfo[sym].tData.tp = dataTp;
+        symbolInfo[sym].tData.optionaldata = data;
+
         stmtInfo[stmt].kind = STMT_RANGE;
-        stmtInfo[stmt].tRange.varname = varname;
+        stmtInfo[stmt].tRange.variable = data;
         stmtInfo[stmt].tRange.startExpr = startExpr;
         stmtInfo[stmt].tRange.stopExpr = stopExpr;
         stmtInfo[stmt].tRange.directionIsDown = directionIsDown;
         stmtInfo[stmt].tRange.rangebody = rangebody;
+
         return stmt;
 }
 
@@ -689,7 +730,7 @@ Proc parse_proc(void)
         RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
 
-        currentProc = proc;
+        currentProc = proc;  // "push proc"
         push_scope(pscope);
 
         parse_token_kind(TOKEN_LEFTPAREN);
@@ -727,24 +768,28 @@ Proc parse_proc(void)
         Stmt pbody = parse_compound_stmt();
         pop_scope();
 
-        scopeInfo[pscope].parentScope = parentScope;
+        ASSERT(currentScope == parentScope);
+        ASSERT(currentProc == proc);
+        scopeInfo[pscope].parentScope = currentScope;
         scopeInfo[pscope].firstSymbol = -1;
         scopeInfo[pscope].numSymbols = 0;
         scopeInfo[pscope].kind = SCOPE_PROC;
-        scopeInfo[pscope].tProc.proc = proc;
+        scopeInfo[pscope].tProc.proc = currentProc;
         procInfo[proc].sym = psym;
         procInfo[proc].scope = pscope;
         procInfo[proc].nparams = 0;
         procInfo[proc].body = pbody;
         procToType[proc] = ptype;
         symbolInfo[psym].name = pname;
-        symbolInfo[psym].scope = parentScope;
+        symbolInfo[psym].scope = currentScope;
         symbolInfo[psym].kind = SYMBOL_PROC;
         symbolInfo[psym].tProc.tp = ptype;
-        symbolInfo[psym].tProc.optionalproc = proc;
+        symbolInfo[psym].tProc.optionalproc = currentProc;
         typeInfo[ptype].kind = TYPE_PROC;
         typeInfo[ptype].tProc.rettp = rettp;
         typeInfo[ptype].tProc.nparams = nparams;
+
+        currentProc = (Proc) -1; // "pop proc"
         return proc;
 }
 

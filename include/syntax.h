@@ -302,7 +302,7 @@ struct WhileStmtInfo {
 };
 
 struct RangeStmtInfo {
-        String varname;
+        Data variable;
         Expr startExpr;
         Expr stopExpr;
         int directionIsDown;
