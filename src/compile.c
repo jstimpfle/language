@@ -30,7 +30,7 @@ INTERNAL
 void compile_expr(Expr x, int usedAsLvalue);
 
 INTERNAL
-void compile_literal_expr(Expr x, int usedAsLvalue)
+void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
 {
         IrStmt y = irStmtCnt++;
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
@@ -90,7 +90,7 @@ void compile_unop_expr(Expr x, int usedAsLvalue)
 }
 
 INTERNAL
-void compile_binop_expr(Expr x, int usedAsLvalue)
+void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
 {
         int binopKind = exprInfo[x].tBinop.kind;
         Expr e1 = exprInfo[x].tBinop.expr1;
@@ -256,7 +256,7 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
 }
 
 INTERNAL
-void compile_call_expr(Expr x, int usedAsLvalue)
+void compile_call_expr(Expr x, UNUSED int usedAsLvalue)
 {
         /* Evaluate function arguments */
         int firstCallArg = exprInfo[x].tCall.firstArgIdx;
