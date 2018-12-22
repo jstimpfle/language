@@ -70,6 +70,8 @@ enum IrStmtKind {
 };
 
 enum IrOp1Kind {
+        IROP1_INC,
+        IROP1_DEC,
         IROP1_NEG,
         IROP1_BITNEG,
         NUM_IROP1_KINDS,

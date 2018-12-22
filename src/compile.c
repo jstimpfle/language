@@ -62,6 +62,7 @@ void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
 INTERNAL
 void compile_unop_expr(Expr x, int usedAsLvalue)
 {
+        IrProc irp = procToIrProc[exprInfo[x].proc];
         Expr e1 = exprInfo[x].tUnop.expr;
         switch (exprInfo[x].tUnop.kind) {
         case UNOP_ADDRESSOF: {
@@ -82,6 +83,33 @@ void compile_unop_expr(Expr x, int usedAsLvalue)
                         irStmtInfo[y].tLoad.srcaddrreg = exprToIrReg[e1];
                         irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
                 }
+                break;
+        }
+        case UNOP_POSTINCREMENT: {
+                compile_expr(e1, USED_AS_LVALUE);
+                IrReg incReg = irRegCnt++;
+                IrStmt loadStmt = irStmtCnt++;
+                IrStmt incStmt = irStmtCnt++;
+                IrStmt storeStmt = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irRegInfo[incReg].proc = irp;
+                irRegInfo[incReg].name = -1;
+                irRegInfo[incReg].sym = -1;
+                irRegInfo[incReg].tp = builtinType[BUILTINTYPE_INT];
+                irStmtInfo[loadStmt].proc = irp;
+                irStmtInfo[loadStmt].kind = IRSTMT_LOAD;
+                irStmtInfo[loadStmt].tLoad.srcaddrreg = exprToIrReg[e1];
+                irStmtInfo[loadStmt].tLoad.tgtreg = exprToIrReg[x];
+                irStmtInfo[incStmt].proc = irp;
+                irStmtInfo[incStmt].kind = IRSTMT_OP1;
+                irStmtInfo[incStmt].tOp1.kind = IROP1_INC;
+                irStmtInfo[incStmt].tOp1.reg = exprToIrReg[x];
+                irStmtInfo[incStmt].tOp1.tgtreg = incReg;
+                irStmtInfo[storeStmt].proc = irp;
+                irStmtInfo[storeStmt].kind = IRSTMT_STORE;
+                irStmtInfo[storeStmt].tStore.srcreg = incReg;
+                irStmtInfo[storeStmt].tStore.tgtaddrreg = exprToIrReg[e1];
                 break;
         }
         default:
@@ -498,6 +526,32 @@ void compile_while_stmt(IrProc irp, Stmt stmt)
 }
 
 INTERNAL
+void compile_for_stmt(IrProc irp, Stmt stmt)
+{
+        Stmt initStmt = stmtInfo[stmt].tFor.initStmt;
+        Expr condExpr = stmtInfo[stmt].tFor.condExpr;
+        Stmt stepStmt = stmtInfo[stmt].tFor.stepStmt;
+        Stmt forbody = stmtInfo[stmt].tFor.forbody;
+        compile_stmt(irp, initStmt);
+        IrStmt cond = irStmtCnt;
+        compile_expr(condExpr, NOT_USED_AS_LVALUE);
+        IrStmt condJmp = irStmtCnt++;
+        compile_stmt(irp, forbody);
+        compile_stmt(irp, stepStmt);
+        IrStmt backJmp = irStmtCnt++;
+        IrStmt stmtAfterBlock = irStmtCnt;
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irStmtInfo[condJmp].proc = irp;
+        irStmtInfo[condJmp].kind = IRSTMT_CONDGOTO;
+        irStmtInfo[condJmp].tCondGoto.condreg = exprToIrReg[condExpr];
+        irStmtInfo[condJmp].tCondGoto.tgtstmt = stmtAfterBlock;
+        irStmtInfo[condJmp].tCondGoto.isNeg = 1;
+        irStmtInfo[backJmp].proc = irp;
+        irStmtInfo[backJmp].kind = IRSTMT_GOTO;
+        irStmtInfo[backJmp].tGoto.tgtstmt = cond;
+}
+
+INTERNAL
 void compile_return_stmt(IrProc irp, Stmt stmt)
 {
         Expr resultExpr = stmtInfo[stmt].tReturn.expr;
@@ -523,6 +577,7 @@ void (*const stmtKindToCompileFunc[NUM_STMT_KINDS])(IrProc irp, Stmt stmt) = {
         MAKE( STMT_IF,        compile_if_stmt       ),
         MAKE( STMT_IFELSE,    compile_ifelse_stmt   ),
         MAKE( STMT_WHILE,     compile_while_stmt    ),
+        MAKE( STMT_FOR,       compile_for_stmt      ),
         MAKE( STMT_RETURN,    compile_return_stmt   ),
 #undef MAKE
 };

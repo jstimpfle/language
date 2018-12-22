@@ -87,6 +87,8 @@ const char* const irStmtString[NUM_IRSTMT_KINDS] = {
 
 const char *const irOp1String[NUM_IROP1_KINDS] = {
 #define MAKE(x, y) [x] = y
+        MAKE( IROP1_INC,    "INC" ),
+        MAKE( IROP1_DEC,    "DEC" ),
         MAKE( IROP1_NEG,    "NEG" ),
         MAKE( IROP1_BITNEG, "BITNEG" ),
 #undef MAKE

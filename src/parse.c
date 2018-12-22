@@ -122,11 +122,12 @@ Token parse_token_kind(int tkind)
         Token tok = look_next_token();
         if (tok == -1)
                 FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-                               "Unexpected end of file. Expected %s token\n",
-                               tokenKindString[tkind]);
+                                "Unexpected end of file. Expected %s token\n",
+                                tokenKindString[tkind]);
         else if (tokenInfo[tok].kind != tkind)
-                FATAL_PARSE_ERROR_AT_TOK(tok, "Expected %s token\n",
-                                      tokenKindString[tkind]);
+                FATAL_PARSE_ERROR_AT_TOK(tok,
+                                "Expected %s token\n",
+                                tokenKindString[tkind]);
         consume_token();
         return tok;
 }
@@ -431,15 +432,23 @@ Stmt parse_array_stmt(void)
 }
 
 INTERNAL
-Stmt parse_expr_stmt(void)
+Stmt parse_expr_stmt_without_semicolon(void)
 {
         PARSE_LOG();
         Expr expr = parse_expr(0);
-        parse_token_kind(TOKEN_SEMICOLON);
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_EXPR;
         stmtInfo[stmt].tExpr.expr = expr;
+        return stmt;
+}
+
+INTERNAL
+Stmt parse_expr_stmt(void)
+{
+        PARSE_LOG();
+        Stmt stmt = parse_expr_stmt_without_semicolon();
+        parse_token_kind(TOKEN_SEMICOLON);
         return stmt;
 }
 
@@ -560,7 +569,7 @@ Stmt parse_for_stmt(void)
         Stmt initStmt = parse_expr_stmt();
         Expr condExpr = parse_expr(0);
         parse_token_kind(TOKEN_SEMICOLON);
-        Stmt stepStmt = parse_expr_stmt();
+        Stmt stepStmt = parse_expr_stmt_without_semicolon();
         parse_token_kind(TOKEN_RIGHTPAREN);
         Stmt forbody = parse_imperative_statement();
         Stmt stmt = stmtCnt++;
