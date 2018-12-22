@@ -190,6 +190,7 @@ enum StmtKind {
         STMT_IFELSE,
         STMT_FOR,
         STMT_WHILE,
+        STMT_RANGE,
         STMT_RETURN,
         STMT_EXPR,
         STMT_COMPOUND,
@@ -300,6 +301,14 @@ struct WhileStmtInfo {
         Stmt whilebody;
 };
 
+struct RangeStmtInfo {
+        String varname;
+        Expr startExpr;
+        Expr stopExpr;
+        int directionIsDown;
+        Stmt rangebody;
+};
+
 struct ReturnStmtInfo {
         Expr expr;
 };
@@ -313,6 +322,7 @@ struct StmtInfo {
                 struct IfelseStmtInfo tIfelse;
                 struct WhileStmtInfo tWhile;
                 struct ForStmtInfo tFor;
+                struct RangeStmtInfo tRange;
                 struct ReturnStmtInfo tReturn;
                 Data tData;
                 Array tArray;

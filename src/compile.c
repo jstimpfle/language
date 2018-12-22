@@ -552,6 +552,18 @@ void compile_for_stmt(IrProc irp, Stmt stmt)
 }
 
 INTERNAL
+void compile_range_stmt(IrProc irp, Stmt stmt)
+{
+        Expr e1 = stmtInfo[stmt].tRange.startExpr;
+        Expr e2 = stmtInfo[stmt].tRange.stopExpr;
+        compile_expr(e1, NOT_USED_AS_LVALUE);
+        compile_expr(e2, NOT_USED_AS_LVALUE);
+        IrReg ir1 = exprToIrReg[e1];
+        IrReg ir2 = exprToIrReg[e2];
+        // TODO: get loop variable and do the loop
+}
+
+INTERNAL
 void compile_return_stmt(IrProc irp, Stmt stmt)
 {
         Expr resultExpr = stmtInfo[stmt].tReturn.expr;
@@ -578,6 +590,7 @@ void (*const stmtKindToCompileFunc[NUM_STMT_KINDS])(IrProc irp, Stmt stmt) = {
         MAKE( STMT_IFELSE,    compile_ifelse_stmt   ),
         MAKE( STMT_WHILE,     compile_while_stmt    ),
         MAKE( STMT_FOR,       compile_for_stmt      ),
+        MAKE( STMT_RANGE,     compile_range_stmt    ),
         MAKE( STMT_RETURN,    compile_return_stmt   ),
 #undef MAKE
 };
@@ -587,6 +600,7 @@ void compile_stmt(IrProc irp, Stmt stmt)
 {
         int kind = stmtInfo[stmt].kind;
         ASSERT(0 <= kind && kind < NUM_STMT_KINDS);
+        ASSERT(stmtKindToCompileFunc[kind] != 0);
         stmtKindToCompileFunc [kind] (irp, stmt);
 }
 

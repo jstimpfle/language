@@ -341,6 +341,26 @@ void check_stmt_types(Stmt a)
                 check_stmt_types(stmtInfo[a].tWhile.whilebody);
                 break;
         }
+        case STMT_RANGE: {
+                Expr e1 = stmtInfo[a].tRange.startExpr;
+                Expr e2 = stmtInfo[a].tRange.stopExpr;
+                Stmt body = stmtInfo[a].tRange.rangebody;
+                Type t1 = check_expr_type(e1);
+                Type t2 = check_expr_type(e2);
+                DEBUG("Types are t1=%d t2=%d\n", t1, t2);
+                if (t1 != builtinType[BUILTINTYPE_INT]) {
+                        LOG_TYPE_ERROR_EXPR(e1,
+                                "Only integer expressions allowed\n");
+                        exprType[e1] = (Type) -1;  // XXX
+                }
+                if (t2 != builtinType[BUILTINTYPE_INT]) {
+                        LOG_TYPE_ERROR_EXPR(e2,
+                                "Only integer expressions allowed\n");
+                        exprType[e2] = (Type) -1;  // XXX
+                }
+                check_stmt_types(body);
+                break;
+        }
         case STMT_RETURN: {
                 check_expr_type(stmtInfo[a].tReturn.expr);
                 break;

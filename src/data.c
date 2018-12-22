@@ -189,13 +189,19 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_ELSE,   "else"   ),
         MAKE( CONSTSTR_WHILE,  "while"  ),
         MAKE( CONSTSTR_FOR,    "for"    ),
+        MAKE( CONSTSTR_DO,     "do"     ),
         MAKE( CONSTSTR_RETURN, "return" ),
+        MAKE( CONSTSTR_BREAK,  "break"  ),
         MAKE( CONSTSTR_PROC,   "proc"   ),
         MAKE( CONSTSTR_STRUCT, "struct" ),
         MAKE( CONSTSTR_DATA,   "data"   ),
         MAKE( CONSTSTR_ENTITY, "entity" ),
         MAKE( CONSTSTR_ARRAY,  "array"  ),
         MAKE( CONSTSTR_EXPORT, "export" ),
+        MAKE( CONSTSTR_IN,     "in"     ),
+        MAKE( CONSTSTR_FROM,   "from"   ),
+        MAKE( CONSTSTR_TO,     "to"     ),
+        MAKE( CONSTSTR_DOWNTO, "downto" ),
 #undef MAKE
 };
 

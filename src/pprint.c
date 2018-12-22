@@ -256,6 +256,18 @@ void pp_stmt(Stmt stmt)
                 pp_childstmt(stmtInfo[stmt].tFor.forbody);
                 break;
         }
+        case STMT_RANGE: {
+                pp_newline();
+                outs("for ");
+                outs(string_buffer(stmtInfo[stmt].tRange.varname));
+                outs(" from ");
+                pp_expr(stmtInfo[stmt].tRange.startExpr);
+                outs(" to ");
+                pp_expr(stmtInfo[stmt].tRange.stopExpr);
+                outs(" do ");
+                pp_childstmt(stmtInfo[stmt].tRange.rangebody);
+                break;
+        }
         case STMT_WHILE:
                 pp_newline();
                 outs("while (");

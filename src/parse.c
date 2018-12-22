@@ -124,10 +124,11 @@ Token parse_token_kind(int tkind)
                 FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
                                 "Unexpected end of file. Expected %s token\n",
                                 tokenKindString[tkind]);
-        else if (tokenInfo[tok].kind != tkind)
+        if (tokenInfo[tok].kind != tkind)
                 FATAL_PARSE_ERROR_AT_TOK(tok,
-                                "Expected %s token\n",
-                                tokenKindString[tkind]);
+                                "Expected %s token, got: %s\n",
+                                tokenKindString[tkind],
+                                tokenKindString[tokenInfo[tok].kind]);
         consume_token();
         return tok;
 }
@@ -498,7 +499,13 @@ Stmt parse_imperative_statement(void)
                 }
                 else if (s == constStr[CONSTSTR_FOR]) {
                         consume_token();
-                        return parse_for_stmt();
+                        /* XXX: There are two possible syntactical forms
+                         * following the 'for' keyword. */
+                        if (look_token_kind(TOKEN_LEFTPAREN) != (Token) -1)
+                                return parse_for_stmt();
+                        else
+                                return parse_range_stmt();
+
                 }
                 else if (s == constStr[CONSTSTR_RETURN]) {
                         consume_token();
@@ -583,6 +590,54 @@ Stmt parse_for_stmt(void)
 }
 
 INTERNAL
+Stmt parse_range_stmt(void)
+{
+        PARSE_LOG();
+        String varname = parse_name();
+        {
+                Token tok = parse_token_kind(TOKEN_WORD);
+                String word = tokenInfo[tok].tWord.string;
+                if (tokenInfo[tok].tWord.string != constStr[CONSTSTR_FROM])
+                        FATAL_PARSE_ERROR_AT_TOK(tok,
+                                "Keyword 'from' expected, got: %s\n",
+                                string_buffer(word));
+        }
+        Expr startExpr = parse_expr(0);
+        int directionIsDown;
+        {
+                Token tok = parse_token_kind(TOKEN_WORD);
+                String word = tokenInfo[tok].tWord.string;
+                if (word == constStr[CONSTSTR_TO])
+                        directionIsDown = 0;
+                else if (word == constStr[CONSTSTR_DOWNTO])
+                        directionIsDown = 1;
+                else
+                        FATAL_PARSE_ERROR_AT_TOK(tok,
+                                "Keyword 'to' or 'downto' expected, got: %s\n",
+                                string_buffer(word));
+        }
+        Expr stopExpr = parse_expr(0);
+        {
+                Token tok = parse_token_kind(TOKEN_WORD);
+                String word = tokenInfo[tok].tWord.string;
+                if (tokenInfo[tok].tWord.string != constStr[CONSTSTR_DO])
+                        FATAL_PARSE_ERROR_AT_TOK(tok,
+                                "Keyword 'do' expected, got: %s\n",
+                                string_buffer(word));
+        }
+        Stmt rangebody = parse_imperative_statement();
+        Stmt stmt = stmtCnt++;
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        stmtInfo[stmt].kind = STMT_RANGE;
+        stmtInfo[stmt].tRange.varname = varname;
+        stmtInfo[stmt].tRange.startExpr = startExpr;
+        stmtInfo[stmt].tRange.stopExpr = stopExpr;
+        stmtInfo[stmt].tRange.directionIsDown = directionIsDown;
+        stmtInfo[stmt].tRange.rangebody = rangebody;
+        return stmt;
+}
+
+INTERNAL
 Stmt parse_return_stmt(void)
 {
         PARSE_LOG();
@@ -610,29 +665,8 @@ Stmt parse_stmt(void)
                         consume_token();
                         return parse_array_stmt();
                 }
-                else if (s == constStr[CONSTSTR_IF]) {
-                        consume_token();
-                        return parse_if_stmt();
-                }
-                else if (s == constStr[CONSTSTR_WHILE]) {
-                        consume_token();
-                        return parse_while_stmt();
-                }
-                else if (s == constStr[CONSTSTR_FOR]) {
-                        consume_token();
-                        return parse_for_stmt();
-                }
-                else if (s == constStr[CONSTSTR_RETURN]) {
-                        consume_token();
-                        return parse_return_stmt();
-                }
-                else {
-                        return parse_expr_stmt();
-                }
         }
-        else {
-                return parse_expr_stmt();
-        }
+        return parse_imperative_statement();
 }
 
 INTERNAL
