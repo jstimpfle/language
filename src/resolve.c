@@ -233,8 +233,7 @@ void resolve_ref_type(Type t)
         case TYPE_STRUCT:
                 isComplete = 1;
                 for (Structmember m = typeInfo[t].tStruct.firstStructmember;
-                     m < structmemberCnt &&
-                     structmemberInfo[m].structTp == t;
+                     m < structmemberCnt && structmemberInfo[m].structTp == t;
                      m++) {
                         Type mt = structmemberInfo[m].memberTp;
                         resolve_ref_type(mt);
@@ -291,6 +290,9 @@ void resolve_ref_type(Type t)
 
 void resolve_type_references(void)
 {
+        for (Type tp = 0; tp < typeCnt; tp++)
+                if (typeInfo[tp].kind == TYPE_STRUCT)
+                        typeInfo[tp].tStruct.firstStructmember = structmemberCnt;
         for (Structmember m = structmemberCnt; m --> 0;) {
                 Type tp = structmemberInfo[m].structTp;
                 ASSERT(typeInfo[tp].kind == TYPE_STRUCT);
