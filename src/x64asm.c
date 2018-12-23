@@ -397,6 +397,15 @@ void emit_inc_64_reg(int r1)
         emit(make_modrm_byte(0x03, 0x00, r1 & 7));
 }
 
+INTERNAL
+void emit_dec_64_reg(int r1)
+{
+        int R = (r1 & ~7) ? REX_R : 0;
+        emit(REX_BASE|REX_W|R);
+        emit(0xFE);
+        emit(make_modrm_byte(0x03, 0x01, r1 & 7));
+}
+
 void emit_setcc(int kind /*X64CMP_??*/, int r)
 {
         int B = (r & ~7) ? REX_B : 0;
@@ -680,20 +689,17 @@ void x64asm_regreg_irstmt(IrStmt irs)
 INTERNAL
 void x64asm_op1_irstmt(IrStmt irs)
 {
+        IrReg reg = irStmtInfo[irs].tOp1.reg;
+        IrReg tgtreg = irStmtInfo[irs].tOp1.tgtreg;
+        X64StackLoc loc = find_stack_loc(reg);
+        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+        emit_mov_64_stack_reg(loc, X64_RAX);
         switch (irStmtInfo[irs].tOp1.kind) {
-        case IROP1_INC: {
-                IrReg reg = irStmtInfo[irs].tOp1.reg;
-                IrReg tgtreg = irStmtInfo[irs].tOp1.tgtreg;
-                X64StackLoc loc = find_stack_loc(reg);
-                X64StackLoc tgtloc = find_stack_loc(tgtreg);
-                emit_mov_64_stack_reg(loc, X64_RAX);
-                emit_inc_64_reg(X64_RAX);
-                emit_mov_64_reg_stack(X64_RAX, tgtloc);
-                break;
+        case IROP1_INC: emit_inc_64_reg(X64_RAX); break;
+        case IROP1_DEC: emit_dec_64_reg(X64_RAX); break;
+        default: UNHANDLED_CASE();
         }
-        default:
-                UNHANDLED_CASE();
-        }
+        emit_mov_64_reg_stack(X64_RAX, tgtloc);
 }
 
 INTERNAL

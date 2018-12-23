@@ -85,26 +85,35 @@ void compile_unop_expr(Expr x, int usedAsLvalue)
                 }
                 break;
         }
-        case UNOP_POSTINCREMENT: {
+
+        {
+                int opkind;
+                IrReg incReg;
+                IrReg loadReg;
+                IrReg tmpReg;
+        case UNOP_PREINCREMENT:   tmpReg = irRegCnt++;  loadReg = tmpReg;  incReg = exprToIrReg[x];  opkind = IROP1_INC; goto doit;
+        case UNOP_PREDECREMENT:   tmpReg = irRegCnt++;  loadReg = tmpReg;  incReg = exprToIrReg[x];  opkind = IROP1_DEC; goto doit;
+        case UNOP_POSTINCREMENT:  tmpReg = irRegCnt++;  loadReg = exprToIrReg[x];  incReg = tmpReg;  opkind = IROP1_INC; goto doit;
+        case UNOP_POSTDECREMENT:  tmpReg = irRegCnt++;  loadReg = exprToIrReg[x];  incReg = tmpReg;  opkind = IROP1_DEC; goto doit;
+        doit:
                 compile_expr(e1, USED_AS_LVALUE);
-                IrReg incReg = irRegCnt++;
                 IrStmt loadStmt = irStmtCnt++;
                 IrStmt incStmt = irStmtCnt++;
                 IrStmt storeStmt = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irRegInfo[incReg].proc = irp;
-                irRegInfo[incReg].name = -1;
-                irRegInfo[incReg].sym = -1;
-                irRegInfo[incReg].tp = builtinType[BUILTINTYPE_INT];
+                irRegInfo[tmpReg].proc = irp;
+                irRegInfo[tmpReg].name = -1;
+                irRegInfo[tmpReg].sym = -1;
+                irRegInfo[tmpReg].tp = builtinType[BUILTINTYPE_INT];
                 irStmtInfo[loadStmt].proc = irp;
                 irStmtInfo[loadStmt].kind = IRSTMT_LOAD;
                 irStmtInfo[loadStmt].tLoad.srcaddrreg = exprToIrReg[e1];
-                irStmtInfo[loadStmt].tLoad.tgtreg = exprToIrReg[x];
+                irStmtInfo[loadStmt].tLoad.tgtreg = loadReg;
                 irStmtInfo[incStmt].proc = irp;
                 irStmtInfo[incStmt].kind = IRSTMT_OP1;
-                irStmtInfo[incStmt].tOp1.kind = IROP1_INC;
-                irStmtInfo[incStmt].tOp1.reg = exprToIrReg[x];
+                irStmtInfo[incStmt].tOp1.kind = opkind;
+                irStmtInfo[incStmt].tOp1.reg = loadReg;
                 irStmtInfo[incStmt].tOp1.tgtreg = incReg;
                 irStmtInfo[storeStmt].proc = irp;
                 irStmtInfo[storeStmt].kind = IRSTMT_STORE;
