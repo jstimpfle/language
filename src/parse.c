@@ -457,6 +457,7 @@ INTERNAL Stmt parse_imperative_statement(void);
 INTERNAL Stmt parse_if_stmt(void);
 INTERNAL Stmt parse_while_stmt(void);
 INTERNAL Stmt parse_for_stmt(void);
+INTERNAL Stmt parse_range_stmt(void);
 INTERNAL Stmt parse_return_stmt(void);
 INTERNAL Stmt parse_stmt(void);
 
