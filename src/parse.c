@@ -310,7 +310,7 @@ Expr parse_expr(int minprec)
                 RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
                 exprInfo[expr].proc = currentProc;
                 exprInfo[expr].kind = EXPR_LITERAL;
-                exprInfo[expr].tLiteral.kind = LITERAL_INTEGER;
+                exprInfo[expr].tLiteral.literalKind = LITERAL_INTEGER;
                 exprInfo[expr].tLiteral.tok = tok;
         }
         else if (tokenInfo[tok].kind == TOKEN_STRING) {
@@ -320,7 +320,7 @@ Expr parse_expr(int minprec)
                 RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
                 exprInfo[expr].proc = currentProc;
                 exprInfo[expr].kind = EXPR_LITERAL;
-                exprInfo[expr].tLiteral.kind = LITERAL_STRING;
+                exprInfo[expr].tLiteral.literalKind = LITERAL_STRING;
                 exprInfo[expr].tLiteral.tString = string;
         }
         else if (tokenInfo[tok].kind == TOKEN_LEFTPAREN) {

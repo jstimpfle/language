@@ -102,7 +102,7 @@ void pp_expr(Expr expr)
                         break;
                 }
                 case EXPR_LITERAL: {
-                        switch (exprInfo[expr].tLiteral.kind) {
+                        switch (exprInfo[expr].tLiteral.literalKind) {
                         case LITERAL_INTEGER: {
                                 Token tok = exprInfo[expr].tLiteral.tok;
                                 outf("%lld", tokenInfo[tok].tInteger);

@@ -34,7 +34,7 @@ void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
 {
         IrStmt y = irStmtCnt++;
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-        switch (exprInfo[x].tLiteral.kind) {
+        switch (exprInfo[x].tLiteral.literalKind) {
         case LITERAL_INTEGER: {
                 Token tok = exprInfo[x].tLiteral.tok;
                 long long constval = tokenInfo[tok].tInteger.value;

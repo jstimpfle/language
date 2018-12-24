@@ -51,7 +51,7 @@ Type check_expr_type(Expr x);
 INTERNAL
 Type check_literal_expr_type(Expr x)
 {
-        switch (exprInfo[x].tLiteral.kind) {
+        switch (exprInfo[x].tLiteral.literalKind) {
         case LITERAL_INTEGER:
                 return builtinType[BUILTINTYPE_INT];
         case LITERAL_STRING:

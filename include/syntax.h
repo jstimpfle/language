@@ -209,7 +209,7 @@ struct SymrefExprInfo {
 };
 
 struct LiteralExprInfo {
-        int kind;  // LITERAL_
+        int literalKind;  // LITERAL_
         union {
                 Token tok; // integer (TODO: real integer)
                 String tString;
