@@ -131,7 +131,7 @@ void pp_expr(Expr expr)
                 }
                 case EXPR_BINOP: {
                         pp_expr(exprInfo[expr].tBinop.expr1);
-                        int binop = exprInfo[expr].tBinop.kind;
+                        int binop = exprInfo[expr].tBinop.binopKind;
                         outs(" ");
                         outs(binopInfo[binop].str);
                         outs(" ");

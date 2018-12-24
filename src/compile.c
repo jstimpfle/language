@@ -129,7 +129,7 @@ void compile_unop_expr(Expr x, int usedAsLvalue)
 INTERNAL
 void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
 {
-        int binopKind = exprInfo[x].tBinop.kind;
+        int binopKind = exprInfo[x].tBinop.binopKind;
         Expr e1 = exprInfo[x].tBinop.expr1;
         Expr e2 = exprInfo[x].tBinop.expr2;
         if (binopKind == BINOP_ASSIGN) {
@@ -150,7 +150,7 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 compile_expr(e1, NOT_USED_AS_LVALUE);
                 compile_expr(e2, NOT_USED_AS_LVALUE);
                 int kind;
-                switch (exprInfo[x].tBinop.kind) {
+                switch (exprInfo[x].tBinop.binopKind) {
                 case BINOP_PLUS:  kind = IROP2_ADD; break;
                 case BINOP_MINUS: kind = IROP2_SUB; break;
                 case BINOP_MUL:   kind = IROP2_MUL; break;
@@ -170,7 +170,7 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 compile_expr(e1, NOT_USED_AS_LVALUE);
                 compile_expr(e2, NOT_USED_AS_LVALUE);
                 int kind;
-                switch (exprInfo[x].tBinop.kind) {
+                switch (exprInfo[x].tBinop.binopKind) {
                 case BINOP_LT: kind = IRCMP_LT; break;
                 case BINOP_GT: kind = IRCMP_GT; break;
                 case BINOP_LE: kind = IRCMP_LE; break;
@@ -179,7 +179,7 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 case BINOP_NE: kind = IRCMP_NE; break;
                 default:
                         MSG(lvl_error, "Can't handle %s!\n",
-                            binopInfo[exprInfo[x].tBinop.kind].str);
+                            binopInfo[exprInfo[x].tBinop.binopKind].str);
                         UNHANDLED_CASE();
                 }
                 IrStmt y = irStmtCnt++;

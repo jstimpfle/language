@@ -235,7 +235,7 @@ struct UnopExprInfo {
 };
 
 struct BinopExprInfo {
-        int kind;
+        int binopKind;
         Token tok;
         Expr expr1;
         Expr expr2;

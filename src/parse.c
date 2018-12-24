@@ -396,7 +396,7 @@ Expr parse_expr(int minprec)
                         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
                         exprInfo[expr].proc = currentProc;
                         exprInfo[expr].kind = EXPR_BINOP;
-                        exprInfo[expr].tBinop.kind = opkind;
+                        exprInfo[expr].tBinop.binopKind = opkind;
                         exprInfo[expr].tBinop.tok = tok;
                         exprInfo[expr].tBinop.expr1 = expr1;
                         exprInfo[expr].tBinop.expr2 = expr2;
