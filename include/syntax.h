@@ -9,7 +9,7 @@
  * See also \ref{SymbolKind}.
  *
  * \typedef{Symref}: A symref is a reference (by name) to a Symbol. It's the
- * compilers job to match up references with symbols. This is usually delayed,
+ * compiler's job to match up references with symbols. This is usually delayed,
  * such that broken reference will be detected only later.
  *
  * \typedef{Scope}: A scope is an abstract container for \ref{Symbol}
@@ -38,6 +38,8 @@ typedef int Scope;
 enum ScopeKind {
         SCOPE_GLOBAL,
         SCOPE_PROC,
+        SCOPE_MACRO,  /* TODO: XXX: I haven't really thought about this. Does it
+                         make sense to have a SCOPE_MACRO? */
 };
 
 enum SymbolKind {
@@ -45,6 +47,8 @@ enum SymbolKind {
         SYMBOL_DATA,
         SYMBOL_ARRAY,
         SYMBOL_PROC,
+        SYMBOL_MACRO,
+        SYMBOL_MACROPARAM,
 };
 
 
@@ -61,12 +65,13 @@ enum {
 extern const char *const extsymname[NUM_EXTSYMS];
 DATA Symbol extsymToSymbol[NUM_EXTSYMS];
 
-/*
- * \typedef{Expr}: The result of parsing an expression, as part of a statement.
+/**
+ * \typedef{Expr}: Expression (part of a statement). Expressions have a type and
+ * a (runtime) value. Each expressions is of one of the \enum{ExprKind} kinds.
  * See also \ref{ExprInfo}.
  *
- * \typedef{Stmt}: The result of parsing a statement, which can be any of the
- * \enum{StmtKind} kinds of statements. See also \ref{StmtInfo}.
+ * \typedef{Stmt}: Statement, which can be any of the \enum{StmtKind} kinds of
+ * statements. See also \ref{StmtInfo}.
  */
 
 typedef int Expr;
@@ -80,12 +85,20 @@ typedef int Stmt;
  * \typedef{Array}: Array definition. See also \ref{ArrayInfo}.
  *
  * \typedef{Proc}: Procedure definition. See also \ref{ProcInfo}.
+ *
+ * \typedef{Macro}: Simple expression replacement
+ * \typedef{MacroParam}: Formal macro parameter
+ *
+ * \typedef{Export}: Statement that some definition should be "exported"
  */
 
 typedef int Data;
 typedef int Array;
 typedef int Proc;
+typedef int Macro;
+typedef int MacroParam;
 typedef int Export;
+
 
 /**
  * \struct{SymbolInfo}: Contains the name and scope of a symbol as well as a
@@ -126,6 +139,11 @@ struct SymbolInfo {
                 struct DatasymbolInfo tData;
                 Array tArray;
                 struct ProcsymbolInfo tProc;
+                Macro tMacro;
+                /* There is no case for SYMBOL_MACROPARAM. Arguments for formal
+                 * macro parameters are expressions that can be looked up from a
+                 * "current macro substitutions context". The important thing is
+                 * that there is not static resolution! */
         };
 };
 
@@ -135,9 +153,8 @@ struct ScopeInfo {
         int numSymbols;
         int scopeKind;
         union {
-                struct {
-                        Proc proc;
-                } tProc;
+                Proc tProc;
+                Macro tMacro;
         };
 };
 
@@ -196,6 +213,7 @@ enum StmtKind {
         STMT_COMPOUND,
         STMT_DATA,
         STMT_ARRAY,
+        STMT_MACRO,
         NUM_STMT_KINDS,
 };
 
@@ -325,6 +343,7 @@ struct StmtInfo {
                 struct ReturnStmtInfo tReturn;
                 Data tData;
                 Array tArray;
+                Macro tMacro;
         };
 };
 
@@ -354,6 +373,17 @@ struct ProcInfo {
         Scope scope;
         int nparams;
         Stmt body;
+};
+
+struct MacroParam {
+        Macro macro;
+        Token token;  // TOKEN_WORD token holding the parameter name
+};
+
+struct MacroInfo {
+        Symbol symbol;
+        Scope scope;
+        Expr expr;
 };
 
 struct ExportInfo {
@@ -386,6 +416,8 @@ DATA int childStmtCnt;
 DATA int dataCnt;
 DATA int arrayCnt;
 DATA int procCnt;
+DATA int macroCnt;
+DATA int macroParamCnt;
 DATA int exportCnt;
 
 DATA struct ExprInfo *exprInfo;
@@ -399,4 +431,6 @@ DATA struct ProcInfo *procInfo;
 DATA Type *procToType;
 DATA Data *firstDataOfProc;
 DATA Expr *firstExprOfProc;
+DATA struct MacroInfo *macroInfo;
+DATA struct MacroParam *macroParam;
 DATA struct ExportInfo *exportInfo;

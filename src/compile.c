@@ -663,7 +663,7 @@ void compile_proc(Proc p)
                 Scope s = dataInfo[d].scope;
                 if (scopeInfo[s].scopeKind != SCOPE_PROC)
                         break;
-                if (scopeInfo[s].tProc.proc != p)
+                if (scopeInfo[s].tProc != p)
                         break;
                 IrProc irp = procToIrProc[p];
                 IrReg r = irRegCnt++;
@@ -729,14 +729,14 @@ void compile_to_IR(void)
         for (Data d = dataCnt; d --> 0;) {
                 Scope s = dataInfo[d].scope;
                 if (scopeInfo[s].scopeKind == SCOPE_PROC)
-                        firstDataOfProc[scopeInfo[s].tProc.proc] = d;
+                        firstDataOfProc[scopeInfo[s].tProc] = d;
         }
         for (Data d = 0; d < dataCnt; d++) {
                 Scope s = dataInfo[d].scope;
                 if (scopeInfo[s].scopeKind == SCOPE_PROC) {
                         DEBUG("data=%d its proc=%d its first data=%d\n",
-                              d, scopeInfo[s].tProc.proc,
-                              firstDataOfProc[scopeInfo[s].tProc.proc]);
+                              d, scopeInfo[s].tProc,
+                              firstDataOfProc[scopeInfo[s].tProc]);
                 }
         }
         DEBUG("OK\n");

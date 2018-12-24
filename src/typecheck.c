@@ -78,6 +78,8 @@ Type check_symref_expr_type(Expr x)
                         return arrayInfo[symbolInfo[sym].tArray].tp;
                 case SYMBOL_PROC:
                         return symbolInfo[sym].tProc.tp;
+                case SYMBOL_MACRO:
+                        FATAL("TODO: We cannot check the type of a (call to a) macro. We need to implement some kind of cloning/instancing of the macro expression subtree first, and then replace the EXPR_CALL invocation of the macro by that new subtree.\n");
                 default:
                         UNHANDLED_CASE();
         }

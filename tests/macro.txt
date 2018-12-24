@@ -1,0 +1,12 @@
+macro foo(x, y) = x + y;
+
+proc int main()
+{
+    data int x;
+    x = 1;
+    x = foo(3, 5);
+    print64(x);
+    return 0;
+}
+
+export main;

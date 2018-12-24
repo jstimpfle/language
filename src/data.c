@@ -193,6 +193,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_RETURN, "return" ),
         MAKE( CONSTSTR_BREAK,  "break"  ),
         MAKE( CONSTSTR_PROC,   "proc"   ),
+        MAKE( CONSTSTR_MACRO,  "macro"  ),
         MAKE( CONSTSTR_STRUCT, "struct" ),
         MAKE( CONSTSTR_DATA,   "data"   ),
         MAKE( CONSTSTR_ENTITY, "entity" ),
