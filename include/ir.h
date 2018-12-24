@@ -205,7 +205,7 @@ struct IrOp2StmtInfo {
 };
 
 struct IrCmpStmtInfo {
-        int kind;  // IRCMP_
+        int irCmpKind;  // IRCMP_
         IrReg reg1;
         IrReg reg2;
         IrReg tgtreg;

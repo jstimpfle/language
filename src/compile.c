@@ -186,7 +186,7 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[y].proc = exprInfo[x].proc;
                 irStmtInfo[y].kind = IRSTMT_CMP;
-                irStmtInfo[y].tCmp.kind = kind;
+                irStmtInfo[y].tCmp.irCmpKind = kind;
                 irStmtInfo[y].tCmp.reg1 = exprToIrReg[e1];
                 irStmtInfo[y].tCmp.reg2 = exprToIrReg[e2];
                 irStmtInfo[y].tCmp.tgtreg = exprToIrReg[x];
@@ -595,7 +595,7 @@ void compile_range_stmt(IrProc irp, Stmt stmt)
         irRegInfo[cmpReg].tp = builtinType[BUILTINTYPE_INT];
         irStmtInfo[checkStmt].proc = irp;
         irStmtInfo[checkStmt].kind = IRSTMT_CMP;
-        irStmtInfo[checkStmt].tCmp.kind = IRCMP_GE;
+        irStmtInfo[checkStmt].tCmp.irCmpKind = IRCMP_GE;
         irStmtInfo[checkStmt].tCmp.reg1 = varReg;
         irStmtInfo[checkStmt].tCmp.reg2 = stopvalueReg;
         irStmtInfo[checkStmt].tCmp.tgtreg = cmpReg;

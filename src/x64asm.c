@@ -756,7 +756,7 @@ void x64asm_cmp_irstmt(IrStmt irs)
          */
         emit(0x31); emit(0xC9); // xor %ecx, %ecx
         emit_cmp_64_reg_reg(X64_RAX, X64_RBX);
-        switch (irStmtInfo[irs].tCmp.kind) {
+        switch (irStmtInfo[irs].tCmp.irCmpKind) {
         case IRCMP_LT: emit_setcc(X64CMP_LT, X64_RCX); break;
         case IRCMP_GT: emit_setcc(X64CMP_GT, X64_RCX); break;
         case IRCMP_LE: emit_setcc(X64CMP_LE, X64_RCX); break;
