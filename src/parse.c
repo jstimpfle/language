@@ -29,7 +29,7 @@ Expr add_unop_expr(int opkind, Token tok, Expr expr)
 INTERNAL
 int token_is_unary_prefix_operator(Token tok, int *out_optype)
 {
-        int tp = tokenInfo[tok].kind;
+        int tp = tokenInfo[tok].tokenKind;
         for (int i = 0; i < toktypeToPrefixUnopCnt; i++) {
                 if (tp == toktypeToPrefixUnop[i].ttype) {
                         *out_optype = toktypeToPrefixUnop[i].optype;
@@ -42,7 +42,7 @@ int token_is_unary_prefix_operator(Token tok, int *out_optype)
 INTERNAL
 int token_is_unary_postfix_operator(Token tok, int *out_optype)
 {
-        int tp = tokenInfo[tok].kind;
+        int tp = tokenInfo[tok].tokenKind;
         for (int i = 0; i < toktypeToPostfixUnopCnt; i++) {
                 if (tp == toktypeToPostfixUnop[i].ttype) {
                         *out_optype = toktypeToPostfixUnop[i].optype;
@@ -55,7 +55,7 @@ int token_is_unary_postfix_operator(Token tok, int *out_optype)
 INTERNAL
 int token_is_binary_infix_operator(Token tok, int *out_optp)
 {
-        int tp = tokenInfo[tok].kind;
+        int tp = tokenInfo[tok].tokenKind;
         for (int i = 0; i < toktypeToBinopCnt; i++) {
                 if (tp == toktypeToBinop[i].ttype) {
                         *out_optp = toktypeToBinop[i].optype;
@@ -104,7 +104,7 @@ INTERNAL
 Token look_token_kind(int tkind)
 {
         Token tok = look_next_token();
-        if (tok == -1 || tokenInfo[tok].kind != tkind)
+        if (tok == -1 || tokenInfo[tok].tokenKind != tkind)
                 return -1;
         return tok;
 }
@@ -124,11 +124,11 @@ Token parse_token_kind(int tkind)
                 FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
                                 "Unexpected end of file. Expected %s token\n",
                                 tokenKindString[tkind]);
-        if (tokenInfo[tok].kind != tkind)
+        if (tokenInfo[tok].tokenKind != tkind)
                 FATAL_PARSE_ERROR_AT_TOK(tok,
                                 "Expected %s token, got: %s\n",
                                 tokenKindString[tkind],
-                                tokenKindString[tokenInfo[tok].kind]);
+                                tokenKindString[tokenInfo[tok].tokenKind]);
         consume_token();
         return tok;
 }
@@ -296,7 +296,7 @@ Expr parse_expr(int minprec)
                 Expr subexpr = parse_expr(42  /* TODO: unop precedence */);
                 expr = add_unop_expr(opkind, tok, subexpr);
         }
-        else if (tokenInfo[tok].kind == TOKEN_WORD) {
+        else if (tokenInfo[tok].tokenKind == TOKEN_WORD) {
                 Symref ref = parse_symref();
                 expr = exprCnt++;
                 RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
@@ -304,7 +304,7 @@ Expr parse_expr(int minprec)
                 exprInfo[expr].exprKind = EXPR_SYMREF;
                 exprInfo[expr].tSymref.ref = ref;
         }
-        else if (tokenInfo[tok].kind == TOKEN_INTEGER) {
+        else if (tokenInfo[tok].tokenKind == TOKEN_INTEGER) {
                 consume_token();
                 expr = exprCnt++;
                 RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
@@ -313,7 +313,7 @@ Expr parse_expr(int minprec)
                 exprInfo[expr].tLiteral.literalKind = LITERAL_INTEGER;
                 exprInfo[expr].tLiteral.tok = tok;
         }
-        else if (tokenInfo[tok].kind == TOKEN_STRING) {
+        else if (tokenInfo[tok].tokenKind == TOKEN_STRING) {
                 consume_token();
                 String string = tokenInfo[tok].tString.value;
                 expr = exprCnt++;
@@ -323,7 +323,7 @@ Expr parse_expr(int minprec)
                 exprInfo[expr].tLiteral.literalKind = LITERAL_STRING;
                 exprInfo[expr].tLiteral.tString = string;
         }
-        else if (tokenInfo[tok].kind == TOKEN_LEFTPAREN) {
+        else if (tokenInfo[tok].tokenKind == TOKEN_LEFTPAREN) {
                 consume_token();
                 expr = parse_expr(0);
                 parse_token_kind(TOKEN_RIGHTPAREN);
@@ -338,7 +338,7 @@ Expr parse_expr(int minprec)
                         consume_token();
                         expr = add_unop_expr(opkind, tok, expr);
                 }
-                else if (tokenInfo[tok].kind == TOKEN_LEFTPAREN) {
+                else if (tokenInfo[tok].tokenKind == TOKEN_LEFTPAREN) {
                         consume_token();
                         Expr calleeExpr = expr;
                         expr = exprCnt++;
@@ -361,7 +361,7 @@ Expr parse_expr(int minprec)
                         exprInfo[expr].tCall.firstArgIdx = -1;
                         exprInfo[expr].tCall.nargs = 0;
                 }
-                else if (tokenInfo[tok].kind == TOKEN_DOT) {
+                else if (tokenInfo[tok].tokenKind == TOKEN_DOT) {
                         consume_token();
                         Token x = parse_token_kind(TOKEN_WORD);
                         String name = tokenInfo[x].tWord.string;
@@ -373,7 +373,7 @@ Expr parse_expr(int minprec)
                         exprInfo[expr].tMember.expr = enclosingExpr;
                         exprInfo[expr].tMember.name = name;
                 }
-                else if (tokenInfo[tok].kind == TOKEN_LEFTBRACKET) {
+                else if (tokenInfo[tok].tokenKind == TOKEN_LEFTBRACKET) {
                         consume_token();
                         Expr expr1 = expr;
                         Expr expr2 = parse_expr(0);
@@ -497,7 +497,7 @@ Stmt parse_imperative_statement(void)
 {
         PARSE_LOG();
         Token tok = look_next_token();
-        if (tokenInfo[tok].kind == TOKEN_WORD) {
+        if (tokenInfo[tok].tokenKind == TOKEN_WORD) {
                 String s = tokenInfo[tok].tWord.string;
                 if (s == constStr[CONSTSTR_IF]) {
                         consume_token();
@@ -525,7 +525,7 @@ Stmt parse_imperative_statement(void)
                         return parse_expr_stmt();
                 }
         }
-        else if (tokenInfo[tok].kind == TOKEN_LEFTBRACE) {
+        else if (tokenInfo[tok].tokenKind == TOKEN_LEFTBRACE) {
                 return parse_compound_stmt();
         }
         else {
@@ -697,7 +697,7 @@ Stmt parse_stmt(void)
 {
         PARSE_LOG();
         Token tok = look_next_token();
-        if (tokenInfo[tok].kind == TOKEN_WORD) {
+        if (tokenInfo[tok].tokenKind == TOKEN_WORD) {
                 String s = tokenInfo[tok].tWord.string;
                 if (s == constStr[CONSTSTR_DATA]) {
                         consume_token();
@@ -738,7 +738,7 @@ Proc parse_proc(void)
         int nparams = 0;
         for (;;) {
                 Token tok = look_next_token();
-                if (tokenInfo[tok].kind == TOKEN_RIGHTPAREN)
+                if (tokenInfo[tok].tokenKind == TOKEN_RIGHTPAREN)
                         break;
                 nparams++;
                 Type paramtp = parse_type();

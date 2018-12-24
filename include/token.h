@@ -70,7 +70,7 @@ struct StringTokenInfo {
 struct TokenInfo {
         File file;
         int offset;
-        int kind;
+        int tokenKind;
         union {
                 struct WordTokenInfo tWord;
                 struct IntegerTokenInfo tInteger;

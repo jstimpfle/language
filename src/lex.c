@@ -121,7 +121,7 @@ wordtoken:
                         break;
                 consume_char();
         }
-        tokenInfo[x].kind = TOKEN_WORD;
+        tokenInfo[x].tokenKind = TOKEN_WORD;
         tokenInfo[x].tWord.string = intern_string(lexbuf, lexbufCnt);
         return x;
 
@@ -135,7 +135,7 @@ numbertoken:
                 consume_char();
                 value = 10 * value + c - '0';
         }
-        tokenInfo[x].kind = TOKEN_INTEGER;
+        tokenInfo[x].tokenKind = TOKEN_INTEGER;
         tokenInfo[x].tInteger.value = value;
         return x;
 
@@ -169,7 +169,7 @@ stringlit:
                 RESIZE_GLOBAL_BUFFER(lexbuf, lexbufCnt);
                 lexbuf[idx] = c;
         }
-        tokenInfo[x].kind = TOKEN_STRING;
+        tokenInfo[x].tokenKind = TOKEN_STRING;
         tokenInfo[x].tString.value = intern_string(lexbuf, lexbufCnt);
         return x;
 
@@ -197,6 +197,6 @@ baretoken:
         FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
                              "Failed to lex token\n");
 goodbaretoken:
-        tokenInfo[x].kind = tokenKind;
+        tokenInfo[x].tokenKind = tokenKind;
         return x;
 }
