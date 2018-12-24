@@ -253,7 +253,7 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
         Symref ref = exprInfo[x].tSymref.ref;
         Symbol sym = symrefToSym[ref];
         ASSERT(sym >= 0);
-        if (symbolInfo[sym].kind == SYMBOL_DATA &&
+        if (symbolInfo[sym].symbolKind == SYMBOL_DATA &&
             scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
                 Data data = symbolInfo[sym].tData.optionaldata;
                 ASSERT(data != (Data) -1);  // proc-local data must exist

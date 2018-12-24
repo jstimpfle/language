@@ -8,7 +8,7 @@ Symbol add_type_symbol(String name, Scope scope, Type tp)
         RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         symbolInfo[x].name = name;
         symbolInfo[x].scope = scope;
-        symbolInfo[x].kind = SYMBOL_TYPE;
+        symbolInfo[x].symbolKind = SYMBOL_TYPE;
         symbolInfo[x].tType = tp;
         return x;
 }
@@ -220,7 +220,7 @@ Array parse_array(void)
         typeInfo[tp].tArray.valuetp = valuetp;
         symbolInfo[sym].name = name;
         symbolInfo[sym].scope = currentScope;
-        symbolInfo[sym].kind = SYMBOL_ARRAY;
+        symbolInfo[sym].symbolKind = SYMBOL_ARRAY;
         symbolInfo[sym].tArray = array;
         return array;
 }
@@ -277,7 +277,7 @@ Data parse_data(void)
         dataInfo[data].sym = sym;
         symbolInfo[sym].name = name;
         symbolInfo[sym].scope = scope;
-        symbolInfo[sym].kind = SYMBOL_DATA;
+        symbolInfo[sym].symbolKind = SYMBOL_DATA;
         symbolInfo[sym].tData.tp = tp;
         symbolInfo[sym].tData.optionaldata = data;
         return data;
@@ -665,7 +665,7 @@ Stmt parse_range_stmt(void)
 
         symbolInfo[sym].name = varname;
         symbolInfo[sym].scope = scope;
-        symbolInfo[sym].kind = SYMBOL_DATA;
+        symbolInfo[sym].symbolKind = SYMBOL_DATA;
         symbolInfo[sym].tData.tp = dataTp;
         symbolInfo[sym].tData.optionaldata = data;
 
@@ -755,7 +755,7 @@ Proc parse_proc(void)
                 paramInfo[param].rank = param;
                 symbolInfo[paramsym].name = paramname;
                 symbolInfo[paramsym].scope = pscope;
-                symbolInfo[paramsym].kind = SYMBOL_DATA;
+                symbolInfo[paramsym].symbolKind = SYMBOL_DATA;
                 symbolInfo[paramsym].tData.tp = paramtp;
                 symbolInfo[paramsym].tData.optionaldata = paramdata;
                 dataInfo[paramdata].scope = pscope;
@@ -783,7 +783,7 @@ Proc parse_proc(void)
         procToType[proc] = ptype;
         symbolInfo[psym].name = pname;
         symbolInfo[psym].scope = currentScope;
-        symbolInfo[psym].kind = SYMBOL_PROC;
+        symbolInfo[psym].symbolKind = SYMBOL_PROC;
         symbolInfo[psym].tProc.tp = ptype;
         symbolInfo[psym].tProc.optionalproc = currentProc;
         typeInfo[ptype].kind = TYPE_PROC;

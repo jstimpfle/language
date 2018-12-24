@@ -73,7 +73,7 @@ Type check_symref_expr_type(Expr x)
                       "Can't check type: symbol \"%s\" unresolved\n", name);
                 return (Type) -1;
         }
-        switch (symbolInfo[sym].kind) {
+        switch (symbolInfo[sym].symbolKind) {
                 case SYMBOL_TYPE:
                         // Maybe something like the "type" type?
                         // Or fatal() ?

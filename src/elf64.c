@@ -635,25 +635,25 @@ void write_elf64_object(const char *outfilepath)
                 int visibility = isSymbolExported[sym] ? STB_GLOBAL : STB_LOCAL;
                 switch (sectionKind) {
                 case SECTION_CODE:
-                        ASSERT(symbolInfo[sym].kind == SYMBOL_PROC);
+                        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_PROC);
                         ASSERT(symbolInfo[sym].tProc.optionalproc != -1);
                         sttKind = STT_FUNC;
                         shndx = ES_TEXT; // symbol references the .text section
                         break;
                 case SECTION_ZERODATA:
-                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
                         ASSERT(symbolInfo[sym].tData.optionaldata == -1);
                         sttKind = STT_OBJECT;
                         shndx = ES_BSS;
                         break;
                 case SECTION_RODATA:
-                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
                         ASSERT(symbolInfo[sym].tData.optionaldata != -1);
                         sttKind = STT_OBJECT;
                         shndx = ES_RODATA;
                         break;
                 case SECTION_DATA:
-                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
                         ASSERT(symbolInfo[sym].tData.optionaldata != -1);
                         sttKind = STT_OBJECT;
                         shndx = ES_DATA;
@@ -678,7 +678,7 @@ void write_elf64_object(const char *outfilepath)
                 if (scopeInfo[symbolInfo[sym].scope].kind != SCOPE_GLOBAL)
                         continue;
                 int sttKind;
-                switch (symbolInfo[sym].kind) {
+                switch (symbolInfo[sym].symbolKind) {
                 case SYMBOL_PROC:
                         if (symbolInfo[sym].tProc.optionalproc != -1)
                                 continue;  // the proc is defined

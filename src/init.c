@@ -34,7 +34,7 @@ void init_data(void)
                 RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
                 symbolInfo[x].name = name;
                 symbolInfo[x].scope = globalScope;
-                symbolInfo[x].kind = SYMBOL_TYPE;
+                symbolInfo[x].symbolKind = SYMBOL_TYPE;
                 symbolInfo[x].tType = tp;
 
                 *basetypesToBeInitialized[i].builtinTypePtr = tp;

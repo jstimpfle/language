@@ -120,7 +120,7 @@ struct ProcsymbolInfo {
 struct SymbolInfo {
         String name;
         Scope scope;
-        char kind;  // SYMBOL_
+        int symbolKind;  // SYMBOL_
         union {
                 Type tType;
                 struct DatasymbolInfo tData;

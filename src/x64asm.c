@@ -136,7 +136,7 @@ void end_symbol(void)
 INTERNAL
 void emit_symbol(Symbol sym, int section, int offset, int size)
 {
-        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
         SymDef sd = symDefCnt++;
         RESIZE_GLOBAL_BUFFER(symDefInfo, symDefCnt);
         symDefInfo[sd].symbol = sym;
@@ -851,7 +851,7 @@ INTERNAL
 void x64asm_proc(IrProc irp)
 {
         Symbol psym = irProcInfo[irp].symbol;
-        ASSERT(symbolInfo[psym].kind == SYMBOL_PROC);
+        ASSERT(symbolInfo[psym].symbolKind == SYMBOL_PROC);
         Type tp = symbolInfo[psym].tProc.tp;
         ASSERT(tp != -1);
         ASSERT(typeInfo[tp].kind == TYPE_PROC);
@@ -867,7 +867,7 @@ void x64asm_proc(IrProc irp)
                         Symbol sym = paramInfo[i].sym;
                         ASSERT(scopeInfo[symbolInfo[sym].scope].kind
                                == SCOPE_PROC);
-                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
                         Data data = symbolInfo[sym].tData.optionaldata;
                         ASSERT(data != -1);
                         IrReg reg = dataToIrReg[data];

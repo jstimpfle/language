@@ -570,7 +570,7 @@ architectures the information may be required for other purposes.
    a symbol represents. The following table shows possible values. Note that the
    Storage Class field is an unsigned one-byte integer. The special value -1
    should therefore be taken to mean its unsigned equivalent, 0xFF.
-   
+
    Although traditional COFF format makes use of many storage-class values,
    Microsoft tools rely on CodeView format for most symbolic information and
    generally use only four storage-class values: EXTERNAL (2), STATIC (3),
@@ -776,25 +776,25 @@ void write_pe64_object(const char *filepath)
                 int sectionKind = symDefInfo[i].kind;  // SECTION_
                 switch (sectionKind) {
                 case SECTION_DATA:
-                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
                         ASSERT(symbolInfo[sym].tData.optionaldata != -1);
                         isProc = 0;
                         sectionNumber = PESEC_DATA;
                         break;
                 case SECTION_RODATA:
-                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
                         ASSERT(symbolInfo[sym].tData.optionaldata != -1);
                         isProc = 0;
                         sectionNumber = PESEC_RDATA;
                         break;
                 case SECTION_ZERODATA:
-                        ASSERT(symbolInfo[sym].kind == SYMBOL_DATA);
+                        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
                         ASSERT(symbolInfo[sym].tData.optionaldata == -1);
                         isProc = 0;
                         sectionNumber = PESEC_BSS;
                         break;
                 case SECTION_CODE:
-                        ASSERT(symbolInfo[sym].kind == SYMBOL_PROC);
+                        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_PROC);
                         ASSERT(symbolInfo[sym].tProc.optionalproc != -1);
                         isProc = 1;
                         sectionNumber = PESEC_TEXT;
@@ -820,7 +820,7 @@ void write_pe64_object(const char *filepath)
                 if (scopeInfo[symbolInfo[sym].scope].kind != SCOPE_GLOBAL)
                         continue;
                 int isProc;
-                switch (symbolInfo[sym].kind) {
+                switch (symbolInfo[sym].symbolKind) {
                 case SYMBOL_PROC:
                         if (symbolInfo[sym].tProc.optionalproc != -1)
                                 continue;  /* symbol is defined */

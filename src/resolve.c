@@ -79,7 +79,7 @@ void resolve_symbol_references(void)
                 RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
                 symbolInfo[sym].name = intern_cstring(name);
                 symbolInfo[sym].scope = (Scope) 0;
-                symbolInfo[sym].kind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
+                symbolInfo[sym].symbolKind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
                 symbolInfo[sym].tProc.tp = tp;
                 symbolInfo[sym].tProc.optionalproc = -1;
 
@@ -271,7 +271,7 @@ void resolve_ref_type(Type t)
         case TYPE_REFERENCE: {
                 isComplete = 0;
                 Symbol sym = symrefToSym[typeInfo[t].tRef.ref];
-                if (sym != -1 && symbolInfo[sym].kind == SYMBOL_TYPE) {
+                if (sym != -1 && symbolInfo[sym].symbolKind == SYMBOL_TYPE) {
                         Type symtp = symbolInfo[sym].tType;
                         if (symtp != -1) {
                                 resolve_ref_type(symtp);
