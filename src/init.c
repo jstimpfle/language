@@ -17,7 +17,7 @@ void init_data(void)
         scopeInfo[globalScope].parentScope = -1;
         scopeInfo[globalScope].firstSymbol = -1;
         scopeInfo[globalScope].numSymbols = 0;
-        scopeInfo[globalScope].kind = SCOPE_GLOBAL;
+        scopeInfo[globalScope].scopeKind = SCOPE_GLOBAL;
 
         /* initialize base types */
         ASSERT(scopeCnt > 0);

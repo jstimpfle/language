@@ -133,7 +133,7 @@ struct ScopeInfo {
         Scope parentScope;
         Symbol firstSymbol; // speed-up
         int numSymbols;
-        int kind;
+        int scopeKind;
         union {
                 struct {
                         Proc proc;

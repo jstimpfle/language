@@ -254,7 +254,7 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
         Symbol sym = symrefToSym[ref];
         ASSERT(sym >= 0);
         if (symbolInfo[sym].symbolKind == SYMBOL_DATA &&
-            scopeInfo[symbolInfo[sym].scope].kind == SCOPE_PROC) {
+            scopeInfo[symbolInfo[sym].scope].scopeKind == SCOPE_PROC) {
                 Data data = symbolInfo[sym].tData.optionaldata;
                 ASSERT(data != (Data) -1);  // proc-local data must exist
                 if (! usedAsLvalue) {
@@ -661,7 +661,7 @@ void compile_proc(Proc p)
         /* make ir registers for all of the proc's local data declarations */
         for (Data d = firstDataOfProc[p]; d < dataCnt; d++) {
                 Scope s = dataInfo[d].scope;
-                if (scopeInfo[s].kind != SCOPE_PROC)
+                if (scopeInfo[s].scopeKind != SCOPE_PROC)
                         break;
                 if (scopeInfo[s].tProc.proc != p)
                         break;
@@ -728,12 +728,12 @@ void compile_to_IR(void)
                 firstDataOfProc[p] = dataCnt;
         for (Data d = dataCnt; d --> 0;) {
                 Scope s = dataInfo[d].scope;
-                if (scopeInfo[s].kind == SCOPE_PROC)
+                if (scopeInfo[s].scopeKind == SCOPE_PROC)
                         firstDataOfProc[scopeInfo[s].tProc.proc] = d;
         }
         for (Data d = 0; d < dataCnt; d++) {
                 Scope s = dataInfo[d].scope;
-                if (scopeInfo[s].kind == SCOPE_PROC) {
+                if (scopeInfo[s].scopeKind == SCOPE_PROC) {
                         DEBUG("data=%d its proc=%d its first data=%d\n",
                               d, scopeInfo[s].tProc.proc,
                               firstDataOfProc[scopeInfo[s].tProc.proc]);

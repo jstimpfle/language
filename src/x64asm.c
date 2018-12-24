@@ -539,7 +539,7 @@ INTERNAL
 void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
 {
         int r1 = X64_RAX;
-        ASSERT(scopeInfo[symbolInfo[symbol].scope].kind == SCOPE_GLOBAL);
+        ASSERT(scopeInfo[symbolInfo[symbol].scope].scopeKind == SCOPE_GLOBAL);
         emit_mov_64_reloc_reg(symbol, 0, r1);
         emit_mov_64_reg_stack(r1, loc);
 }
@@ -633,7 +633,7 @@ INTERNAL
 void x64asm_loadsymboladdr_irstmt(IrStmt irs)
 {
         Symbol sym = irStmtInfo[irs].tLoadSymbolAddr.sym;
-        ASSERT(scopeInfo[symbolInfo[sym].scope].kind == SCOPE_GLOBAL);
+        ASSERT(scopeInfo[symbolInfo[sym].scope].scopeKind == SCOPE_GLOBAL);
         IrReg irreg = irStmtInfo[irs].tLoadSymbolAddr.tgtreg;
         X64StackLoc loc = find_stack_loc(irreg);
         emit_load_symaddr_stack(sym, loc);
@@ -865,7 +865,7 @@ void x64asm_proc(IrProc irp)
                      i < paramCnt && paramInfo[i].proctp == tp;
                      i++, j++) {
                         Symbol sym = paramInfo[i].sym;
-                        ASSERT(scopeInfo[symbolInfo[sym].scope].kind
+                        ASSERT(scopeInfo[symbolInfo[sym].scope].scopeKind
                                == SCOPE_PROC);
                         ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
                         Data data = symbolInfo[sym].tData.optionaldata;
@@ -895,7 +895,7 @@ void codegen_x64(void)
 
         /* TODO: do we need an "IrData" type? */
         for (Data x = 0; x < dataCnt; x++) {
-                if (scopeInfo[dataInfo[x].scope].kind != SCOPE_GLOBAL)
+                if (scopeInfo[dataInfo[x].scope].scopeKind != SCOPE_GLOBAL)
                         continue;
                 int size = get_type_size(dataInfo[x].tp);
                 int offset = zerodataSectionCnt;

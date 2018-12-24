@@ -675,7 +675,7 @@ void write_elf64_object(const char *outfilepath)
         }
         /* undefined symbols */
         for (Symbol sym = 0; sym < symbolCnt; sym++) {
-                if (scopeInfo[symbolInfo[sym].scope].kind != SCOPE_GLOBAL)
+                if (scopeInfo[symbolInfo[sym].scope].scopeKind != SCOPE_GLOBAL)
                         continue;
                 int sttKind;
                 switch (symbolInfo[sym].symbolKind) {

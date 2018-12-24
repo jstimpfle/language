@@ -483,7 +483,7 @@ Stmt parse_compound_stmt(void)
         scopeInfo[scope].parentScope = currentScope;
         scopeInfo[scope].firstSymbol = -1;
         scopeInfo[scope].numSymbols = 0;
-        scopeInfo[scope].kind = SCOPE_PROC; //XXX
+        scopeInfo[scope].scopeKind = SCOPE_PROC; //XXX
         scopeInfo[scope].tProc.proc = currentProc;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].kind = STMT_COMPOUND;
@@ -656,7 +656,7 @@ Stmt parse_range_stmt(void)
         scopeInfo[scope].parentScope = currentScope;
         scopeInfo[scope].firstSymbol = -1;
         scopeInfo[scope].numSymbols = 0;
-        scopeInfo[scope].kind = SCOPE_PROC; //XXX
+        scopeInfo[scope].scopeKind = SCOPE_PROC; //XXX
         scopeInfo[scope].tProc.proc = currentProc;
 
         dataInfo[data].scope = scope;
@@ -774,7 +774,7 @@ Proc parse_proc(void)
         scopeInfo[pscope].parentScope = currentScope;
         scopeInfo[pscope].firstSymbol = -1;
         scopeInfo[pscope].numSymbols = 0;
-        scopeInfo[pscope].kind = SCOPE_PROC;
+        scopeInfo[pscope].scopeKind = SCOPE_PROC;
         scopeInfo[pscope].tProc.proc = currentProc;
         procInfo[proc].sym = psym;
         procInfo[proc].scope = pscope;
