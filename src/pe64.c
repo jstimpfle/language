@@ -850,14 +850,14 @@ void write_pe64_object(const char *filepath)
         /* Add relocations */
         for (int i = 0; i < relocCnt; i++) {
                 Symbol sym = relocInfo[i].symbol;
-                int kind = relocInfo[i].sectionKind;
+                int sectionKind = relocInfo[i].sectionKind;
                 int addend = relocInfo[i].addend;
                 int offset = relocInfo[i].offset;
                 int pesym;
 
                 if (sym == -1) {
-                        FATAL("Not implemented: %d, %p\n", kind, sectionToPe64section);
-                        int esec = sectionToPe64section[kind];
+                        FATAL("Not implemented: %d, %p\n", sectionKind, sectionToPe64section);
+                        int esec = sectionToPe64section[sectionKind];
                         pesym = pe64sectionToPe64sym[esec];
                 }
                 else if (addend == 0) {

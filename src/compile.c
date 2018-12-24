@@ -149,19 +149,19 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                  binopKind == BINOP_DIV) {
                 compile_expr(e1, NOT_USED_AS_LVALUE);
                 compile_expr(e2, NOT_USED_AS_LVALUE);
-                int kind;
+                int irOp2Kind;
                 switch (exprInfo[x].tBinop.binopKind) {
-                case BINOP_PLUS:  kind = IROP2_ADD; break;
-                case BINOP_MINUS: kind = IROP2_SUB; break;
-                case BINOP_MUL:   kind = IROP2_MUL; break;
-                case BINOP_DIV:   kind = IROP2_DIV; break;
+                case BINOP_PLUS:  irOp2Kind = IROP2_ADD; break;
+                case BINOP_MINUS: irOp2Kind = IROP2_SUB; break;
+                case BINOP_MUL:   irOp2Kind = IROP2_MUL; break;
+                case BINOP_DIV:   irOp2Kind = IROP2_DIV; break;
                 default: ASSERT(0);
                 }
                 IrStmt y = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[y].proc = exprInfo[x].proc;
                 irStmtInfo[y].irStmtKind = IRSTMT_OP2;
-                irStmtInfo[y].tOp2.irOp2Kind = kind;
+                irStmtInfo[y].tOp2.irOp2Kind = irOp2Kind;
                 irStmtInfo[y].tOp2.reg1 = exprToIrReg[e1];
                 irStmtInfo[y].tOp2.reg2 = exprToIrReg[e2];
                 irStmtInfo[y].tOp2.tgtreg = exprToIrReg[x];
@@ -169,14 +169,14 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
         else {
                 compile_expr(e1, NOT_USED_AS_LVALUE);
                 compile_expr(e2, NOT_USED_AS_LVALUE);
-                int kind;
+                int irCmpKind;
                 switch (exprInfo[x].tBinop.binopKind) {
-                case BINOP_LT: kind = IRCMP_LT; break;
-                case BINOP_GT: kind = IRCMP_GT; break;
-                case BINOP_LE: kind = IRCMP_LE; break;
-                case BINOP_GE: kind = IRCMP_GE; break;
-                case BINOP_EQ: kind = IRCMP_EQ; break;
-                case BINOP_NE: kind = IRCMP_NE; break;
+                case BINOP_LT: irCmpKind = IRCMP_LT; break;
+                case BINOP_GT: irCmpKind = IRCMP_GT; break;
+                case BINOP_LE: irCmpKind = IRCMP_LE; break;
+                case BINOP_GE: irCmpKind = IRCMP_GE; break;
+                case BINOP_EQ: irCmpKind = IRCMP_EQ; break;
+                case BINOP_NE: irCmpKind = IRCMP_NE; break;
                 default:
                         MSG(lvl_error, "Can't handle %s!\n",
                             binopInfo[exprInfo[x].tBinop.binopKind].str);
@@ -186,7 +186,7 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[y].proc = exprInfo[x].proc;
                 irStmtInfo[y].irStmtKind = IRSTMT_CMP;
-                irStmtInfo[y].tCmp.irCmpKind = kind;
+                irStmtInfo[y].tCmp.irCmpKind = irCmpKind;
                 irStmtInfo[y].tCmp.reg1 = exprToIrReg[e1];
                 irStmtInfo[y].tCmp.reg2 = exprToIrReg[e2];
                 irStmtInfo[y].tCmp.tgtreg = exprToIrReg[x];

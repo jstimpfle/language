@@ -731,13 +731,13 @@ void write_elf64_object(const char *outfilepath)
 
         for (int i = 0; i < relocCnt; i++) {
                 Symbol sym = relocInfo[i].symbol;
-                int kind = relocInfo[i].sectionKind;
+                int sectionKind = relocInfo[i].sectionKind;
                 Elf64_Sxword addend = relocInfo[i].addend;
                 int offset = relocInfo[i].offset;
 
                 int esym;
                 if (sym == -1) {
-                        int esec = sectionToElfsection[kind];
+                        int esec = sectionToElfsection[sectionKind];
                         esym = elfsectionToElfsym[esec];
                 }
                 else {

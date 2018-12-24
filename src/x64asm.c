@@ -406,12 +406,12 @@ void emit_dec_64_reg(int r1)
         emit(make_modrm_byte(0x03, 0x01, r1 & 7));
 }
 
-void emit_setcc(int kind /*X64CMP_??*/, int r)
+void emit_setcc(int x64CmpKind, int r)
 {
         int B = (r & ~7) ? REX_B : 0;
         emit(REX_BASE|REX_W|B);
         emit(0x0F);
-        switch (kind) {
+        switch (x64CmpKind) {
         case X64CMP_LT: emit(0x9C); break;
         case X64CMP_GT: emit(0x9F); break;
         case X64CMP_LE: emit(0x9E); break;
