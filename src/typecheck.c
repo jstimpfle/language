@@ -24,13 +24,6 @@ Type pointer_type(Type t)
         return r;
 }
 
-INTERNAL
-int is_bad_type(Type t)
-{
-        ASSERT(t >= 0);  // is this really true?
-        return ! typeInfo[t].isComplete;
-}
-
 INTERNAL UNUSEDFUNC
 int type_equal(Type a, Type b)
 {
@@ -234,14 +227,14 @@ Type check_subscript_expr_type(Expr x)
         Type t1 = check_expr_type(x1);
         Type t2 = check_expr_type(x2);
         Type tp = -1;
-        if (t1 == -1 || is_bad_type(t1))
+        if (t1 == -1 || !typeInfo[t1].isComplete)
                 LOG_TYPE_ERROR_EXPR(x,
                         "Cannot typecheck subscript expression: "
-                        "bad array type\n");
-        else if (t2 == -1 || is_bad_type(t2))
+                        "invalid or incomplete array type\n");
+        else if (t2 == -1 || !typeInfo[t2].isComplete)
                 LOG_TYPE_ERROR_EXPR(x,
                         "Cannot typecheck subscript expression: "
-                        "bad index type\n");
+                        "invalid or incomplete index type\n");
         else if (typeInfo[t1].typeKind != TYPE_ARRAY &&
                  typeInfo[t1].typeKind != TYPE_POINTER)
                 LOG_TYPE_ERROR_EXPR(x,
