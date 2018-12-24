@@ -158,7 +158,7 @@ void resolve_symbol_references(void)
 
         for (int i = callArgCnt; i --> 0;) {
                 Expr callee = callArgInfo[i].callExpr;
-                ASSERT(exprInfo[callee].kind == EXPR_CALL);
+                ASSERT(exprInfo[callee].exprKind == EXPR_CALL);
                 exprInfo[callee].tCall.nargs++;
                 exprInfo[callee].tCall.firstArgIdx = i;
         }

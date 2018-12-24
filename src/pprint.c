@@ -95,7 +95,7 @@ void pp_array(Array a)
 INTERNAL
 void pp_expr(Expr expr)
 {
-        switch (exprInfo[expr].kind) {
+        switch (exprInfo[expr].exprKind) {
                 case EXPR_SYMREF: {
                         String s = symrefInfo[exprInfo[expr].tSymref.ref].name;
                         outs(string_buffer(s));

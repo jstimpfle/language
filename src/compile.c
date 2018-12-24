@@ -304,7 +304,7 @@ void compile_call_expr(Expr x, UNUSED int usedAsLvalue)
         /* Evaluate what function to call. TODO: should callees be pointers or
          * values? */
         Expr calleeExpr = exprInfo[x].tCall.callee;
-        if (exprInfo[calleeExpr].kind == EXPR_SYMREF)
+        if (exprInfo[calleeExpr].exprKind == EXPR_SYMREF)
                 compile_expr(calleeExpr, USED_AS_LVALUE);
         else
                 compile_expr(calleeExpr, NOT_USED_AS_LVALUE);
@@ -419,19 +419,19 @@ INTERNAL
 void compile_expr(Expr x, int usedAsLvalue)
 {
         if (usedAsLvalue &&
-            !( exprInfo[x].kind == EXPR_SYMREF ) &&
-            !( exprInfo[x].kind == EXPR_MEMBER ) &&
-            !( exprInfo[x].kind == EXPR_SUBSCRIPT ) &&
-            !( exprInfo[x].kind == EXPR_UNOP &&
+            !( exprInfo[x].exprKind == EXPR_SYMREF ) &&
+            !( exprInfo[x].exprKind == EXPR_MEMBER ) &&
+            !( exprInfo[x].exprKind == EXPR_SUBSCRIPT ) &&
+            !( exprInfo[x].exprKind == EXPR_UNOP &&
                exprInfo[x].tUnop.unopKind == UNOP_DEREF)) {
                 /* Expression cannot be an lvalue. This condition should have
                  * been caught during type checking. */
-                DEBUG("Expression kind: %s\n", exprKindString[exprInfo[x].kind]);
+                DEBUG("Expression kind: %s\n", exprKindString[exprInfo[x].exprKind]);
                 MSG_AT_EXPR(lvl_error, x, "This error should not happen!\n");
                 UNREACHABLE();
         }
 
-        int kind = exprInfo[x].kind;
+        int kind = exprInfo[x].exprKind;
         ASSERT(0 <= kind && kind < NUM_EXPR_KINDS);
         exprKindToCompileFunc [kind] (x, usedAsLvalue);
 }
@@ -690,7 +690,7 @@ void compile_proc(Proc p)
                 DEBUG("proc %d has irreg=%d of tp=%d (%s) for expr=%d (%s)\n",
                       irRegInfo[r].proc, r, irRegInfo[r].tp,
                       typeKindString[typeInfo[irRegInfo[r].tp].kind],
-                      x, exprKindString[exprInfo[x].kind]);
+                      x, exprKindString[exprInfo[x].exprKind]);
         }
 
         DEBUG("Compile proc #%d %s\n", p, SS(procInfo[p].sym));

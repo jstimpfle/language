@@ -253,7 +253,7 @@ struct SubscriptExprInfo {
 
 struct ExprInfo {
         Proc proc;
-        int kind;
+        int exprKind;
         union {
                 struct SymrefExprInfo tSymref;
                 struct LiteralExprInfo tLiteral;

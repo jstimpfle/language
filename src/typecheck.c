@@ -6,7 +6,7 @@
 INTERNAL
 int is_lvalue_expression(Expr x)
 {
-        int kind = exprInfo[x].kind;
+        int kind = exprInfo[x].exprKind;
         return (kind == EXPR_SYMREF ||
                 kind == EXPR_MEMBER ||
                 (kind == EXPR_UNOP && exprInfo[x].tUnop.unopKind == UNOP_DEREF));
@@ -306,7 +306,7 @@ Type check_expr_type(Expr x)
         ASSERT(0 <= x && x < exprCnt);
         Type tp = -1;
 
-        int kind = exprInfo[x].kind;
+        int kind = exprInfo[x].exprKind;
         ASSERT(0 <= kind && kind < NUM_EXPR_KINDS);
         tp = exprKindToTypecheckFunc [kind] (x);
 
@@ -400,7 +400,7 @@ void check_types(void)
                 if (exprType[x] == -1) {
                         LOG_TYPE_ERROR_EXPR(
                                 x, "Type check of %s expression failed\n",
-                                exprKindString[exprInfo[x].kind]);
+                                exprKindString[exprInfo[x].exprKind]);
                         bad = 1;
                 }
         }

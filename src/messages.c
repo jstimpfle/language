@@ -32,7 +32,7 @@ void find_expr_position(Expr x, File *file, int *offset)
 {
         Token tok = -1;
         for (;;) {
-                switch (exprInfo[x].kind) {
+                switch (exprInfo[x].exprKind) {
                 case EXPR_LITERAL:
                         tok = exprInfo[x].tLiteral.tok;
                         break;
