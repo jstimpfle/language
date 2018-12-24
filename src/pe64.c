@@ -850,7 +850,7 @@ void write_pe64_object(const char *filepath)
         /* Add relocations */
         for (int i = 0; i < relocCnt; i++) {
                 Symbol sym = relocInfo[i].symbol;
-                int kind = relocInfo[i].kind;
+                int kind = relocInfo[i].sectionKind;
                 int addend = relocInfo[i].addend;
                 int offset = relocInfo[i].offset;
                 int pesym;

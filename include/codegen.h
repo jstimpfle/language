@@ -53,7 +53,7 @@ struct GotoInfo {
 struct RelocInfo {
         Symbol symbol;  /* if -1, the relocation is relative to the section
                            (kind field) */
-        int kind; // SECTION_
+        int sectionKind; // SECTION_
         int addend;  // offset relative to position of symbol
         int offset;  // place in the code where bytes should be edited
 };

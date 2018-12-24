@@ -209,7 +209,7 @@ void emit_section_relative_relocation(int sectionKind, int sectionPos,
         int x = relocCnt++;
         RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
         relocInfo[x].symbol = -1;
-        relocInfo[x].kind = sectionKind;
+        relocInfo[x].sectionKind = sectionKind;
         relocInfo[x].addend = sectionPos;
         relocInfo[x].offset = codePos;
 }
@@ -466,7 +466,7 @@ void emit_mov_64_reloc_reg(Symbol symbol, int addend, int r1)
                 Reloc reloc = relocCnt++;
                 RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
                 relocInfo[reloc].symbol = symbol;
-                relocInfo[reloc].kind = sectionKind;
+                relocInfo[reloc].sectionKind = sectionKind;
                 relocInfo[reloc].addend = addend;
                 relocInfo[reloc].offset = offset;
         }
@@ -916,7 +916,7 @@ void codegen_x64(void)
                 int x = relocCnt++;
                 RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
                 relocInfo[x].symbol = irProcInfo[irp].symbol;
-                relocInfo[x].kind = SECTION_CODE;
+                relocInfo[x].sectionKind = SECTION_CODE;
                 relocInfo[x].addend = irstmtToCodepos[irs]
                                                 - irprocToCodepos[irp];
                 relocInfo[x].offset = offset;
