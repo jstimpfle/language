@@ -773,7 +773,7 @@ void write_pe64_object(const char *filepath)
                 int sectionNumber;
                 int value = symDefInfo[i].offset;
                 Symbol sym = symDefInfo[i].symbol;
-                int sectionKind = symDefInfo[i].kind;  // SECTION_
+                int sectionKind = symDefInfo[i].sectionKind;  // SECTION_
                 switch (sectionKind) {
                 case SECTION_DATA:
                         ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);

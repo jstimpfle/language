@@ -40,7 +40,7 @@ enum {
 
 struct SymDefInfo {
         Symbol symbol;
-        int kind; // SECTION_
+        int sectionKind; // SECTION_
         int offset;
         int size;
 };

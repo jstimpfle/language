@@ -121,7 +121,7 @@ void begin_symbol(Symbol sym)
         SymDef sd = symDefCnt++;
         RESIZE_GLOBAL_BUFFER(symDefInfo, symDefCnt);
         symDefInfo[sd].symbol = sym;
-        symDefInfo[sd].kind = SECTION_CODE;
+        symDefInfo[sd].sectionKind = SECTION_CODE;
         symDefInfo[sd].offset = codeSectionCnt;  //XXX Alignment?
         symDefInfo[sd].size = 0; // set later
 }
@@ -140,7 +140,7 @@ void emit_symbol(Symbol sym, int section, int offset, int size)
         SymDef sd = symDefCnt++;
         RESIZE_GLOBAL_BUFFER(symDefInfo, symDefCnt);
         symDefInfo[sd].symbol = sym;
-        symDefInfo[sd].kind = section;
+        symDefInfo[sd].sectionKind = section;
         symDefInfo[sd].offset = offset;
         symDefInfo[sd].size = size;
 }

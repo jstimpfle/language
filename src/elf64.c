@@ -631,7 +631,7 @@ void write_elf64_object(const char *outfilepath)
                 int size = symDefInfo[i].size;
                 Symbol sym = symDefInfo[i].symbol;
                 DEBUG("Defined symbol %s\n", SS(sym));
-                int sectionKind = symDefInfo[i].kind;  // SECTION_
+                int sectionKind = symDefInfo[i].sectionKind;  // SECTION_
                 int visibility = isSymbolExported[sym] ? STB_GLOBAL : STB_LOCAL;
                 switch (sectionKind) {
                 case SECTION_CODE:
