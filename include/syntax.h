@@ -225,7 +225,6 @@ struct CallExprInfo {
 struct CallArgInfo {
         Expr callExpr;
         Expr argExpr;
-        int rank;
 };
 
 struct UnopExprInfo {
@@ -332,7 +331,6 @@ struct StmtInfo {
 struct ChildStmtInfo {
         Stmt parent;
         Stmt child;
-        int rank;
 };
 
 /**

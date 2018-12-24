@@ -38,7 +38,7 @@ int compare_ParamInfo(const void *a, const void *b)
         const struct ParamInfo *y = b;
         if (x->proctp != y->proctp)
                 return x->proctp - y->proctp;
-        return x->rank - y->rank;
+        return x - y;
 }
 
 INTERNAL
@@ -48,7 +48,7 @@ int compare_ChildStmtInfo(const void *a, const void *b)
         const struct ChildStmtInfo *y = b;
         if (x->parent != y->parent)
                 return x->parent - y->parent;
-        return x->rank - y->rank;
+        return x - y;
 }
 
 INTERNAL
@@ -58,7 +58,7 @@ int compare_CallArgInfo(const void *a, const void *b)
         const struct CallArgInfo *y = b;
         if (x->callExpr != y->callExpr)
                 return x->callExpr - y->callExpr;
-        return x->rank - y->rank;
+        return x - y;
 }
 
 void resolve_symbol_references(void)

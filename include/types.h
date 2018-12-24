@@ -91,14 +91,14 @@ struct ProctypeInfo {
 
 /**
  * \struct{ParamInfo}: Associates a Proc type with a type of a parameter of
- * that proc. Order of proc parameters is specified by the Params' rank member.
+ * that proc. Order of proc parameters is given by their index (~ memory
+ * address)
  */
 
 struct ParamInfo {
         Type proctp;
         Type tp;
         Symbol sym;  // parameter name. Should this really be part of the type?
-        int rank;
 };
 
 struct ReftypeInfo {

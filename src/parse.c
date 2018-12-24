@@ -348,7 +348,6 @@ Expr parse_expr(int minprec)
                                 RESIZE_GLOBAL_BUFFER(callArgInfo, callArgCnt);
                                 callArgInfo[x].callExpr = expr;
                                 callArgInfo[x].argExpr = argExpr;
-                                callArgInfo[x].rank = x;
                                 if (look_token_kind(TOKEN_COMMA) == -1)
                                         break;
                                 consume_token();
@@ -475,7 +474,6 @@ Stmt parse_compound_stmt(void)
                 RESIZE_GLOBAL_BUFFER(childStmtInfo, childStmtCnt);
                 childStmtInfo[x].parent = stmt;
                 childStmtInfo[x].child = child;
-                childStmtInfo[x].rank = x;
         }
         pop_scope();
         parse_token_kind(TOKEN_RIGHTBRACE);
@@ -752,7 +750,6 @@ Proc parse_proc(void)
                 paramInfo[param].proctp = ptype;
                 paramInfo[param].tp = paramtp;
                 paramInfo[param].sym = paramsym;
-                paramInfo[param].rank = param;
                 symbolInfo[paramsym].name = paramname;
                 symbolInfo[paramsym].scope = pscope;
                 symbolInfo[paramsym].symbolKind = SYMBOL_DATA;
