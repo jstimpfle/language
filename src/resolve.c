@@ -151,7 +151,7 @@ void resolve_symbol_references(void)
 
         for (int i = childStmtCnt; i --> 0;) {
                 Stmt parent = childStmtInfo[i].parent;
-                ASSERT(stmtInfo[parent].kind == STMT_COMPOUND);
+                ASSERT(stmtInfo[parent].stmtKind == STMT_COMPOUND);
                 stmtInfo[parent].tCompound.numStatements++;
                 stmtInfo[parent].tCompound.firstChildStmtIdx = i;
         }

@@ -415,7 +415,7 @@ Stmt parse_data_stmt(void)
         Data data = parse_data();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_DATA;
+        stmtInfo[stmt].stmtKind = STMT_DATA;
         stmtInfo[stmt].tData = data;
         return stmt;
 }
@@ -427,7 +427,7 @@ Stmt parse_array_stmt(void)
         Array array = parse_array();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_ARRAY;
+        stmtInfo[stmt].stmtKind = STMT_ARRAY;
         stmtInfo[stmt].tArray = array;
         return stmt;
 }
@@ -439,7 +439,7 @@ Stmt parse_expr_stmt_without_semicolon(void)
         Expr expr = parse_expr(0);
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_EXPR;
+        stmtInfo[stmt].stmtKind = STMT_EXPR;
         stmtInfo[stmt].tExpr.expr = expr;
         return stmt;
 }
@@ -486,7 +486,7 @@ Stmt parse_compound_stmt(void)
         scopeInfo[scope].scopeKind = SCOPE_PROC; //XXX
         scopeInfo[scope].tProc.proc = currentProc;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_COMPOUND;
+        stmtInfo[stmt].stmtKind = STMT_COMPOUND;
         stmtInfo[stmt].tCompound.numStatements = 0;
         stmtInfo[stmt].tCompound.firstChildStmtIdx = -1;
         return stmt;
@@ -548,14 +548,14 @@ Stmt parse_if_stmt(void)
                 consume_token();
                 Stmt elsebody = parse_imperative_statement();
                 RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-                stmtInfo[stmt].kind = STMT_IFELSE;
+                stmtInfo[stmt].stmtKind = STMT_IFELSE;
                 stmtInfo[stmt].tIfelse.condExpr = condExpr;
                 stmtInfo[stmt].tIfelse.ifbody = ifbody;
                 stmtInfo[stmt].tIfelse.elsebody = elsebody;
         }
         else {
                 RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-                stmtInfo[stmt].kind = STMT_IF;
+                stmtInfo[stmt].stmtKind = STMT_IF;
                 stmtInfo[stmt].tIf.condExpr = condExpr;
                 stmtInfo[stmt].tIf.ifbody = ifbody;
         }
@@ -572,7 +572,7 @@ Stmt parse_while_stmt(void)
         Stmt whilebody = parse_imperative_statement();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_WHILE;
+        stmtInfo[stmt].stmtKind = STMT_WHILE;
         stmtInfo[stmt].tWhile.condExpr = condExpr;
         stmtInfo[stmt].tWhile.whilebody = whilebody;
         return stmt;
@@ -591,7 +591,7 @@ Stmt parse_for_stmt(void)
         Stmt forbody = parse_imperative_statement();
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_FOR;
+        stmtInfo[stmt].stmtKind = STMT_FOR;
         stmtInfo[stmt].tFor.initStmt = initStmt;
         stmtInfo[stmt].tFor.condExpr = condExpr;
         stmtInfo[stmt].tFor.stepStmt = stepStmt;
@@ -669,7 +669,7 @@ Stmt parse_range_stmt(void)
         symbolInfo[sym].tData.tp = dataTp;
         symbolInfo[sym].tData.optionaldata = data;
 
-        stmtInfo[stmt].kind = STMT_RANGE;
+        stmtInfo[stmt].stmtKind = STMT_RANGE;
         stmtInfo[stmt].tRange.variable = data;
         stmtInfo[stmt].tRange.startExpr = startExpr;
         stmtInfo[stmt].tRange.stopExpr = stopExpr;
@@ -687,7 +687,7 @@ Stmt parse_return_stmt(void)
         parse_token_kind(TOKEN_SEMICOLON);
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].kind = STMT_RETURN;
+        stmtInfo[stmt].stmtKind = STMT_RETURN;
         stmtInfo[stmt].tReturn.expr = expr;
         return stmt;
 }

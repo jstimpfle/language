@@ -314,7 +314,7 @@ struct ReturnStmtInfo {
 };
 
 struct StmtInfo {
-        int kind;
+        int stmtKind;
         union {
                 struct CompoundStmtInfo tCompound;
                 struct ExprStmtInfo tExpr;

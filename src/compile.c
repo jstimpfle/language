@@ -649,7 +649,7 @@ void (*const stmtKindToCompileFunc[NUM_STMT_KINDS])(IrProc irp, Stmt stmt) = {
 INTERNAL
 void compile_stmt(IrProc irp, Stmt stmt)
 {
-        int kind = stmtInfo[stmt].kind;
+        int kind = stmtInfo[stmt].stmtKind;
         ASSERT(0 <= kind && kind < NUM_STMT_KINDS);
         ASSERT(stmtKindToCompileFunc[kind] != 0);
         stmtKindToCompileFunc [kind] (irp, stmt);

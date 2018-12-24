@@ -209,7 +209,7 @@ void pp_array_stmt(Stmt stmt)
 INTERNAL
 void pp_childstmt(Stmt stmt)
 {
-        if (stmtInfo[stmt].kind == STMT_COMPOUND) {
+        if (stmtInfo[stmt].stmtKind == STMT_COMPOUND) {
                 outs(" ");
                 pp_stmt(stmt);
         }
@@ -223,7 +223,7 @@ void pp_childstmt(Stmt stmt)
 INTERNAL
 void pp_stmt(Stmt stmt)
 {
-        switch (stmtInfo[stmt].kind) {
+        switch (stmtInfo[stmt].stmtKind) {
         case STMT_IF: {
                 Stmt ifbody = stmtInfo[stmt].tIf.ifbody;
                 pp_newline();

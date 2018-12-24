@@ -317,7 +317,7 @@ Type check_expr_type(Expr x)
 INTERNAL
 void check_stmt_types(Stmt a)
 {
-        switch (stmtInfo[a].kind) {
+        switch (stmtInfo[a].stmtKind) {
         case STMT_IF: {
                 check_expr_type(stmtInfo[a].tIf.condExpr);
                 check_stmt_types(stmtInfo[a].tIf.ifbody);
