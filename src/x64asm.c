@@ -880,7 +880,7 @@ void x64asm_proc(IrProc irp)
              irs < irStmtCnt && irStmtInfo[irs].proc == irp;
              irs++) {
                 irstmtToCodepos[irs] = codeSectionCnt; // correct?
-                int kind = irStmtInfo[irs].kind;
+                int kind = irStmtInfo[irs].irStmtKind;
                 ASSERT(0 <= kind && kind < NUM_IRSTMT_KINDS);
                 irStmtKindToX64asmHandler [kind] (irs);
         }

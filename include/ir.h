@@ -235,7 +235,7 @@ struct IrReturnStmtInfo {
 
 struct IrStmtInfo {
         IrProc proc;
-        int kind;  // IRSTMT_
+        int irStmtKind;  // IRSTMT_
         union {
                 struct IrLoadConstantStmtInfo tLoadConstant;
                 struct IrLoadSymbolAddrStmtInfo tLoadSymbolAddr;

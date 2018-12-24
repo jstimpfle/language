@@ -59,7 +59,7 @@ void irp_proc(IrProc p)
              i < irStmtCnt && irStmtInfo[i].proc == p;
              i++) {
                 outf("%5d   ", i);
-                switch (irStmtInfo[i].kind) {
+                switch (irStmtInfo[i].irStmtKind) {
                 case IRSTMT_LOADCONSTANT:
                         outs("LDC   ");
                         irp_constant(&irStmtInfo[i].tLoadConstant);

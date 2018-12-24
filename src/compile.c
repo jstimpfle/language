@@ -39,7 +39,7 @@ void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
                 Token tok = exprInfo[x].tLiteral.tok;
                 long long constval = tokenInfo[tok].tInteger.value;
                 irStmtInfo[y].proc = exprInfo[x].proc;
-                irStmtInfo[y].kind = IRSTMT_LOADCONSTANT;
+                irStmtInfo[y].irStmtKind = IRSTMT_LOADCONSTANT;
                 irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
                 irStmtInfo[y].tLoadConstant.tInteger = constval;
                 irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
@@ -48,7 +48,7 @@ void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
         case LITERAL_STRING: {
                 String s = exprInfo[x].tLiteral.tString;
                 irStmtInfo[y].proc = exprInfo[x].proc;
-                irStmtInfo[y].kind = IRSTMT_LOADCONSTANT;
+                irStmtInfo[y].irStmtKind = IRSTMT_LOADCONSTANT;
                 irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_STRING;
                 irStmtInfo[y].tLoadConstant.tString = s;
                 irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
@@ -79,7 +79,7 @@ void compile_unop_expr(Expr x, int usedAsLvalue)
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[y].proc = exprInfo[x].proc;
-                        irStmtInfo[y].kind = IRSTMT_LOAD;
+                        irStmtInfo[y].irStmtKind = IRSTMT_LOAD;
                         irStmtInfo[y].tLoad.srcaddrreg = exprToIrReg[e1];
                         irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
                 }
@@ -107,16 +107,16 @@ void compile_unop_expr(Expr x, int usedAsLvalue)
                 irRegInfo[tmpReg].sym = -1;
                 irRegInfo[tmpReg].tp = builtinType[BUILTINTYPE_INT];
                 irStmtInfo[loadStmt].proc = irp;
-                irStmtInfo[loadStmt].kind = IRSTMT_LOAD;
+                irStmtInfo[loadStmt].irStmtKind = IRSTMT_LOAD;
                 irStmtInfo[loadStmt].tLoad.srcaddrreg = exprToIrReg[e1];
                 irStmtInfo[loadStmt].tLoad.tgtreg = loadReg;
                 irStmtInfo[incStmt].proc = irp;
-                irStmtInfo[incStmt].kind = IRSTMT_OP1;
+                irStmtInfo[incStmt].irStmtKind = IRSTMT_OP1;
                 irStmtInfo[incStmt].tOp1.irOp1Kind = opkind;
                 irStmtInfo[incStmt].tOp1.reg = loadReg;
                 irStmtInfo[incStmt].tOp1.tgtreg = incReg;
                 irStmtInfo[storeStmt].proc = irp;
-                irStmtInfo[storeStmt].kind = IRSTMT_STORE;
+                irStmtInfo[storeStmt].irStmtKind = IRSTMT_STORE;
                 irStmtInfo[storeStmt].tStore.srcreg = incReg;
                 irStmtInfo[storeStmt].tStore.tgtaddrreg = exprToIrReg[e1];
                 break;
@@ -138,7 +138,7 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 IrStmt y = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[y].proc = exprInfo[x].proc;
-                irStmtInfo[y].kind = IRSTMT_STORE;
+                irStmtInfo[y].irStmtKind = IRSTMT_STORE;
                 irStmtInfo[y].tStore.srcreg = exprToIrReg[e2];
                 irStmtInfo[y].tStore.tgtaddrreg = exprToIrReg[e1];
                 exprToIrReg[x] = exprToIrReg[e2]; //XXX
@@ -160,7 +160,7 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 IrStmt y = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[y].proc = exprInfo[x].proc;
-                irStmtInfo[y].kind = IRSTMT_OP2;
+                irStmtInfo[y].irStmtKind = IRSTMT_OP2;
                 irStmtInfo[y].tOp2.irOp2Kind = kind;
                 irStmtInfo[y].tOp2.reg1 = exprToIrReg[e1];
                 irStmtInfo[y].tOp2.reg2 = exprToIrReg[e2];
@@ -185,7 +185,7 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 IrStmt y = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[y].proc = exprInfo[x].proc;
-                irStmtInfo[y].kind = IRSTMT_CMP;
+                irStmtInfo[y].irStmtKind = IRSTMT_CMP;
                 irStmtInfo[y].tCmp.irCmpKind = kind;
                 irStmtInfo[y].tCmp.reg1 = exprToIrReg[e1];
                 irStmtInfo[y].tCmp.reg2 = exprToIrReg[e2];
@@ -222,13 +222,13 @@ void compile_member_expr(Expr x, int usedAsLvalue)
         irRegInfo[addrReg].tp = irRegInfo[exprToIrReg[e]].tp;
 
         irStmtInfo[loadStmt].proc = exprInfo[x].proc;
-        irStmtInfo[loadStmt].kind = IRSTMT_LOADCONSTANT;
+        irStmtInfo[loadStmt].irStmtKind = IRSTMT_LOADCONSTANT;
         irStmtInfo[loadStmt].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
         irStmtInfo[loadStmt].tLoadConstant.tInteger = offset;
         irStmtInfo[loadStmt].tLoadConstant.tgtreg = offsetReg;
 
         irStmtInfo[addStmt].proc = exprInfo[x].proc;
-        irStmtInfo[addStmt].kind = IRSTMT_OP2;
+        irStmtInfo[addStmt].irStmtKind = IRSTMT_OP2;
         irStmtInfo[addStmt].tOp2.irOp2Kind = IROP2_ADD;
         irStmtInfo[addStmt].tOp2.reg1 = exprToIrReg[e];
         irStmtInfo[addStmt].tOp2.reg2 = offsetReg;
@@ -241,7 +241,7 @@ void compile_member_expr(Expr x, int usedAsLvalue)
                 IrStmt y = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[y].proc = exprInfo[x].proc;
-                irStmtInfo[y].kind = IRSTMT_LOAD;
+                irStmtInfo[y].irStmtKind = IRSTMT_LOAD;
                 irStmtInfo[y].tLoad.srcaddrreg = addrReg;
                 irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
         }
@@ -261,7 +261,7 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[y].proc = exprInfo[x].proc;
-                        irStmtInfo[y].kind = IRSTMT_REGREG;
+                        irStmtInfo[y].irStmtKind = IRSTMT_REGREG;
                         irStmtInfo[y].tRegreg.srcreg = dataToIrReg[data];
                         irStmtInfo[y].tRegreg.tgtreg = exprToIrReg[x];
                 }
@@ -269,7 +269,7 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[y].proc = exprInfo[x].proc;
-                        irStmtInfo[y].kind = IRSTMT_LOADREGADDR;
+                        irStmtInfo[y].irStmtKind = IRSTMT_LOADREGADDR;
                         irStmtInfo[y].tLoadRegAddr.reg = dataToIrReg[data];
                         irStmtInfo[y].tLoadRegAddr.tgtreg = exprToIrReg[x];
                 }
@@ -278,14 +278,14 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
                 IrStmt s0 = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[s0].proc = exprInfo[x].proc;
-                irStmtInfo[s0].kind = IRSTMT_LOADSYMBOLADDR;
+                irStmtInfo[s0].irStmtKind = IRSTMT_LOADSYMBOLADDR;
                 irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
                 irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
                 if (! usedAsLvalue) {
                         IrStmt s1 = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[s1].proc = exprInfo[x].proc;
-                        irStmtInfo[s1].kind = IRSTMT_LOAD;
+                        irStmtInfo[s1].irStmtKind = IRSTMT_LOAD;
                         irStmtInfo[s1].tLoad.srcaddrreg = exprToIrReg[x];
                         irStmtInfo[s1].tLoad.tgtreg = exprToIrReg[x];
                 }
@@ -313,7 +313,7 @@ void compile_call_expr(Expr x, UNUSED int usedAsLvalue)
         IrStmt y = irStmtCnt++;
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
         irStmtInfo[y].proc = exprInfo[x].proc;
-        irStmtInfo[y].kind = IRSTMT_CALL;
+        irStmtInfo[y].irStmtKind = IRSTMT_CALL;
         irStmtInfo[y].tCall.calleeReg = exprToIrReg[calleeExpr];
         irStmtInfo[y].tCall.firstIrCallArg = irCallArgCnt; // XXX: Achtung!
         irStmtInfo[y].tCall.firstIrCallResult = irCallResultCnt; // XXX: Achtung!
@@ -370,20 +370,20 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
         irRegInfo[addrReg].tp = builtinType[BUILTINTYPE_INT];
 
         irStmtInfo[loadStmt].proc = exprInfo[x].proc;
-        irStmtInfo[loadStmt].kind = IRSTMT_LOADCONSTANT;
+        irStmtInfo[loadStmt].irStmtKind = IRSTMT_LOADCONSTANT;
         irStmtInfo[loadStmt].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
         irStmtInfo[loadStmt].tLoadConstant.tInteger = scale;
         irStmtInfo[loadStmt].tLoadConstant.tgtreg = scaleReg;
 
         irStmtInfo[mulStmt].proc = exprInfo[x].proc;
-        irStmtInfo[mulStmt].kind = IRSTMT_OP2;
+        irStmtInfo[mulStmt].irStmtKind = IRSTMT_OP2;
         irStmtInfo[mulStmt].tOp2.irOp2Kind = IROP2_MUL;
         irStmtInfo[mulStmt].tOp2.reg1 = scaleReg;
         irStmtInfo[mulStmt].tOp2.reg2 = exprToIrReg[e2];
         irStmtInfo[mulStmt].tOp2.tgtreg = offsetReg;
 
         irStmtInfo[addStmt].proc = exprInfo[x].proc;
-        irStmtInfo[addStmt].kind = IRSTMT_OP2;
+        irStmtInfo[addStmt].irStmtKind = IRSTMT_OP2;
         irStmtInfo[addStmt].tOp2.irOp2Kind = IROP2_ADD;
         irStmtInfo[addStmt].tOp2.reg1 = exprToIrReg[e1];
         irStmtInfo[addStmt].tOp2.reg2 = offsetReg;
@@ -396,7 +396,7 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
                 IrStmt z = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[z].proc = exprInfo[x].proc;
-                irStmtInfo[z].kind = IRSTMT_LOAD;
+                irStmtInfo[z].irStmtKind = IRSTMT_LOAD;
                 irStmtInfo[z].tLoad.srcaddrreg = addrReg;
                 irStmtInfo[z].tLoad.tgtreg = exprToIrReg[x];
         }
@@ -482,7 +482,7 @@ void compile_if_stmt(IrProc irp, Stmt stmt)
         IrStmt stmtAfterBlock = irStmtCnt;
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
         irStmtInfo[irs].proc = irp;
-        irStmtInfo[irs].kind = IRSTMT_CONDGOTO;
+        irStmtInfo[irs].irStmtKind = IRSTMT_CONDGOTO;
         irStmtInfo[irs].tCondGoto.condreg = exprToIrReg[condExpr];
         irStmtInfo[irs].tCondGoto.tgtstmt = stmtAfterBlock;
         irStmtInfo[irs].tCondGoto.isNeg = 1;
@@ -503,12 +503,12 @@ void compile_ifelse_stmt(IrProc irp, Stmt stmt)
         IrStmt firstafterelse = irStmtCnt;
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
         irStmtInfo[j0].proc = irp;
-        irStmtInfo[j0].kind = IRSTMT_CONDGOTO;
+        irStmtInfo[j0].irStmtKind = IRSTMT_CONDGOTO;
         irStmtInfo[j0].tCondGoto.condreg = exprToIrReg[condExpr];
         irStmtInfo[j0].tCondGoto.tgtstmt = firstinelse;
         irStmtInfo[j0].tCondGoto.isNeg = 1;
         irStmtInfo[j1].proc = irp;
-        irStmtInfo[j1].kind = IRSTMT_GOTO;
+        irStmtInfo[j1].irStmtKind = IRSTMT_GOTO;
         irStmtInfo[j1].tGoto.tgtstmt = firstafterelse;
 }
 
@@ -525,12 +525,12 @@ void compile_while_stmt(IrProc irp, Stmt stmt)
         IrStmt stmtAfterBlock = irStmtCnt;
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
         irStmtInfo[irs].proc = irp;
-        irStmtInfo[irs].kind = IRSTMT_CONDGOTO;
+        irStmtInfo[irs].irStmtKind = IRSTMT_CONDGOTO;
         irStmtInfo[irs].tCondGoto.condreg = exprToIrReg[condExpr];
         irStmtInfo[irs].tCondGoto.tgtstmt = stmtAfterBlock;
         irStmtInfo[irs].tCondGoto.isNeg = 1;
         irStmtInfo[backJmp].proc = irp;
-        irStmtInfo[backJmp].kind = IRSTMT_GOTO;
+        irStmtInfo[backJmp].irStmtKind = IRSTMT_GOTO;
         irStmtInfo[backJmp].tGoto.tgtstmt = condStmt;
 }
 
@@ -551,12 +551,12 @@ void compile_for_stmt(IrProc irp, Stmt stmt)
         IrStmt stmtAfterBlock = irStmtCnt;
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
         irStmtInfo[condJmp].proc = irp;
-        irStmtInfo[condJmp].kind = IRSTMT_CONDGOTO;
+        irStmtInfo[condJmp].irStmtKind = IRSTMT_CONDGOTO;
         irStmtInfo[condJmp].tCondGoto.condreg = exprToIrReg[condExpr];
         irStmtInfo[condJmp].tCondGoto.tgtstmt = stmtAfterBlock;
         irStmtInfo[condJmp].tCondGoto.isNeg = 1;
         irStmtInfo[backJmp].proc = irp;
-        irStmtInfo[backJmp].kind = IRSTMT_GOTO;
+        irStmtInfo[backJmp].irStmtKind = IRSTMT_GOTO;
         irStmtInfo[backJmp].tGoto.tgtstmt = cond;
 }
 
@@ -594,23 +594,23 @@ void compile_range_stmt(IrProc irp, Stmt stmt)
         irRegInfo[cmpReg].sym = -1;
         irRegInfo[cmpReg].tp = builtinType[BUILTINTYPE_INT];
         irStmtInfo[checkStmt].proc = irp;
-        irStmtInfo[checkStmt].kind = IRSTMT_CMP;
+        irStmtInfo[checkStmt].irStmtKind = IRSTMT_CMP;
         irStmtInfo[checkStmt].tCmp.irCmpKind = IRCMP_GE;
         irStmtInfo[checkStmt].tCmp.reg1 = varReg;
         irStmtInfo[checkStmt].tCmp.reg2 = stopvalueReg;
         irStmtInfo[checkStmt].tCmp.tgtreg = cmpReg;
         irStmtInfo[breakStmt].proc = irp;
-        irStmtInfo[breakStmt].kind = IRSTMT_CONDGOTO;
+        irStmtInfo[breakStmt].irStmtKind = IRSTMT_CONDGOTO;
         irStmtInfo[breakStmt].tCondGoto.condreg = cmpReg;
         irStmtInfo[breakStmt].tCondGoto.tgtstmt = stmtAfterBlock;
         irStmtInfo[breakStmt].tCondGoto.isNeg = 0;
         irStmtInfo[stepStmt].proc = irp;
-        irStmtInfo[stepStmt].kind = IRSTMT_OP1;
+        irStmtInfo[stepStmt].irStmtKind = IRSTMT_OP1;
         irStmtInfo[stepStmt].tOp1.irOp1Kind = IROP1_INC;
         irStmtInfo[stepStmt].tOp1.reg = varReg;
         irStmtInfo[stepStmt].tOp1.tgtreg = varReg;
         irStmtInfo[jumpStmt].proc = irp;
-        irStmtInfo[jumpStmt].kind = IRSTMT_GOTO;
+        irStmtInfo[jumpStmt].irStmtKind = IRSTMT_GOTO;
         irStmtInfo[jumpStmt].tGoto.tgtstmt = checkStmt;
 }
 
@@ -624,7 +624,7 @@ void compile_return_stmt(IrProc irp, Stmt stmt)
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
         RESIZE_GLOBAL_BUFFER(irReturnvalInfo, irReturnvalCnt);
         irStmtInfo[irs].proc = irp;
-        irStmtInfo[irs].kind = IRSTMT_RETURN;
+        irStmtInfo[irs].irStmtKind = IRSTMT_RETURN;
         irStmtInfo[irs].tReturn.firstResult = ret;
         irReturnvalInfo[ret].returnStmt = irs;
         irReturnvalInfo[ret].resultReg = exprToIrReg[resultExpr];
@@ -763,7 +763,7 @@ void compile_to_IR(void)
         DEBUG("Look for jump targets and sources and sort them by target)\n");
         for (IrStmt stmt = 0; stmt < irStmtCnt; stmt++) {
                 Stmt tgtstmt;
-                switch (irStmtInfo[stmt].kind) {
+                switch (irStmtInfo[stmt].irStmtKind) {
                 case IRSTMT_CONDGOTO:
                         tgtstmt = irStmtInfo[stmt].tCondGoto.tgtstmt;
                         break;
