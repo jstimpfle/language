@@ -9,7 +9,7 @@ int is_lvalue_expression(Expr x)
         int kind = exprInfo[x].kind;
         return (kind == EXPR_SYMREF ||
                 kind == EXPR_MEMBER ||
-                (kind == EXPR_UNOP && exprInfo[x].tUnop.kind == UNOP_DEREF));
+                (kind == EXPR_UNOP && exprInfo[x].tUnop.unopKind == UNOP_DEREF));
 }
 
 INTERNAL
@@ -93,7 +93,7 @@ Type check_symref_expr_type(Expr x)
 INTERNAL
 Type check_unop_expr_type(Expr x)
 {
-        int op = exprInfo[x].tUnop.kind;
+        int op = exprInfo[x].tUnop.unopKind;
         Expr xx = exprInfo[x].tUnop.expr;
         switch (op) {
         case UNOP_ADDRESSOF: {
@@ -142,7 +142,7 @@ Type check_unop_expr_type(Expr x)
 INTERNAL
 Type check_binop_expr_type(Expr x)
 {
-        int op = exprInfo[x].tUnop.kind;
+        int op = exprInfo[x].tUnop.unopKind;
         Expr x1 = exprInfo[x].tBinop.expr1;
         Expr x2 = exprInfo[x].tBinop.expr2;
         if (op == BINOP_ASSIGN) {

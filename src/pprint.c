@@ -119,7 +119,7 @@ void pp_expr(Expr expr)
                         break;
                 }
                 case EXPR_UNOP: {
-                        int unop = exprInfo[expr].tUnop.kind;
+                        int unop = exprInfo[expr].tUnop.unopKind;
                         int isprefix = unopInfo[unop].isprefix;
                         const char *str = unopInfo[unop].str;
                         if (isprefix)

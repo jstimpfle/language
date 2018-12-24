@@ -229,7 +229,7 @@ struct CallArgInfo {
 };
 
 struct UnopExprInfo {
-        int kind;
+        int unopKind;
         Token tok;
         Expr expr;
 };

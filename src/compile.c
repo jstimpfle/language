@@ -64,7 +64,7 @@ void compile_unop_expr(Expr x, int usedAsLvalue)
 {
         IrProc irp = procToIrProc[exprInfo[x].proc];
         Expr e1 = exprInfo[x].tUnop.expr;
-        switch (exprInfo[x].tUnop.kind) {
+        switch (exprInfo[x].tUnop.unopKind) {
         case UNOP_ADDRESSOF: {
                 compile_expr(e1, USED_AS_LVALUE);
                 exprToIrReg[x] = exprToIrReg[e1]; //XXX
@@ -423,7 +423,7 @@ void compile_expr(Expr x, int usedAsLvalue)
             !( exprInfo[x].kind == EXPR_MEMBER ) &&
             !( exprInfo[x].kind == EXPR_SUBSCRIPT ) &&
             !( exprInfo[x].kind == EXPR_UNOP &&
-               exprInfo[x].tUnop.kind == UNOP_DEREF)) {
+               exprInfo[x].tUnop.unopKind == UNOP_DEREF)) {
                 /* Expression cannot be an lvalue. This condition should have
                  * been caught during type checking. */
                 DEBUG("Expression kind: %s\n", exprKindString[exprInfo[x].kind]);

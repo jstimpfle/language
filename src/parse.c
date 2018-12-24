@@ -20,7 +20,7 @@ Expr add_unop_expr(int opkind, Token tok, Expr expr)
         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
         exprInfo[x].proc = currentProc;
         exprInfo[x].kind = EXPR_UNOP;
-        exprInfo[x].tUnop.kind = opkind;
+        exprInfo[x].tUnop.unopKind = opkind;
         exprInfo[x].tUnop.tok = tok;
         exprInfo[x].tUnop.expr = expr;
         return x;
