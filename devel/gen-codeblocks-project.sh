@@ -27,12 +27,12 @@ cat > "$CB_PROJECTFILE" <<'EOF'
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="test" />
+		<Option title="language" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin/Debug/test" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Debug/language" prefix_auto="1" extension_auto="1" />
 				<Option working_dir="../" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
@@ -42,7 +42,7 @@ cat > "$CB_PROJECTFILE" <<'EOF'
 				</Compiler>
 			</Target>
 			<Target title="Release">
-				<Option output="bin/Release/test" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Release/language" prefix_auto="1" extension_auto="1" />
 				<Option working_dir="../" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
