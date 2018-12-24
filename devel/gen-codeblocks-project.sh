@@ -56,7 +56,9 @@ cat > "$CB_PROJECTFILE" <<'EOF'
 			</Target>
 		</Build>
 		<Compiler>
+			<Add option="-std=c99" />
 			<Add option="-Wall" />
+			<Add option="-Wextra" />
 			<Add directory="../include/" />
 		</Compiler>
 EOF
