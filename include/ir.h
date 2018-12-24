@@ -198,7 +198,7 @@ struct IrOp1StmtInfo {
 };
 
 struct IrOp2StmtInfo {
-        int kind;  // IROP2_
+        int irOp2Kind;  // IROP2_
         IrReg reg1;
         IrReg reg2;
         IrReg tgtreg;

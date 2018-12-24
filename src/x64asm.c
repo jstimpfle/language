@@ -713,7 +713,7 @@ void x64asm_op2_irstmt(IrStmt irs)
         X64StackLoc tgtloc = find_stack_loc(tgtreg);
         emit_mov_64_stack_reg(loc1, X64_RAX);
         emit_mov_64_stack_reg(loc2, X64_RBX);
-        switch (irStmtInfo[irs].tOp2.kind) {
+        switch (irStmtInfo[irs].tOp2.irOp2Kind) {
         case IROP2_ADD:
                 emit_add_64_reg_reg(X64_RBX, X64_RAX);
                 break;

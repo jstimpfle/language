@@ -161,7 +161,7 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                 irStmtInfo[y].proc = exprInfo[x].proc;
                 irStmtInfo[y].kind = IRSTMT_OP2;
-                irStmtInfo[y].tOp2.kind = kind;
+                irStmtInfo[y].tOp2.irOp2Kind = kind;
                 irStmtInfo[y].tOp2.reg1 = exprToIrReg[e1];
                 irStmtInfo[y].tOp2.reg2 = exprToIrReg[e2];
                 irStmtInfo[y].tOp2.tgtreg = exprToIrReg[x];
@@ -229,7 +229,7 @@ void compile_member_expr(Expr x, int usedAsLvalue)
 
         irStmtInfo[addStmt].proc = exprInfo[x].proc;
         irStmtInfo[addStmt].kind = IRSTMT_OP2;
-        irStmtInfo[addStmt].tOp2.kind = IROP2_ADD;
+        irStmtInfo[addStmt].tOp2.irOp2Kind = IROP2_ADD;
         irStmtInfo[addStmt].tOp2.reg1 = exprToIrReg[e];
         irStmtInfo[addStmt].tOp2.reg2 = offsetReg;
         irStmtInfo[addStmt].tOp2.tgtreg = addrReg;
@@ -377,14 +377,14 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
 
         irStmtInfo[mulStmt].proc = exprInfo[x].proc;
         irStmtInfo[mulStmt].kind = IRSTMT_OP2;
-        irStmtInfo[mulStmt].tOp2.kind = IROP2_MUL;
+        irStmtInfo[mulStmt].tOp2.irOp2Kind = IROP2_MUL;
         irStmtInfo[mulStmt].tOp2.reg1 = scaleReg;
         irStmtInfo[mulStmt].tOp2.reg2 = exprToIrReg[e2];
         irStmtInfo[mulStmt].tOp2.tgtreg = offsetReg;
 
         irStmtInfo[addStmt].proc = exprInfo[x].proc;
         irStmtInfo[addStmt].kind = IRSTMT_OP2;
-        irStmtInfo[addStmt].tOp2.kind = IROP2_ADD;
+        irStmtInfo[addStmt].tOp2.irOp2Kind = IROP2_ADD;
         irStmtInfo[addStmt].tOp2.reg1 = exprToIrReg[e1];
         irStmtInfo[addStmt].tOp2.reg2 = offsetReg;
         irStmtInfo[addStmt].tOp2.tgtreg = addrReg;
