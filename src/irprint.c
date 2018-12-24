@@ -97,7 +97,7 @@ void irp_proc(IrProc p)
                         irp_reg(irStmtInfo[i].tRegreg.tgtreg);
                         break;
                 case IRSTMT_OP1:
-                        outs(irOp1String[irStmtInfo[i].tOp1.kind]);
+                        outs(irOp1String[irStmtInfo[i].tOp1.irOp1Kind]);
                         outs(" ");
                         irp_reg(irStmtInfo[i].tOp1.reg);
                         outs(", ");

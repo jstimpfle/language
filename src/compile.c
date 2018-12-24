@@ -112,7 +112,7 @@ void compile_unop_expr(Expr x, int usedAsLvalue)
                 irStmtInfo[loadStmt].tLoad.tgtreg = loadReg;
                 irStmtInfo[incStmt].proc = irp;
                 irStmtInfo[incStmt].kind = IRSTMT_OP1;
-                irStmtInfo[incStmt].tOp1.kind = opkind;
+                irStmtInfo[incStmt].tOp1.irOp1Kind = opkind;
                 irStmtInfo[incStmt].tOp1.reg = loadReg;
                 irStmtInfo[incStmt].tOp1.tgtreg = incReg;
                 irStmtInfo[storeStmt].proc = irp;
@@ -606,7 +606,7 @@ void compile_range_stmt(IrProc irp, Stmt stmt)
         irStmtInfo[breakStmt].tCondGoto.isNeg = 0;
         irStmtInfo[stepStmt].proc = irp;
         irStmtInfo[stepStmt].kind = IRSTMT_OP1;
-        irStmtInfo[stepStmt].tOp1.kind = IROP1_INC;
+        irStmtInfo[stepStmt].tOp1.irOp1Kind = IROP1_INC;
         irStmtInfo[stepStmt].tOp1.reg = varReg;
         irStmtInfo[stepStmt].tOp1.tgtreg = varReg;
         irStmtInfo[jumpStmt].proc = irp;

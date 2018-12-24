@@ -694,7 +694,7 @@ void x64asm_op1_irstmt(IrStmt irs)
         X64StackLoc loc = find_stack_loc(reg);
         X64StackLoc tgtloc = find_stack_loc(tgtreg);
         emit_mov_64_stack_reg(loc, X64_RAX);
-        switch (irStmtInfo[irs].tOp1.kind) {
+        switch (irStmtInfo[irs].tOp1.irOp1Kind) {
         case IROP1_INC: emit_inc_64_reg(X64_RAX); break;
         case IROP1_DEC: emit_dec_64_reg(X64_RAX); break;
         default: UNHANDLED_CASE();
