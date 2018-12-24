@@ -22,17 +22,17 @@ fi
 
 mkdir "$CB_PROJECTDIR"
 
-cat > "$CB_PROJECTFILE" <<'EOF'
+cat > "$CB_PROJECTFILE" <<EOF
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="language" />
+		<Option title="$PROJECTNAME" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin/Debug/language" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Debug/$PROJECTNAME" prefix_auto="1" extension_auto="1" />
 				<Option working_dir="../" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
@@ -42,7 +42,7 @@ cat > "$CB_PROJECTFILE" <<'EOF'
 				</Compiler>
 			</Target>
 			<Target title="Release">
-				<Option output="bin/Release/language" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Release/$PROJECTNAME" prefix_auto="1" extension_auto="1" />
 				<Option working_dir="../" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
