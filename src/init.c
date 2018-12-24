@@ -26,7 +26,7 @@ void init_data(void)
                 int size = basetypesToBeInitialized[i].size;
                 Type tp = typeCnt++;
                 RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-                typeInfo[tp].kind = TYPE_BASE;
+                typeInfo[tp].typeKind = TYPE_BASE;
                 typeInfo[tp].tBase.name = name;
                 typeInfo[tp].tBase.size = size;
 

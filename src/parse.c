@@ -163,14 +163,14 @@ Type parse_type(void)
         Symref ref = parse_symref();
         Type tp = typeCnt++;
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[tp].kind = TYPE_REFERENCE;
+        typeInfo[tp].typeKind = TYPE_REFERENCE;
         typeInfo[tp].tRef.ref = ref;
         typeInfo[tp].tRef.resolvedTp = -1;
         while (look_token_kind(TOKEN_CARET) != -1) {
                 consume_token();
                 Type ptp = typeCnt++;
                 RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-                typeInfo[ptp].kind = TYPE_POINTER;
+                typeInfo[ptp].typeKind = TYPE_POINTER;
                 typeInfo[ptp].tPointer.tp = tp;
                 tp = ptp;
         }
@@ -187,7 +187,7 @@ Type parse_entity(void)
         Type etp = typeCnt++;
         add_type_symbol(name, currentScope, etp);
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[etp].kind = TYPE_ENTITY;
+        typeInfo[etp].typeKind = TYPE_ENTITY;
         typeInfo[etp].tEntity.name = name;
         typeInfo[etp].tEntity.tp = tp;
         return etp;
@@ -215,7 +215,7 @@ Array parse_array(void)
         arrayInfo[array].scope = currentScope;
         arrayInfo[array].tp = tp;
         arrayInfo[array].sym = sym;
-        typeInfo[tp].kind = TYPE_ARRAY;
+        typeInfo[tp].typeKind = TYPE_ARRAY;
         typeInfo[tp].tArray.idxtp = idxtp;
         typeInfo[tp].tArray.valuetp = valuetp;
         symbolInfo[sym].name = name;
@@ -249,7 +249,7 @@ Type parse_struct(void)
         String name = parse_name();
         Type tp = typeCnt++;
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[tp].kind = TYPE_STRUCT;
+        typeInfo[tp].typeKind = TYPE_STRUCT;
         typeInfo[tp].tStruct.name = name;
         add_type_symbol(name, globalScope, tp);
         parse_token_kind(TOKEN_LEFTBRACE);
@@ -786,7 +786,7 @@ Proc parse_proc(void)
         symbolInfo[psym].symbolKind = SYMBOL_PROC;
         symbolInfo[psym].tProc.tp = ptype;
         symbolInfo[psym].tProc.optionalproc = currentProc;
-        typeInfo[ptype].kind = TYPE_PROC;
+        typeInfo[ptype].typeKind = TYPE_PROC;
         typeInfo[ptype].tProc.rettp = rettp;
         typeInfo[ptype].tProc.nparams = nparams;
 

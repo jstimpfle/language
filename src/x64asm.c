@@ -854,7 +854,7 @@ void x64asm_proc(IrProc irp)
         ASSERT(symbolInfo[psym].symbolKind == SYMBOL_PROC);
         Type tp = symbolInfo[psym].tProc.tp;
         ASSERT(tp != -1);
-        ASSERT(typeInfo[tp].kind == TYPE_PROC);
+        ASSERT(typeInfo[tp].typeKind == TYPE_PROC);
 
         begin_symbol(psym);
         emit_function_prologue();

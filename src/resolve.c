@@ -72,7 +72,7 @@ void resolve_symbol_references(void)
                 Symbol sym = symbolCnt++;
 
                 RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-                typeInfo[tp].kind = TYPE_PROC;
+                typeInfo[tp].typeKind = TYPE_PROC;
                 typeInfo[tp].tProc.rettp = builtinType[BUILTINTYPE_INT]; //XXX
                 typeInfo[tp].tProc.nparams = 0;
 
@@ -140,7 +140,7 @@ void resolve_symbol_references(void)
         for (Param param = paramCnt; param --> 0;) {
                 Type proctp = paramInfo[param].proctp;
                 ASSERT(0 <= proctp && proctp < typeCnt);
-                ASSERT(typeInfo[proctp].kind == TYPE_PROC);
+                ASSERT(typeInfo[proctp].typeKind == TYPE_PROC);
                 firstProctypeParam[proctp] = param;
         }
 
@@ -169,7 +169,7 @@ void resolve_symbol_references(void)
         }
 
         for (Type t = 0; t < typeCnt; t++) {
-                if (typeInfo[t].kind == TYPE_STRUCT)
+                if (typeInfo[t].typeKind == TYPE_STRUCT)
                         typeInfo[t].tStruct.firstStructmember = -1;
         }
         for (Structmember m = structmemberCnt; m --> 0;) {
@@ -226,7 +226,7 @@ void resolve_ref_type(Type t)
         const int UNASSIGNED = -42;
         int isComplete = UNASSIGNED;
 
-        switch (typeInfo[t].kind) {
+        switch (typeInfo[t].typeKind) {
         case TYPE_BASE:
                 isComplete = 1;
                 break;
@@ -291,11 +291,11 @@ void resolve_ref_type(Type t)
 void resolve_type_references(void)
 {
         for (Type tp = 0; tp < typeCnt; tp++)
-                if (typeInfo[tp].kind == TYPE_STRUCT)
+                if (typeInfo[tp].typeKind == TYPE_STRUCT)
                         typeInfo[tp].tStruct.firstStructmember = structmemberCnt;
         for (Structmember m = structmemberCnt; m --> 0;) {
                 Type tp = structmemberInfo[m].structTp;
-                ASSERT(typeInfo[tp].kind == TYPE_STRUCT);
+                ASSERT(typeInfo[tp].typeKind == TYPE_STRUCT);
                 typeInfo[tp].tStruct.firstStructmember = m;
         }
         /* isComplete -2 means "TO DO" */
@@ -303,7 +303,7 @@ void resolve_type_references(void)
         for (Type t = 0; t < typeCnt; t++)
                 typeInfo[t].isComplete = -2;
         for (Type t = 0; t < typeCnt; t++)
-                if (typeInfo[t].kind == TYPE_REFERENCE)
+                if (typeInfo[t].typeKind == TYPE_REFERENCE)
                         typeInfo[t].tRef.resolvedTp = -1;
         for (Type t = 0; t < typeCnt; t++)
                 if (typeInfo[t].isComplete == -2)

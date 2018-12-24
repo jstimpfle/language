@@ -3,7 +3,7 @@
 
 Type referenced_type(Type t)
 {
-        while (typeInfo[t].kind == TYPE_REFERENCE)
+        while (typeInfo[t].typeKind == TYPE_REFERENCE)
                 t = typeInfo[t].tRef.resolvedTp;
         return t;
 }
@@ -11,7 +11,7 @@ Type referenced_type(Type t)
 int get_type_size(Type tp)
 {
         tp = referenced_type(tp);
-        switch (typeInfo[tp].kind) {
+        switch (typeInfo[tp].typeKind) {
         case TYPE_BASE:    return typeInfo[tp].tBase.size;
         case TYPE_STRUCT:  return typeInfo[tp].tStruct.size;
         case TYPE_POINTER: return 8; //XXX

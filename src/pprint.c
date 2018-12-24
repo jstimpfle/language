@@ -30,7 +30,7 @@ void pp_type(Type tp)
                 outs("(Bad type)");
                 return;
         }
-        switch (typeInfo[tp].kind) {
+        switch (typeInfo[tp].typeKind) {
         case TYPE_BASE:
                 outs(string_buffer(typeInfo[tp].tBase.name));
                 break;
@@ -325,7 +325,7 @@ void pp_proc(Proc p)
 void prettyprint(void)
 {
         for (Type i = 0; i < typeCnt; i++)
-                if (typeInfo[i].kind == TYPE_ENTITY)
+                if (typeInfo[i].typeKind == TYPE_ENTITY)
                         pp_entity(i);
         pp_newline();
         for (Data i = 0; i < dataCnt; i++)

@@ -107,7 +107,7 @@ struct ReftypeInfo {
 };
 
 struct TypeInfo {
-        int kind;  // TYPE_?
+        int typeKind;  // TYPE_?
         union {
                 struct BasetypeInfo tBase;
                 struct StructtypeInfo tStruct;

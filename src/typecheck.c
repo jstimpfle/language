@@ -18,7 +18,7 @@ Type pointer_type(Type t)
         // TODO: cache pointer-to version of this type
         Type r = typeCnt++;
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[r].kind = TYPE_POINTER;
+        typeInfo[r].typeKind = TYPE_POINTER;
         typeInfo[r].tPointer.tp = t;
         typeInfo[r].isComplete = typeInfo[t].isComplete; //XXX?
         return r;
@@ -111,7 +111,7 @@ Type check_unop_expr_type(Expr x)
         case UNOP_DEREF: {
                 Type tt = check_expr_type(xx);
                 if (tt != (Type) -1) {
-                        int k = typeInfo[tt].kind;
+                        int k = typeInfo[tt].typeKind;
                         if (k == TYPE_POINTER)
                                 return typeInfo[tt].tPointer.tp;
                 }
@@ -127,7 +127,7 @@ Type check_unop_expr_type(Expr x)
         case UNOP_POSTINCREMENT: {
                 Type tt = check_expr_type(xx);
                 if (tt != (Type) -1) {
-                        int k = typeInfo[tt].kind;
+                        int k = typeInfo[tt].typeKind;
                         if (k == TYPE_BASE)
                                 return tt;
                 }
@@ -154,8 +154,8 @@ Type check_binop_expr_type(Expr x)
         Type t1 = check_expr_type(x1);
         Type t2 = check_expr_type(x2);
         if (t1 != -1 && t2 != -1) {
-                int k1 = typeInfo[t1].kind;
-                int k2 = typeInfo[t2].kind;
+                int k1 = typeInfo[t1].typeKind;
+                int k2 = typeInfo[t2].typeKind;
                 switch (op) {
                 case BINOP_ASSIGN:
                         UNHANDLED_CASE(); /* already handled above */
@@ -201,11 +201,11 @@ Type check_member_expr_type(Expr x)
         if (t1 == -1) {
                 /* bad */
         }
-        else if (typeInfo[t1].kind != TYPE_STRUCT) {
+        else if (typeInfo[t1].typeKind != TYPE_STRUCT) {
                 LOG_TYPE_ERROR_EXPR(x,
                         "Invalid member expression: "
                         "Operand is not a struct type (it is %s)\n",
-                        typeKindString[typeInfo[t1].kind]);
+                        typeKindString[typeInfo[t1].typeKind]);
         }
         else {
                 for (Structmember m = typeInfo[t1].tStruct.firstStructmember;
@@ -242,17 +242,17 @@ Type check_subscript_expr_type(Expr x)
                 LOG_TYPE_ERROR_EXPR(x,
                         "Cannot typecheck subscript expression: "
                         "bad index type\n");
-        else if (typeInfo[t1].kind != TYPE_ARRAY &&
-                 typeInfo[t1].kind != TYPE_POINTER)
+        else if (typeInfo[t1].typeKind != TYPE_ARRAY &&
+                 typeInfo[t1].typeKind != TYPE_POINTER)
                 LOG_TYPE_ERROR_EXPR(x,
                         "Subscript expression invalid: "
                         "indexed object is not array type\n");
-        else if (typeInfo[t2].kind != TYPE_BASE)
+        else if (typeInfo[t2].typeKind != TYPE_BASE)
                 LOG_TYPE_ERROR_EXPR(x,
                         "Invalid type of index used in subscript expression. "
                         "Need integral type: %s.\n",
-                        typeKindString[typeInfo[t2].kind]);
-        else if (typeInfo[t1].kind == TYPE_POINTER) {
+                        typeKindString[typeInfo[t2].typeKind]);
+        else if (typeInfo[t1].typeKind == TYPE_POINTER) {
                 tp = typeInfo[t1].tPointer.tp;
         }
         else {
@@ -270,9 +270,9 @@ Type check_call_expr_type(Expr x)
         if (calleeTp == -1) {
                 LOG_TYPE_ERROR_EXPR(x, "Type of callee is unknown\n");
         }
-        else if (typeInfo[calleeTp].kind != TYPE_PROC) {
+        else if (typeInfo[calleeTp].typeKind != TYPE_PROC) {
                 LOG_TYPE_ERROR_EXPR(x, "Not a callable but a %s\n",
-                                    typeKindString[typeInfo[calleeTp].kind]);
+                                    typeKindString[typeInfo[calleeTp].typeKind]);
         }
         else {
                 check_expr_type(exprInfo[x].tCall.callee);
@@ -410,7 +410,7 @@ void check_types(void)
 
         {
                 for (Type tp = 0; tp < typeCnt; tp++)
-                        if (typeInfo[tp].kind == TYPE_STRUCT)
+                        if (typeInfo[tp].typeKind == TYPE_STRUCT)
                                 typeInfo[tp].tStruct.size = 0;
                 for (Structmember m = 0; m < structmemberCnt; m++) {
                         Type tp = structmemberInfo[m].structTp;

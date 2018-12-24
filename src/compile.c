@@ -13,9 +13,9 @@ enum {
 INTERNAL
 int find_struct_offset(Type tp, String memberName)
 {
-        if (typeInfo[tp].kind == TYPE_REFERENCE) //XXX
+        if (typeInfo[tp].typeKind == TYPE_REFERENCE) //XXX
                 tp = typeInfo[tp].tRef.resolvedTp;
-        ASSERT(typeInfo[tp].kind == TYPE_STRUCT);
+        ASSERT(typeInfo[tp].typeKind == TYPE_STRUCT);
         for (Structmember m = typeInfo[tp].tStruct.firstStructmember;
              m < structmemberCnt && structmemberInfo[m].structTp == tp;
              m++) {
@@ -340,7 +340,7 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
         compile_expr(e1, NOT_USED_AS_LVALUE);
         compile_expr(e2, NOT_USED_AS_LVALUE);
 
-        ASSERT(typeInfo[exprType[e1]].kind == TYPE_POINTER);
+        ASSERT(typeInfo[exprType[e1]].typeKind == TYPE_POINTER);
         int scale = get_type_size(typeInfo[exprType[e1]].tPointer.tp);
 
         /* offset pointer */
@@ -689,7 +689,7 @@ void compile_proc(Proc p)
 
                 DEBUG("proc %d has irreg=%d of tp=%d (%s) for expr=%d (%s)\n",
                       irRegInfo[r].proc, r, irRegInfo[r].tp,
-                      typeKindString[typeInfo[irRegInfo[r].tp].kind],
+                      typeKindString[typeInfo[irRegInfo[r].tp].typeKind],
                       x, exprKindString[exprInfo[x].exprKind]);
         }
 
