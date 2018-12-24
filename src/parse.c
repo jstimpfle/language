@@ -126,9 +126,9 @@ Token parse_token_kind(int tkind)
                                 tokenKindString[tkind]);
         if (tokenInfo[tok].tokenKind != tkind)
                 FATAL_PARSE_ERROR_AT_TOK(tok,
-                                "Expected %s token, got: %s\n",
-                                tokenKindString[tkind],
-                                tokenKindString[tokenInfo[tok].tokenKind]);
+                                "Unexpected %s token. Expected %s token\n",
+                                tokenKindString[tokenInfo[tok].tokenKind],
+                                tokenKindString[tkind]);
         consume_token();
         return tok;
 }
