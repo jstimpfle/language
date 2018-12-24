@@ -329,11 +329,11 @@ void prettyprint(void)
                         pp_entity(i);
         pp_newline();
         for (Data i = 0; i < dataCnt; i++)
-                if (scopeInfo[dataInfo[i].scope].scopeKind == globalScope)
+                if (scopeInfo[dataInfo[i].scope].scopeKind == SCOPE_GLOBAL)
                         pp_data(i);
         pp_newline();
         for (Array i = 0; i < arrayCnt; i++)
-                if (scopeInfo[arrayInfo[i].scope].scopeKind == globalScope)
+                if (scopeInfo[arrayInfo[i].scope].scopeKind == SCOPE_GLOBAL)
                         pp_array(i);
         pp_newline();
         for (Proc i = 0; i < procCnt; i++)
