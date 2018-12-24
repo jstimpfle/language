@@ -137,7 +137,7 @@ Type check_unop_expr_type(Expr x)
 INTERNAL
 Type check_binop_expr_type(Expr x)
 {
-        int op = exprInfo[x].tUnop.unopKind;
+        int op = exprInfo[x].tBinop.binopKind;
         Expr x1 = exprInfo[x].tBinop.expr1;
         Expr x2 = exprInfo[x].tBinop.expr2;
         if (op == BINOP_ASSIGN) {
