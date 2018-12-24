@@ -4,7 +4,7 @@
 INTERNAL
 void irp_constant(const struct IrLoadConstantStmtInfo *c)
 {
-        switch (c->kind) {
+        switch (c->irConstantKind) {
         case IRCONSTANT_INTEGER: {
                 outf("%lld", (long long) c->tInteger);
                 break;

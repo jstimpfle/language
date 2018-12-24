@@ -40,7 +40,7 @@ void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
                 long long constval = tokenInfo[tok].tInteger.value;
                 irStmtInfo[y].proc = exprInfo[x].proc;
                 irStmtInfo[y].kind = IRSTMT_LOADCONSTANT;
-                irStmtInfo[y].tLoadConstant.kind = IRCONSTANT_INTEGER;
+                irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
                 irStmtInfo[y].tLoadConstant.tInteger = constval;
                 irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
                 break;
@@ -49,7 +49,7 @@ void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
                 String s = exprInfo[x].tLiteral.tString;
                 irStmtInfo[y].proc = exprInfo[x].proc;
                 irStmtInfo[y].kind = IRSTMT_LOADCONSTANT;
-                irStmtInfo[y].tLoadConstant.kind = IRCONSTANT_STRING;
+                irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_STRING;
                 irStmtInfo[y].tLoadConstant.tString = s;
                 irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
                 break;
@@ -223,7 +223,7 @@ void compile_member_expr(Expr x, int usedAsLvalue)
 
         irStmtInfo[loadStmt].proc = exprInfo[x].proc;
         irStmtInfo[loadStmt].kind = IRSTMT_LOADCONSTANT;
-        irStmtInfo[loadStmt].tLoadConstant.kind = IRCONSTANT_INTEGER;
+        irStmtInfo[loadStmt].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
         irStmtInfo[loadStmt].tLoadConstant.tInteger = offset;
         irStmtInfo[loadStmt].tLoadConstant.tgtreg = offsetReg;
 
@@ -371,7 +371,7 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
 
         irStmtInfo[loadStmt].proc = exprInfo[x].proc;
         irStmtInfo[loadStmt].kind = IRSTMT_LOADCONSTANT;
-        irStmtInfo[loadStmt].tLoadConstant.kind = IRCONSTANT_INTEGER;
+        irStmtInfo[loadStmt].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
         irStmtInfo[loadStmt].tLoadConstant.tInteger = scale;
         irStmtInfo[loadStmt].tLoadConstant.tgtreg = scaleReg;
 

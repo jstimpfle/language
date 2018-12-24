@@ -158,7 +158,7 @@ struct IrReturnvalInfo {
 };
 
 struct IrLoadConstantStmtInfo {
-        int kind;  // IRCONSTANT_
+        int irConstantKind;  // IRCONSTANT_
         union {
                 long long tInteger;
                 String tString;

@@ -607,7 +607,7 @@ void emit_function_epilogue(void)
 INTERNAL
 void x64asm_loadconstant_irstmt(IrStmt irs)
 {
-        switch (irStmtInfo[irs].tLoadConstant.kind) {
+        switch (irStmtInfo[irs].tLoadConstant.irConstantKind) {
         case IRCONSTANT_INTEGER: {
                 Imm64 v = irStmtInfo[irs].tLoadConstant.tInteger;
                 IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
