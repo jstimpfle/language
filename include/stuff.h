@@ -147,7 +147,8 @@ struct StringToBeInterned {
         MAKE_GLOBAL_BUFFER(  irSymbolCnt,        irSymbolInfo         ),  \
         MAKE_GLOBAL_BUFFER(  lexbufCnt,          lexbuf               ),  \
         MAKE_GLOBAL_BUFFER(  macroCnt,           macroInfo            ),  \
-        MAKE_GLOBAL_BUFFER(  macroParamCnt,      macroParam           ),  \
+        MAKE_GLOBAL_BUFFER(  macroParamCnt,      macroParamInfo       ),  \
+        MAKE_GLOBAL_BUFFER(  macroBoundArgCnt,   macroBoundArg        ),  \
         MAKE_GLOBAL_BUFFER(  paramCnt,           paramInfo            ),  \
         MAKE_GLOBAL_BUFFER(  procCnt,            procInfo             ),  \
         MAKE_GLOBAL_BUFFER(  procCnt,            procToIrProc         ),  \

@@ -432,6 +432,18 @@ Stmt parse_array_stmt(void)
 }
 
 INTERNAL
+Stmt parse_macro_stmt(void)
+{
+        PARSE_LOG();
+        Macro macro = parse_macro();
+        Stmt stmt = stmtCnt++;
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        stmtInfo[stmt].stmtKind = STMT_MACRO;
+        stmtInfo[stmt].tMacro = macro;
+        return stmt;
+}
+
+INTERNAL
 Stmt parse_expr_stmt_without_semicolon(void)
 {
         PARSE_LOG();
@@ -705,6 +717,10 @@ Stmt parse_stmt(void)
                         consume_token();
                         return parse_array_stmt();
                 }
+                else if (s == constStr[CONSTSTR_MACRO]) {
+                        consume_token();
+                        return parse_macro_stmt();
+                }
         }
         return parse_imperative_statement();
 }
@@ -792,12 +808,15 @@ Proc parse_proc(void)
 }
 
 INTERNAL
-void parse_macro(void)
+Macro parse_macro(void)
 {
+        PARSE_LOG();
+        String name = parse_name();
         Macro macro = macroCnt++;
         Symbol symbol = symbolCnt++;
         Scope scope = scopeCnt++;
-        String name = parse_name();
+        MacroParam firstMacroParam = macroParamCnt;
+        int nparams = 0;
         RESIZE_GLOBAL_BUFFER(macroInfo, macroCnt);
         RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
         push_scope(scope);
@@ -806,13 +825,15 @@ void parse_macro(void)
                 Token token = parse_token_kind(TOKEN_WORD);
                 MacroParam param = macroParamCnt++;
                 Symbol paramsym = symbolCnt++;
-                RESIZE_GLOBAL_BUFFER(macroParam, macroParamCnt);
+                RESIZE_GLOBAL_BUFFER(macroParamInfo, macroParamCnt);
                 RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-                macroParam[param].macro = macro;
-                macroParam[param].token = token;
+                macroParamInfo[param].macro = macro;
+                macroParamInfo[param].token = token;
                 symbolInfo[paramsym].name = tokenInfo[token].tWord.string;
                 symbolInfo[paramsym].scope = scope;
                 symbolInfo[paramsym].symbolKind = SYMBOL_MACROPARAM;
+                symbolInfo[paramsym].tMacroParam = param;
+                nparams++;
                 if (look_token_kind(TOKEN_COMMA) == -1)
                         break;
                 consume_token();
@@ -834,16 +855,17 @@ void parse_macro(void)
         macroInfo[macro].symbol = symbol;
         macroInfo[macro].scope = scope;
         macroInfo[macro].expr = expr;
+        macroInfo[macro].firstMacroParam = firstMacroParam;
+        macroInfo[macro].nparams = nparams;
+        return macro;
 }
 
 INTERNAL
 void parse_export(void)
 {
         PARSE_LOG();
-
         Symref ref = parse_symref();
         parse_token_kind(TOKEN_SEMICOLON);
-
         Export x = exportCnt++;
         RESIZE_GLOBAL_BUFFER(exportInfo, exportCnt);
         exportInfo[x].ref = ref;
@@ -852,7 +874,6 @@ void parse_export(void)
 void parse_global_scope(void)
 {
         PARSE_LOG();
-
         push_scope(globalScope);
         while (look_next_token() != -1) {
                 Token tok = parse_token_kind(TOKEN_WORD);

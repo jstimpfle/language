@@ -92,6 +92,9 @@ int main(int argc, const char **argv)
                 prettyprint();
         }
 
+        DEBUG("Expand macros...\n");
+        expand_macros();
+
         DEBUG("Check types...\n");
         check_types();
 

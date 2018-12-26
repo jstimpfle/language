@@ -140,10 +140,7 @@ struct SymbolInfo {
                 Array tArray;
                 struct ProcsymbolInfo tProc;
                 Macro tMacro;
-                /* There is no case for SYMBOL_MACROPARAM. Arguments for formal
-                 * macro parameters are expressions that can be looked up from a
-                 * "current macro substitutions context". The important thing is
-                 * that there is not static resolution! */
+                MacroParam tMacroParam;
         };
 };
 
@@ -375,7 +372,7 @@ struct ProcInfo {
         Stmt body;
 };
 
-struct MacroParam {
+struct MacroParamInfo {
         Macro macro;
         Token token;  // TOKEN_WORD token holding the parameter name
 };
@@ -384,6 +381,10 @@ struct MacroInfo {
         Symbol symbol;
         Scope scope;
         Expr expr;
+        // speed-up indices. Note that the params of a macro are contiguous
+        // in memory due to the way they are parsed.
+        MacroParam firstMacroParam;
+        int nparams;
 };
 
 struct ExportInfo {
@@ -432,5 +433,5 @@ DATA Type *procToType;
 DATA Data *firstDataOfProc;
 DATA Expr *firstExprOfProc;
 DATA struct MacroInfo *macroInfo;
-DATA struct MacroParam *macroParam;
+DATA struct MacroParamInfo *macroParamInfo;
 DATA struct ExportInfo *exportInfo;

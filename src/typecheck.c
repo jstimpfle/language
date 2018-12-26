@@ -375,6 +375,7 @@ void check_stmt_types(Stmt a)
         }
         case STMT_DATA:
         case STMT_ARRAY:
+        case STMT_MACRO:
                 // TODO constant expressions need to be checked, too!
                 break;
         default:

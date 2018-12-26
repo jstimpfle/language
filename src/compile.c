@@ -431,6 +431,15 @@ void compile_expr(Expr x, int usedAsLvalue)
                 UNREACHABLE();
         }
 
+        /* Allocate IrReg for this expr */
+        IrReg r = irRegCnt++;
+        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+        irRegInfo[r].proc = procToIrProc[exprInfo[x].proc]; // XXX
+        irRegInfo[r].name = -1;  // register from Expr's are unnamed
+        irRegInfo[r].sym = -1; // registers from Expr's are unnamed
+        irRegInfo[r].tp = exprType[x];
+        exprToIrReg[x] = r;
+
         int kind = exprInfo[x].exprKind;
         ASSERT(0 <= kind && kind < NUM_EXPR_KINDS);
         exprKindToCompileFunc [kind] (x, usedAsLvalue);
@@ -453,6 +462,14 @@ void compile_array_stmt(IrProc irp, Stmt stmt)
         (void) irp;
         (void) stmt;
         UNHANDLED_CASE();
+}
+
+INTERNAL
+void compile_macro_stmt(IrProc irp, Stmt stmt)
+{
+        // nothing to compile right now
+        (void) irp;
+        (void) stmt;
 }
 
 INTERNAL
@@ -635,6 +652,7 @@ void (*const stmtKindToCompileFunc[NUM_STMT_KINDS])(IrProc irp, Stmt stmt) = {
 #define MAKE(x, y) [x] = &y
         MAKE( STMT_DATA,      compile_data_stmt     ),
         MAKE( STMT_ARRAY,     compile_array_stmt    ),
+        MAKE( STMT_MACRO,     compile_macro_stmt    ),
         MAKE( STMT_EXPR,      compile_expr_stmt     ),
         MAKE( STMT_COMPOUND,  compile_compound_stmt ),
         MAKE( STMT_IF,        compile_if_stmt       ),
@@ -675,24 +693,6 @@ void compile_proc(Proc p)
                 irRegInfo[r].tp = dataInfo[d].tp;
         }
 
-        /* make ir registers for all of the proc's expressions */
-        for (Expr x = firstExprOfProc[p];
-             x < exprCnt && exprInfo[x].proc == p;
-             x++) {
-                IrReg r = irRegCnt++;
-                exprToIrReg[x] = r;
-                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
-                irRegInfo[r].proc = procToIrProc[p];
-                irRegInfo[r].name = -1;  // register from Expr's are unnamed
-                irRegInfo[r].sym = -1; // registers from Expr's are unnamed
-                irRegInfo[r].tp = exprType[x];
-
-                DEBUG("proc %d has irreg=%d of tp=%d (%s) for expr=%d (%s)\n",
-                      irRegInfo[r].proc, r, irRegInfo[r].tp,
-                      typeKindString[typeInfo[irRegInfo[r].tp].typeKind],
-                      x, exprKindString[exprInfo[x].exprKind]);
-        }
-
         DEBUG("Compile proc #%d %s\n", p, SS(procInfo[p].sym));
         IrProc irp = procToIrProc[p];
         irProcInfo[irp].symbol = procInfo[p].sym;
@@ -703,8 +703,10 @@ void compile_to_IR(void)
 {
         RESIZE_GLOBAL_BUFFER(procToIrProc, procCnt);
         RESIZE_GLOBAL_BUFFER(firstDataOfProc, procCnt);
-        RESIZE_GLOBAL_BUFFER(firstExprOfProc, procCnt);
+        //RESIZE_GLOBAL_BUFFER(firstExprOfProc, procCnt);
         RESIZE_GLOBAL_BUFFER(exprToIrReg, exprCnt);
+                for (Expr x = 0; x < exprCnt; x++)
+                        exprToIrReg[x] = -1; // really necessary? at least for debugging
         RESIZE_GLOBAL_BUFFER(dataToIrReg, dataCnt);
 
         DEBUG("For each local variable start without associated IrReg\n");
@@ -741,19 +743,12 @@ void compile_to_IR(void)
         }
         DEBUG("OK\n");
 
-        DEBUG("For each proc find its first expressions\n");
-        for (Proc p = 0; p < procCnt; p++)
-                firstExprOfProc[p] = exprCnt;
-        for (Expr x = exprCnt; x --> 0;)
-                firstExprOfProc[exprInfo[x].proc] = x;
-        for (Expr x = 0; x < exprCnt; x++)
-                DEBUG("expr=%d its proc=%d its first expr=%d\n",
-                      x, exprInfo[x].proc, firstExprOfProc[exprInfo[x].proc]);
-        DEBUG("OK\n");
-
         DEBUG("For each proc add appropriate IrStmts\n");
-        for (Proc p = 0; p < procCnt; p++)
+        for (Proc p = 0; p < procCnt; p++) {
+                DEBUG("compile_proc(%d)\n", p);
                 compile_proc(p);
+        }
+        DEBUG("OK\n");
         for (IrStmt i = irStmtCnt; i --> 0;)
                 irProcInfo[irStmtInfo[i].proc].firstIrStmt = i;
 

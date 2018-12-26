@@ -19,6 +19,7 @@
 #include <operators.h>
 typedef int Type; // needed in syntax. TODO think about dependencies
 #include <syntax.h>
+#include <macros.h>
 #include <types.h>
 #include <ir.h>
 #include <codegen.h>
@@ -26,12 +27,7 @@ typedef int Type; // needed in syntax. TODO think about dependencies
 #include <cmdline.h>
 
 
-/**/
-
-/*
- * init.c
- */
-
+/* init.c */
 void init_data(void);
 
 
@@ -190,68 +186,44 @@ static inline const char *TS(Token tok)
 String intern_string(const void *buf, int len);
 String intern_cstring(const char *str);
 
-/*
- * lex.c
- */
-
+/* lex.c */
 Token lex_token(void);
 
-/*
- * parse.c
- */
+/* parse.c */
 void initialize_pseudo_constant_data(void);
 void parse_global_scope(void);
 
-/*
- * pprint.c
- */
+/* pprint.c */
 void prettyprint(void);
 
-/*
- * resolve.c
- */
+/* resolve.c */
 void resolve_symbol_references(void);
 void resolve_type_references(void);
 
-/*
- * typemetrics.c
- */
+/* macroexpand.c */
+void expand_macros(void);
 
+/* typemetrics.c */
 Type referenced_type(Type tp);//XXX try to get rid of this
 int get_type_size(Type tp);
 
-/*
- * typecheck.c
- */
+/* typecheck.c */
 void check_types(void);
 
-
-/*
- * compile.c
- */
+/* compile.c */
 void compile_to_IR(void);
 
-/*
- * irprint.c
- */
+/* irprint.c */
 void irprint(void);
 
-/*
- * x64asm.c
- */
+/* x64asm.c */
 void codegen_x64(void);
 
-/*
- * elf64.c
- */
+/* elf64.c */
 void write_elf64_object(const char *outfilepath);
 
-/*
- * pe64.c
- */
+/* pe64.c */
 void write_pe64_object(const char *outfilepath);
 
-/*
- * main.c
- */
+/* main.c */
 void cleanup(void);
