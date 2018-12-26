@@ -65,9 +65,7 @@ Expr clone_expr(Expr src, Proc origProc)
                    them in one big chunk */
                 int nargs = exprInfo[src].tCall.nargs;
                 int first = callArgCnt;
-                int last = first + nargs;
                 int firstOld = exprInfo[src].tCall.firstArgIdx;
-                int lastOld = first + nargs;
                 callArgCnt += nargs;
                 RESIZE_GLOBAL_BUFFER(callArgInfo, callArgCnt);
                 exprInfo[dst].tCall.firstArgIdx = first;
@@ -118,7 +116,6 @@ void expand_macros(void)
                         int callArg = firstArgIdx + i;
                         ASSERT(callArgInfo[callArg].callExpr == x);
                         Expr expr = callArgInfo[callArg].argExpr;
-                        Token paramToken = macroParamInfo[macroParam].token;
                         /* Bind the argument (expression) to the formal macro
                          * parameter */
                         macroBoundArg[i].macroParam = macroParam;

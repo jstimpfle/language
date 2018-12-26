@@ -283,6 +283,64 @@ Data parse_data(void)
         return data;
 }
 
+// TODO: think about dependencies between the parsed things here.
+// parse_macro is used for top-level macros as well as in procs. It also
+// depends on parse_expr which is why we need this forward declaration.
+INTERNAL Expr parse_expr(int minprec);
+
+INTERNAL
+Macro parse_macro(void)
+{
+        PARSE_LOG();
+        String name = parse_name();
+        Macro macro = macroCnt++;
+        Symbol symbol = symbolCnt++;
+        Scope scope = scopeCnt++;
+        MacroParam firstMacroParam = macroParamCnt;
+        int nparams = 0;
+        RESIZE_GLOBAL_BUFFER(macroInfo, macroCnt);
+        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
+        push_scope(scope);
+        parse_token_kind(TOKEN_LEFTPAREN);
+        while (look_token_kind(TOKEN_RIGHTPAREN) == -1) {
+                Token token = parse_token_kind(TOKEN_WORD);
+                MacroParam param = macroParamCnt++;
+                Symbol paramsym = symbolCnt++;
+                RESIZE_GLOBAL_BUFFER(macroParamInfo, macroParamCnt);
+                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+                macroParamInfo[param].macro = macro;
+                macroParamInfo[param].token = token;
+                symbolInfo[paramsym].name = tokenInfo[token].tWord.string;
+                symbolInfo[paramsym].scope = scope;
+                symbolInfo[paramsym].symbolKind = SYMBOL_MACROPARAM;
+                symbolInfo[paramsym].tMacroParam = param;
+                nparams++;
+                if (look_token_kind(TOKEN_COMMA) == -1)
+                        break;
+                consume_token();
+        }
+        parse_token_kind(TOKEN_RIGHTPAREN);
+        parse_token_kind(TOKEN_ASSIGNEQUALS);
+        Expr expr = parse_expr(0);
+        parse_token_kind(TOKEN_SEMICOLON);
+        pop_scope();
+        symbolInfo[symbol].name = name;
+        symbolInfo[symbol].scope = currentScope;
+        symbolInfo[symbol].symbolKind = SYMBOL_MACRO;
+        symbolInfo[symbol].tMacro = macro;
+        scopeInfo[scope].parentScope = currentScope;
+        scopeInfo[scope].firstSymbol = -1;
+        scopeInfo[scope].numSymbols = 0;
+        scopeInfo[scope].scopeKind = SCOPE_MACRO;
+        scopeInfo[scope].tMacro = macro;
+        macroInfo[macro].symbol = symbol;
+        macroInfo[macro].scope = scope;
+        macroInfo[macro].expr = expr;
+        macroInfo[macro].firstMacroParam = firstMacroParam;
+        macroInfo[macro].nparams = nparams;
+        return macro;
+}
+
 INTERNAL
 Expr parse_expr(int minprec)
 {
@@ -808,59 +866,6 @@ Proc parse_proc(void)
 }
 
 INTERNAL
-Macro parse_macro(void)
-{
-        PARSE_LOG();
-        String name = parse_name();
-        Macro macro = macroCnt++;
-        Symbol symbol = symbolCnt++;
-        Scope scope = scopeCnt++;
-        MacroParam firstMacroParam = macroParamCnt;
-        int nparams = 0;
-        RESIZE_GLOBAL_BUFFER(macroInfo, macroCnt);
-        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
-        push_scope(scope);
-        parse_token_kind(TOKEN_LEFTPAREN);
-        while (look_token_kind(TOKEN_RIGHTPAREN) == -1) {
-                Token token = parse_token_kind(TOKEN_WORD);
-                MacroParam param = macroParamCnt++;
-                Symbol paramsym = symbolCnt++;
-                RESIZE_GLOBAL_BUFFER(macroParamInfo, macroParamCnt);
-                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-                macroParamInfo[param].macro = macro;
-                macroParamInfo[param].token = token;
-                symbolInfo[paramsym].name = tokenInfo[token].tWord.string;
-                symbolInfo[paramsym].scope = scope;
-                symbolInfo[paramsym].symbolKind = SYMBOL_MACROPARAM;
-                symbolInfo[paramsym].tMacroParam = param;
-                nparams++;
-                if (look_token_kind(TOKEN_COMMA) == -1)
-                        break;
-                consume_token();
-        }
-        parse_token_kind(TOKEN_RIGHTPAREN);
-        parse_token_kind(TOKEN_ASSIGNEQUALS);
-        Expr expr = parse_expr(0);
-        parse_token_kind(TOKEN_SEMICOLON);
-        pop_scope();
-        symbolInfo[symbol].name = name;
-        symbolInfo[symbol].scope = currentScope;
-        symbolInfo[symbol].symbolKind = SYMBOL_MACRO;
-        symbolInfo[symbol].tMacro = macro;
-        scopeInfo[scope].parentScope = currentScope;
-        scopeInfo[scope].firstSymbol = -1;
-        scopeInfo[scope].numSymbols = 0;
-        scopeInfo[scope].scopeKind = SCOPE_MACRO;
-        scopeInfo[scope].tMacro = macro;
-        macroInfo[macro].symbol = symbol;
-        macroInfo[macro].scope = scope;
-        macroInfo[macro].expr = expr;
-        macroInfo[macro].firstMacroParam = firstMacroParam;
-        macroInfo[macro].nparams = nparams;
-        return macro;
-}
-
-INTERNAL
 void parse_export(void)
 {
         PARSE_LOG();
@@ -886,10 +891,10 @@ void parse_global_scope(void)
                         parse_struct();
                 else if (s == constStr[CONSTSTR_DATA])
                         parse_data();
-                else if (s == constStr[CONSTSTR_PROC])
-                        parse_proc();
                 else if (s == constStr[CONSTSTR_MACRO])
                         parse_macro();
+                else if (s == constStr[CONSTSTR_PROC])
+                        parse_proc();
                 else if (s == constStr[CONSTSTR_EXPORT])
                         parse_export();
                 else
