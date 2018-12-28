@@ -42,10 +42,14 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
         int cnt;
         void *p;
         if (alloc->cap < nelems) {
+#ifdef NO_OVERALLOC  /* for debugging purposes */
+                cnt = nelems;
+#else
                 cnt = 2 * nelems - 1;
                 while (cnt & (cnt - 1))
                         cnt = cnt & (cnt - 1);
                 ASSERT(cnt >= nelems);
+#endif
                 p = mem_realloc(*ptr, cnt * elsize);
                 if (!p)
                         FATAL("OOM!");
