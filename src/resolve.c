@@ -24,13 +24,24 @@ Symbol find_symbol_in_scope(String name, Scope scope)
         return -1;
 }
 
+/* BUG BUG BUG: We cannot use COMPARE_ADDRESS to achieve a stable sort since
+ * elements get swapped around even if not compared (to make room for compared
+ * ones). COMPARE_ADDRESS should be removed as soon as possible. We should
+ * reintroduce the "rank" struct member or use a stable sorting function. */
+#define COMPARE_ADDRESS(x, y) ((x > y) - (x < y))
+
 INTERNAL
 int compare_Symbol(const void *a, const void *b)
 {
         const Symbol *x = a;
         const Symbol *y = b;
-        return symbolInfo[*x].scope - symbolInfo[*y].scope;
+        Scope s1 = symbolInfo[*x].scope;
+        Scope s2 = symbolInfo[*y].scope;
+        if (s1 != s2)
+                return s1 - s2;
+        return COMPARE_ADDRESS(x, y);
 }
+
 
 INTERNAL
 int compare_ParamInfo(const void *a, const void *b)
@@ -39,7 +50,7 @@ int compare_ParamInfo(const void *a, const void *b)
         const struct ParamInfo *y = b;
         if (x->proctp != y->proctp)
                 return x->proctp - y->proctp;
-        return x - y;
+        return COMPARE_ADDRESS(x, y);
 }
 
 INTERNAL
@@ -49,7 +60,7 @@ int compare_ChildStmtInfo(const void *a, const void *b)
         const struct ChildStmtInfo *y = b;
         if (x->parent != y->parent)
                 return x->parent - y->parent;
-        return x - y;
+        return x->child - y->child;
 }
 
 INTERNAL
@@ -59,7 +70,7 @@ int compare_CallArgInfo(const void *a, const void *b)
         const struct CallArgInfo *y = b;
         if (x->callExpr != y->callExpr)
                 return x->callExpr - y->callExpr;
-        return x - y;
+        return COMPARE_ADDRESS(x, y);
 }
 
 void resolve_symbol_references(void)
