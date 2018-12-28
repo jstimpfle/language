@@ -4,7 +4,7 @@
 INTERNAL
 Expr lookup_macro_param(MacroParam macroParam)
 {
-        for (int i = macroBoundArgCnt; i --> 0;)
+        for (int i = 0; i < macroBoundArgCnt; i++)
                 if (macroParam == macroBoundArg[i].macroParam)
                         return macroBoundArg[i].expr;
         /* the symbol resolution phase should have worked out this error */
