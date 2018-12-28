@@ -321,7 +321,14 @@ Macro parse_macro(void)
         }
         parse_token_kind(TOKEN_RIGHTPAREN);
         parse_token_kind(TOKEN_ASSIGNEQUALS);
-        Expr expr = parse_expr(0);
+        Expr expr;
+        {
+                Proc proc = currentProc;
+                currentProc = (Proc) -1;  // macro expr shouldn't have a proc
+                expr = parse_expr(0);
+                ASSERT(exprInfo[expr].proc == (Proc) -1);
+                currentProc = proc;
+        }
         parse_token_kind(TOKEN_SEMICOLON);
         pop_scope();
         symbolInfo[symbol].name = name;
