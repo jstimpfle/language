@@ -27,6 +27,25 @@ int find_struct_offset(Type tp, String memberName)
 }
 
 INTERNAL
+int is_local_variable(Expr e, Data *out)
+{
+        if (exprInfo[e].exprKind != EXPR_SYMREF)
+                return 0;
+        Symref ref = exprInfo[e].tSymref.ref;
+        Symbol sym = symrefToSym[ref];
+        if (symbolInfo[sym].symbolKind != SYMBOL_DATA)
+                return 0;
+        Scope scope = symbolInfo[sym].scope;
+        if (scopeInfo[scope].scopeKind != SCOPE_PROC)
+                return 0;
+        Data data = symbolInfo[sym].tData.optionaldata;
+        if (data == (Data) -1)
+                return 0;
+        *out = data;
+        return 1;
+}
+
+INTERNAL
 void compile_expr(Expr x, int usedAsLvalue);
 
 INTERNAL
@@ -133,14 +152,31 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
         Expr e1 = exprInfo[x].tBinop.expr1;
         Expr e2 = exprInfo[x].tBinop.expr2;
         if (binopKind == BINOP_ASSIGN) {
-                compile_expr(e1, USED_AS_LVALUE); // could optimize this for simple identifier assignments
+                // Compile the right hand expression first. In general this is
+                // the sane thing to do: Evaluate the assignment target only
+                // after the sideeffects of the righthand side have been done.
                 compile_expr(e2, NOT_USED_AS_LVALUE);
-                IrStmt y = irStmtCnt++;
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[y].proc = exprInfo[x].proc;
-                irStmtInfo[y].irStmtKind = IRSTMT_STORE;
-                irStmtInfo[y].tStore.srcreg = exprToIrReg[e2];
-                irStmtInfo[y].tStore.tgtaddrreg = exprToIrReg[e1];
+
+                Data data;
+                if (is_local_variable(e1, &data)) {
+                        /* optimization for simple identifier assignments */
+                        IrStmt y = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[y].proc = exprInfo[x].proc;
+                        irStmtInfo[y].irStmtKind = IRSTMT_REGREG;
+                        irStmtInfo[y].tRegreg.srcreg = exprToIrReg[e2];
+                        irStmtInfo[y].tRegreg.tgtreg = dataToIrReg[data];
+                }
+                else {
+                        /* no optimization: more complex expression */
+                        compile_expr(e1, USED_AS_LVALUE); // could optimize this for simple identifier assignments
+                        IrStmt y = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[y].proc = exprInfo[x].proc;
+                        irStmtInfo[y].irStmtKind = IRSTMT_STORE;
+                        irStmtInfo[y].tStore.srcreg = exprToIrReg[e2];
+                        irStmtInfo[y].tStore.tgtaddrreg = exprToIrReg[e1];
+                }
                 exprToIrReg[x] = exprToIrReg[e2]; //XXX
         }
         else if (binopKind == BINOP_PLUS ||
