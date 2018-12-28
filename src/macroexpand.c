@@ -4,101 +4,63 @@
 INTERNAL
 Expr lookup_macro_param(MacroParam macroParam)
 {
-        for (int i = 0; i < macroBoundArgCnt; i++)
+        for (int i = macroBoundArgCnt; i --> 0;)
                 if (macroParam == macroBoundArg[i].macroParam)
                         return macroBoundArg[i].expr;
         /* the symbol resolution phase should have worked out this error */
         ASSERT(0);
 }
 
-INTERNAL
-Expr clone_expr(Expr src, Proc origProc)
-{
-        /* The origProc argument is needed because we associate Expr's with the
-         * proc they "execute in". Since macros can be defined outside procs and
-         * be used in multiple distinct procs, we need to fixup this information
-         * when cloning the macro bodies. */
+INTERNAL Proc CURRENTLY_EXPANDED_PROC;
+#define EXPAND(x) ((x) = expand_expr(x))
 
-        /* Expressions that reference a MacroParam are somewhat special since
-         * here we don't clone the reference but the bound expression */
-        if (exprInfo[src].exprKind == EXPR_SYMREF) {
-                Symref ref = exprInfo[src].tSymref.ref;
+/*
+ * XXX: this is important to prevent a bug arising from undefined behaviour:
+ * undefined order of evaluation in expressions like
+ *
+ * exprInfo[x].fooExpr = expand_expr(exprInfo[x].fooExpr);
+ *
+ * If the left side is evaluated first (as an lvalue address), and evaluating
+ * the right side triggers a realloc of exprInfo, then the address assigned to
+ * is invalid.
+ */
+#define CAREFUL_EXPAND(x) { Expr _new_ = expand_expr(x); x = _new_; }
+
+INTERNAL
+Expr expand_expr(Expr x)
+{
+        {
+                if (exprInfo[x].exprKind != EXPR_SYMREF)
+                        goto isnotamacroparamref;
+
+                /* Expressions that reference a MacroParam are somewhat special since
+                 * here we don't expand the reference but the bound expression */
+                Symref ref = exprInfo[x].tSymref.ref;
                 Symbol sym = symrefToSym[ref];
                 ASSERT(sym != (Symbol) -1);
-                if (symbolInfo[sym].symbolKind == SYMBOL_MACROPARAM) {
-                        Expr expr = lookup_macro_param(
-                                                symbolInfo[sym].tMacroParam);
-                        return clone_expr(expr, origProc);
-                }
+
+                if (symbolInfo[sym].symbolKind != SYMBOL_MACROPARAM)
+                        goto isnotamacroparamref;
+
+                Expr expr = lookup_macro_param(symbolInfo[sym].tMacroParam);
+                return expand_expr(expr);
         }
 
-        Expr dst = exprCnt++;
-        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
-        exprInfo[dst] = exprInfo[src];  /* HACK copy the whole struct no matter
-                                           what its kind is */
-        exprInfo[dst].proc = origProc;  /* ... but fix the proc */
-
-        switch (exprInfo[src].exprKind) {
-        case EXPR_LITERAL:
-                break;
-        case EXPR_SYMREF:
-                /* since the test above failed, the symref does not reference a
-                   macro parameter and we are fine */
-                break;
-        case EXPR_UNOP:
-                exprInfo[dst].tUnop.expr = clone_expr(exprInfo[src].tUnop.expr, origProc);
-                break;
-        case EXPR_BINOP:
-                exprInfo[dst].tBinop.expr1 = clone_expr(exprInfo[src].tBinop.expr1, origProc);
-                exprInfo[dst].tBinop.expr2 = clone_expr(exprInfo[src].tBinop.expr2, origProc);
-                break;
-        case EXPR_MEMBER:
-                exprInfo[dst].tMember.expr = clone_expr(exprInfo[src].tMember.expr, origProc);
-                break;
-        case EXPR_SUBSCRIPT:
-                exprInfo[dst].tSubscript.expr1 = clone_expr(exprInfo[src].tSubscript.expr1, origProc);
-                exprInfo[dst].tSubscript.expr2 = clone_expr(exprInfo[src].tSubscript.expr2, origProc);
-                break;
-        case EXPR_CALL: {
-                exprInfo[dst].tCall.callee = clone_expr(exprInfo[src].tCall.callee, origProc);
-                /* To make the arguments sequential without sorting, allocate
-                   them in one big chunk */
-                int nargs = exprInfo[src].tCall.nargs;
-                int first = callArgCnt;
-                int firstOld = exprInfo[src].tCall.firstArgIdx;
-                callArgCnt += nargs;
-                RESIZE_GLOBAL_BUFFER(callArgInfo, callArgCnt);
-                exprInfo[dst].tCall.firstArgIdx = first;
-                exprInfo[dst].tCall.nargs = nargs;
-                for (int i = 0; i < nargs; i++) {
-                        Expr oldArgExpr = callArgInfo[firstOld + i].argExpr;
-                        callArgInfo[first + i].callExpr = dst;
-                        callArgInfo[first + i].argExpr = clone_expr(oldArgExpr, origProc);
-                }
-                break;
-        }
-        default:
-                UNHANDLED_CASE();
-        }
-        return dst;
-}
-
-void expand_macros(void)
-{
-        /* TODO: Macros that call other macros do not work yet. We need
-         * to figure out the call dependencies, make sure they form a DAG,
-         * and then maybe expand the emacro bodies themselves first. */
-        for (Expr x = 0; x < exprCnt; x++) {
+isnotamacroparamref:
+        {
                 if (exprInfo[x].exprKind != EXPR_CALL)
-                        continue;
+                        goto isnotamacro;
+
                 Expr callee = exprInfo[x].tCall.callee;
                 if (exprInfo[callee].exprKind != EXPR_SYMREF)
-                        continue;
+                        goto isnotamacro;
+
                 Symref ref = exprInfo[callee].tSymref.ref;
                 Symbol sym = symrefToSym[ref];
                 ASSERT(sym != (Symbol) -1);
                 if (symbolInfo[sym].symbolKind != SYMBOL_MACRO)
-                        continue;
+                        goto isnotamacro;
+
                 Macro macro = symbolInfo[sym].tMacro;
                 MacroParam firstMacroParam = macroInfo[macro].firstMacroParam;
                 int nparams = macroInfo[macro].nparams;
@@ -109,7 +71,8 @@ void expand_macros(void)
                               "parameters, but invocation provides %d\n",
                               SS(macroInfo[macro].symbol), nparams, nargs);
                 }
-                macroBoundArgCnt = nargs;
+                int firstBoundArg = macroBoundArgCnt;
+                macroBoundArgCnt += nargs;
                 RESIZE_GLOBAL_BUFFER(macroBoundArg, macroBoundArgCnt);
                 for (int i = 0; i < nargs; i++) {
                         MacroParam macroParam = firstMacroParam + i;
@@ -118,13 +81,148 @@ void expand_macros(void)
                         Expr expr = callArgInfo[callArg].argExpr;
                         /* Bind the argument (expression) to the formal macro
                          * parameter */
-                        macroBoundArg[i].macroParam = macroParam;
-                        macroBoundArg[i].expr = expr;
+                        macroBoundArg[firstBoundArg + i].macroParam = macroParam;
+                        macroBoundArg[firstBoundArg + i].expr = expr;
+                        DEBUG("bind macroparam=%d expr=%d\n", macroParam, expr);
                 }
                 DEBUG("PATCH expression, expand macro=%d!\n", macro);
-                Proc origProc = exprInfo[x].proc;
-                Expr xpanded = clone_expr(macroInfo[macro].expr, origProc);
-                // XXX: ugly hack. patch the expression
-                exprInfo[x] = exprInfo[xpanded];
+
+                Expr y = expand_expr(macroInfo[macro].expr);
+                macroBoundArgCnt -= nargs;
+                return y;
+        }
+
+isnotamacro:
+        {
+                Expr y = exprCnt++;
+                RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                exprInfo[y] = exprInfo[x];
+
+                // the proc member should probably be removed at some point.
+                // Currently we need to override it because some expressions are
+                // defined in a macro so they don't have the right proc set yet.
+                ASSERT(exprInfo[y].proc == (Proc) -1 ||
+                       exprInfo[y].proc == CURRENTLY_EXPANDED_PROC);
+                exprInfo[y].proc = CURRENTLY_EXPANDED_PROC;
+
+                switch (exprInfo[x].exprKind) {
+                case EXPR_LITERAL:
+                        break;
+                case EXPR_SYMREF: {
+                        Symref ref = exprInfo[x].tSymref.ref;
+                        Symbol sym = symrefToSym[ref];
+                        ASSERT(sym != (Symbol) -1);
+                        ASSERT(symbolInfo[sym].symbolKind != SYMBOL_MACROPARAM);
+                        /* don't change anything */
+                        break;
+                }
+                case EXPR_UNOP:
+                        CAREFUL_EXPAND(exprInfo[y].tUnop.expr);
+                        break;
+                case EXPR_BINOP:
+                        CAREFUL_EXPAND(exprInfo[y].tBinop.expr1);
+                        CAREFUL_EXPAND(exprInfo[y].tBinop.expr2);
+                        break;
+                case EXPR_MEMBER:
+                        CAREFUL_EXPAND(exprInfo[y].tMember.expr);
+                        break;
+                case EXPR_SUBSCRIPT:
+                        CAREFUL_EXPAND(exprInfo[y].tSubscript.expr1);
+                        CAREFUL_EXPAND(exprInfo[y].tSubscript.expr2);
+                        break;
+                case EXPR_CALL: {
+                        /* Not a macro invocation! We covered that case above */
+                        DEBUG("callee is %d\n", exprInfo[y].tCall.callee);
+                        CAREFUL_EXPAND(exprInfo[y].tCall.callee);
+                        /* To make the arguments sequential without sorting,
+                         * allocate
+                           them in one big chunk */
+                        int nargs = exprInfo[x].tCall.nargs;
+                        int first = callArgCnt;
+                        int firstOld = exprInfo[x].tCall.firstArgIdx;
+                        callArgCnt += nargs;
+                        RESIZE_GLOBAL_BUFFER(callArgInfo, callArgCnt);
+                        exprInfo[y].tCall.firstArgIdx = first;
+                        exprInfo[y].tCall.nargs = nargs;
+                        for (int i = 0; i < nargs; i++) {
+                                Expr oldArgExpr = callArgInfo[firstOld + i].argExpr;
+                                Expr argExpr = expand_expr(oldArgExpr);
+                                callArgInfo[first + i].callExpr = y;
+                                callArgInfo[first + i].argExpr = argExpr;
+                        }
+                        break;
+                }
+                default:
+                        UNHANDLED_CASE();
+                }
+                return y;
+        }
+}
+
+INTERNAL
+void expand_stmt_exprs(Stmt a)
+{
+        switch (stmtInfo[a].stmtKind) {
+        case STMT_IF: {
+                EXPAND(stmtInfo[a].tIf.condExpr);
+                expand_stmt_exprs(stmtInfo[a].tIf.ifbody);
+                break;
+        }
+        case STMT_IFELSE: {
+                EXPAND(stmtInfo[a].tIfelse.condExpr);
+                expand_stmt_exprs(stmtInfo[a].tIfelse.ifbody);
+                expand_stmt_exprs(stmtInfo[a].tIfelse.elsebody);
+                break;
+        }
+        case STMT_FOR: {
+                expand_stmt_exprs(stmtInfo[a].tFor.initStmt);
+                EXPAND(stmtInfo[a].tFor.condExpr);
+                expand_stmt_exprs(stmtInfo[a].tFor.stepStmt);
+                expand_stmt_exprs(stmtInfo[a].tFor.forbody);
+                break;
+        }
+        case STMT_WHILE: {
+                EXPAND(stmtInfo[a].tWhile.condExpr);
+                expand_stmt_exprs(stmtInfo[a].tWhile.whilebody);
+                break;
+        }
+        case STMT_RANGE: {
+                EXPAND(stmtInfo[a].tRange.startExpr);
+                EXPAND(stmtInfo[a].tRange.stopExpr);
+                expand_stmt_exprs(stmtInfo[a].tRange.rangebody);
+                break;
+        }
+        case STMT_RETURN: {
+                EXPAND(stmtInfo[a].tReturn.expr);
+                break;
+        }
+        case STMT_EXPR: {
+                EXPAND(stmtInfo[a].tExpr.expr);
+                break;
+        }
+        case STMT_COMPOUND: {
+                int first = stmtInfo[a].tCompound.firstChildStmtIdx;
+                int c = stmtInfo[a].tCompound.numStatements;
+                for (int child = first; child < first + c; child++) {
+                        ASSERT(childStmtInfo[child].parent == a);
+                        expand_stmt_exprs(childStmtInfo[child].child);
+                }
+                break;
+        }
+        case STMT_DATA:
+        case STMT_ARRAY:
+        case STMT_MACRO:
+                // TODO constant expressions need to be checked, too!
+                break;
+        default:
+                UNHANDLED_CASE();
+        }
+}
+
+void expand_macros(void)
+{
+        for (Proc p = 0; p < procCnt; p++) {
+                CURRENTLY_EXPANDED_PROC = p;
+                expand_stmt_exprs(procInfo[p].body);
         }
 }

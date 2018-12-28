@@ -305,6 +305,13 @@ Type check_expr_type(Expr x)
         ASSERT(0 <= kind && kind < NUM_EXPR_KINDS);
         tp = exprKindToTypecheckFunc [kind] (x);
 
+        if (tp == -1) {
+                LOG_TYPE_ERROR_EXPR(
+                        x, "Type check of %s expression failed\n",
+                        exprKindString[exprInfo[x].exprKind]);
+                FATAL("Type errors detected\n");
+        }
+
         exprType[x] = tp;
         return (tp == (Type) -1) ? tp : referenced_type(tp);
 }
@@ -391,43 +398,29 @@ void check_types(void)
         for (Proc p = 0; p < procCnt; p++)
                 check_stmt_types(procInfo[p].body);
 
-        int bad = 0;
-        for (Expr x = 0; x < exprCnt; x++) {
-                if (exprType[x] == -1) {
-                        LOG_TYPE_ERROR_EXPR(
-                                x, "Type check of %s expression failed\n",
-                                exprKindString[exprInfo[x].exprKind]);
-                        bad = 1;
-                }
-        }
-        if (bad) {
-                FATAL("Type errors detected\n");
-        }
+        for (Type tp = 0; tp < typeCnt; tp++)
+                if (typeInfo[tp].typeKind == TYPE_STRUCT)
+                        typeInfo[tp].tStruct.size = 0;
 
-        {
-                for (Type tp = 0; tp < typeCnt; tp++)
-                        if (typeInfo[tp].typeKind == TYPE_STRUCT)
-                                typeInfo[tp].tStruct.size = 0;
-                for (Structmember m = 0; m < structmemberCnt; m++) {
-                        Type tp = structmemberInfo[m].structTp;
-                        if (tp != structmemberInfo[m-1].structTp)
-                                typeInfo[tp].tStruct.size = 0;
-                        int offset = typeInfo[tp].tStruct.size;
-                        structmemberInfo[m].offset = offset;
-                        int size = get_type_size(structmemberInfo[m].memberTp);
-                        /* XXX: better handling and better error message needed
-                         *
-                         * We could theoretically allow declarations in any
-                         * order as long as there are no cycles. But would that
-                         * be a good idea too?
-                         */
-                        if (size == 0) {
-                                FATAL("Incomplete type: "
-                                      "Size of member %s is not yet known!\n",
-                                      string_buffer(structmemberInfo[m].memberName));
-                        }
-                        offset += size;
-                        typeInfo[tp].tStruct.size = offset;
+        for (Structmember m = 0; m < structmemberCnt; m++) {
+                Type tp = structmemberInfo[m].structTp;
+                if (tp != structmemberInfo[m-1].structTp)
+                        typeInfo[tp].tStruct.size = 0;
+                int offset = typeInfo[tp].tStruct.size;
+                structmemberInfo[m].offset = offset;
+                int size = get_type_size(structmemberInfo[m].memberTp);
+                /* XXX: better handling and better error message needed
+                 *
+                 * We could theoretically allow declarations in any
+                 * order as long as there are no cycles. But would that
+                 * be a good idea too?
+                 */
+                if (size == 0) {
+                        FATAL("Incomplete type: "
+                              "Size of member %s is not yet known!\n",
+                              string_buffer(structmemberInfo[m].memberName));
                 }
+                offset += size;
+                typeInfo[tp].tStruct.size = offset;
         }
 }
