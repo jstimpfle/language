@@ -212,7 +212,7 @@ void expand_stmt_exprs(Stmt a)
         case STMT_DATA:
         case STMT_ARRAY:
         case STMT_MACRO:
-                // TODO constant expressions need to be checked, too!
+                /* ignore */
                 break;
         default:
                 UNHANDLED_CASE();
