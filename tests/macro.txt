@@ -1,9 +1,16 @@
-macro foo(x, y) = x + y;
+macro mul(x, y) = x * y;
 
 proc int main()
 {
     data int x;
+    data int y;
+    macro foo(a, b) = x + mul(a, b);
     x = 1;
+    {
+        data int x;
+        x = 13;
+    }
+    y = 42;
     x = foo(3, 5);
     print64(x);
     return 0;
