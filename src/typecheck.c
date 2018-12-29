@@ -404,7 +404,8 @@ void check_types(void)
 
         for (Structmember m = 0; m < structmemberCnt; m++) {
                 Type tp = structmemberInfo[m].structTp;
-                if (tp != structmemberInfo[m-1].structTp)
+                ASSERT(typeInfo[tp].typeKind == TYPE_STRUCT);
+                if (m == 0 || tp != structmemberInfo[m-1].structTp)
                         typeInfo[tp].tStruct.size = 0;
                 int offset = typeInfo[tp].tStruct.size;
                 structmemberInfo[m].offset = offset;
@@ -422,5 +423,6 @@ void check_types(void)
                 }
                 offset += size;
                 typeInfo[tp].tStruct.size = offset;
+                DEBUG("Add size %d to struct %d to give %d\n", size, tp, typeInfo[tp].tStruct.size);
         }
 }
