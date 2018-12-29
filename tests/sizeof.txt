@@ -1,0 +1,15 @@
+struct Foo {
+    data int x;
+    data int y;
+}
+
+proc int main()
+{
+    data int x;
+    data Foo foo;
+    print64(sizeof(x));
+    print64(sizeof(foo));
+    return 0;
+}
+
+export main;
