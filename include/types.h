@@ -31,6 +31,7 @@ enum TypeKind {
         TYPE_POINTER,
         TYPE_PROC,
         TYPE_REFERENCE, // reference another type by name
+        NUM_TYPE_KINDS,
 };
 
 
@@ -139,7 +140,7 @@ struct BasetypeToBeInitialized {
 extern const struct BasetypeToBeInitialized basetypesToBeInitialized[];
 extern const int basetypesToBeInitializedCnt;
 
-extern const char *const typeKindString[];
+extern const char *const typeKindString[NUM_TYPE_KINDS];
 
 DATA Type builtinType[NUM_BUILTINTYPE_KINDS];  // initialized early
 

@@ -49,6 +49,7 @@ enum SymbolKind {
         SYMBOL_PROC,
         SYMBOL_MACRO,
         SYMBOL_MACROPARAM,
+        NUM_SYMBOL_KINDS,
 };
 
 
@@ -394,6 +395,9 @@ struct ExportInfo {
 /*
  * Data
  */
+
+extern const char *const symbolKindString[NUM_SYMBOL_KINDS];
+extern const char *const exprKindString[NUM_EXPR_KINDS];
 
 DATA File currentFile;
 DATA int currentOffset;

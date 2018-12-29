@@ -8,7 +8,7 @@ const char lvl_warn[] = "WARN";
 const char lvl_error[] = "ERROR";
 const char lvl_fatal[] = "FATAL";
 
-const char *const tokenKindString[] = {
+const char *const tokenKindString[NUM_TOKEN_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( TOKEN_WORD ),
         MAKE( TOKEN_INTEGER ),
@@ -44,7 +44,7 @@ const char *const tokenKindString[] = {
 #undef MAKE
 };
 
-const char *const exprKindString[] = {
+const char *const exprKindString[NUM_EXPR_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( EXPR_LITERAL ),
         MAKE( EXPR_SYMREF ),
@@ -56,14 +56,26 @@ const char *const exprKindString[] = {
 #undef MAKE
 };
 
-const char *const typeKindString[] = {
+const char *const typeKindString[NUM_TYPE_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( TYPE_BASE ),
+        MAKE( TYPE_STRUCT ),
         MAKE( TYPE_ENTITY ),
         MAKE( TYPE_ARRAY ),
         MAKE( TYPE_POINTER ),
         MAKE( TYPE_PROC ),
         MAKE( TYPE_REFERENCE ),
+#undef MAKE
+};
+
+const char *const symbolKindString[NUM_SYMBOL_KINDS] = {
+#define MAKE(x) [x] = #x
+        MAKE( SYMBOL_TYPE ),
+        MAKE( SYMBOL_DATA ),
+        MAKE( SYMBOL_ARRAY ),
+        MAKE( SYMBOL_PROC ),
+        MAKE( SYMBOL_MACRO ),
+        MAKE( SYMBOL_MACROPARAM ),
 #undef MAKE
 };
 

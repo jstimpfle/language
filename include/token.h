@@ -48,6 +48,7 @@ enum TokenKind {
         TOKEN_LE,
         TOKEN_EQ,
         TOKEN_NE,
+        NUM_TOKEN_KINDS,
 };
 
 /**
@@ -81,8 +82,7 @@ struct TokenInfo {
 /**
  */
 
-extern const char *const tokenKindString[];
-extern const char *const exprKindString[];
+extern const char *const tokenKindString[NUM_TOKEN_KINDS];
 extern const int toktypeToPrefixUnopCnt;
 extern const int toktypeToPostfixUnopCnt;
 extern const int toktypeToBinopCnt;
