@@ -294,12 +294,16 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
                 Data data = symbolInfo[sym].tData.optionaldata;
                 ASSERT(data != (Data) -1);  // proc-local data must exist
                 if (! usedAsLvalue) {
+                        /* XXX Override: not sure if this optimization is valid */
+                        exprToIrReg[x] = dataToIrReg[data];
+                        /*
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
                         irStmtInfo[y].proc = exprInfo[x].proc;
                         irStmtInfo[y].irStmtKind = IRSTMT_REGREG;
                         irStmtInfo[y].tRegreg.srcreg = dataToIrReg[data];
                         irStmtInfo[y].tRegreg.tgtreg = exprToIrReg[x];
+                        */
                 }
                 else {
                         IrStmt y = irStmtCnt++;
