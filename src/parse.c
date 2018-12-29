@@ -304,13 +304,14 @@ Macro parse_macro(void)
         parse_token_kind(TOKEN_LEFTPAREN);
         while (look_token_kind(TOKEN_RIGHTPAREN) == -1) {
                 Token token = parse_token_kind(TOKEN_WORD);
+                String paramname = tokenInfo[token].tWord.string;
                 MacroParam param = macroParamCnt++;
                 Symbol paramsym = symbolCnt++;
                 RESIZE_GLOBAL_BUFFER(macroParamInfo, macroParamCnt);
                 RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
                 macroParamInfo[param].macro = macro;
-                macroParamInfo[param].token = token;
-                symbolInfo[paramsym].name = tokenInfo[token].tWord.string;
+                macroParamInfo[param].name = paramname;
+                symbolInfo[paramsym].name = paramname;
                 symbolInfo[paramsym].scope = scope;
                 symbolInfo[paramsym].symbolKind = SYMBOL_MACROPARAM;
                 symbolInfo[paramsym].tMacroParam = param;

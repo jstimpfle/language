@@ -374,7 +374,7 @@ struct ProcInfo {
 
 struct MacroParamInfo {
         Macro macro;
-        Token token;  // TOKEN_WORD token holding the parameter name
+        String name;
 };
 
 struct MacroInfo {
