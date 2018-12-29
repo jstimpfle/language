@@ -175,6 +175,10 @@ void resolve_symbol_references(void)
                 exprInfo[callee].tCall.firstArgIdx = i;
         }
 
+        for (Scope scope = 0; scope < scopeCnt; scope++) {
+                scopeInfo[scope].numSymbols = 0;
+                scopeInfo[scope].firstSymbol = 0;
+        }
         for (Symbol i = symbolCnt; i --> 0;) {
                 scopeInfo[symbolInfo[i].scope].numSymbols++;
                 scopeInfo[symbolInfo[i].scope].firstSymbol = i;
