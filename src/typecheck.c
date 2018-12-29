@@ -283,6 +283,16 @@ Type check_call_expr_type(Expr x)
 }
 
 INTERNAL
+Type check_sizeof_expr_type(Expr x)
+{
+        Expr y = exprInfo[x].tSizeof.expr;
+        check_expr_type(y);
+        if (exprType[y] == (Type) -1)
+                return (Type) -1;
+        return builtinType[BUILTINTYPE_INT];
+}
+
+INTERNAL
 Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
 #define MAKE(x, y) [x] = &y
         MAKE(  EXPR_LITERAL,    check_literal_expr_type    ),
@@ -292,6 +302,7 @@ Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
         MAKE(  EXPR_MEMBER,     check_member_expr_type     ),
         MAKE(  EXPR_SUBSCRIPT,  check_subscript_expr_type  ),
         MAKE(  EXPR_CALL,       check_call_expr_type       ),
+        MAKE(  EXPR_SIZEOF,     check_sizeof_expr_type     ),
 #undef MAKE
 };
 

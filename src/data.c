@@ -53,6 +53,7 @@ const char *const exprKindString[NUM_EXPR_KINDS] = {
         MAKE( EXPR_MEMBER ),
         MAKE( EXPR_SUBSCRIPT ),
         MAKE( EXPR_CALL ),
+        MAKE( EXPR_SIZEOF ),
 #undef MAKE
 };
 

@@ -439,6 +439,24 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
 }
 
 INTERNAL
+void compile_sizeof_expr(Expr x, int usedAsLvalue)
+{
+        /* Expression cannot be an lvalue. This condition should have been
+         * caught during type checking. */
+        ASSERT(! usedAsLvalue);  // caught during type checking
+
+        Expr y = exprInfo[x].tSizeof.expr;
+        Type tp = exprType[y];
+        IrStmt irs = irStmtCnt++;
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irStmtInfo[irs].proc = exprInfo[x].proc;
+        irStmtInfo[irs].irStmtKind = IRSTMT_LOADCONSTANT;
+        irStmtInfo[irs].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
+        irStmtInfo[irs].tLoadConstant.tInteger = get_type_size(tp);
+        irStmtInfo[irs].tLoadConstant.tgtreg = exprToIrReg[x];
+}
+
+INTERNAL
 void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x, int usedAsLvalue) = {
 #define MAKE(x, y) [x] = &y
         MAKE( EXPR_LITERAL,    compile_literal_expr   ),
@@ -448,6 +466,7 @@ void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x, int usedAsLvalue) = 
         MAKE( EXPR_SUBSCRIPT,  compile_subscript_expr ),
         MAKE( EXPR_SYMREF,     compile_symref_expr    ),
         MAKE( EXPR_CALL,       compile_call_expr      ),
+        MAKE( EXPR_SIZEOF,     compile_sizeof_expr    ),
 #undef MAKE
 };
 

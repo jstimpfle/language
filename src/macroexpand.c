@@ -151,6 +151,9 @@ isnotamacro:
                                 callArgInfo[first + i].argExpr = argExpr;
                         }
                         break;
+                case EXPR_SIZEOF:
+                        CAREFUL_EXPAND(exprInfo[y].tSizeof.expr);
+                        break;
                 }
                 default:
                         UNHANDLED_CASE();

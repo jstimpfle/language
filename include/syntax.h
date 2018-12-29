@@ -197,6 +197,7 @@ enum ExprKind {
         EXPR_MEMBER,
         EXPR_SUBSCRIPT,
         EXPR_CALL,
+        EXPR_SIZEOF,
         NUM_EXPR_KINDS,
 };
 
@@ -232,12 +233,6 @@ struct LiteralExprInfo {
         };
 };
 
-struct CallExprInfo {
-        Expr callee;
-        int firstArgIdx;  // speed-up
-        int nargs;
-};
-
 struct CallArgInfo {
         Expr callExpr;
         Expr argExpr;
@@ -266,17 +261,28 @@ struct SubscriptExprInfo {
         Expr expr2;
 };
 
+struct CallExprInfo {
+        Expr callee;
+        int firstArgIdx;  // speed-up
+        int nargs;
+};
+
+struct SizeofExprInfo {
+        Expr expr;
+};
+
 struct ExprInfo {
         Proc proc;
         int exprKind;
         union {
                 struct SymrefExprInfo tSymref;
                 struct LiteralExprInfo tLiteral;
-                struct CallExprInfo tCall;
                 struct UnopExprInfo tUnop;
                 struct BinopExprInfo tBinop;
                 struct MemberExprInfo tMember;
                 struct SubscriptExprInfo tSubscript;
+                struct CallExprInfo tCall;
+                struct SizeofExprInfo tSizeof;
         };
 };
 
