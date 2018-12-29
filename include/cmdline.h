@@ -7,7 +7,6 @@
 DATA int doDebug;
 DATA int doPrettyPrintAst;
 DATA int doDumpIr;
-DATA const char *fileToParse;
 DATA int wantHelp;
 DATA int doWriteElfObject;
 DATA int doWritePEObject;

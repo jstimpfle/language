@@ -27,8 +27,11 @@ typedef int Type; // needed in syntax. TODO think about dependencies
 #include <cmdline.h>
 
 
-/* init.c */
-void init_data(void);
+/* setup.c */
+void setup_program(void);
+
+/* teardown.c */
+void teardown_program(void);
 
 
 /*
@@ -190,8 +193,7 @@ String intern_cstring(const char *str);
 Token lex_token(void);
 
 /* parse.c */
-void initialize_pseudo_constant_data(void);
-void parse_global_scope(void);
+void parse_file(File file);
 
 /* pprint.c */
 void prettyprint(void);

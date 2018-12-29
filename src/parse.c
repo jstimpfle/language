@@ -94,7 +94,10 @@ INTERNAL
 Token look_next_token(void)
 {
         if (!haveSavedToken) {
-                savedToken = lex_token();
+                Token token = lex_token();
+                if (token == (Token) -1)
+                        return (Token) -1;
+                savedToken = token;
                 haveSavedToken = 1;
         }
         return savedToken;
@@ -884,9 +887,10 @@ void parse_export(void)
         exportInfo[x].ref = ref;
 }
 
-void parse_global_scope(void)
+void parse_file(File file)
 {
-        PARSE_LOG();
+        currentFile = file;
+        currentOffset = 0;
         push_scope(globalScope);
         while (look_next_token() != -1) {
                 Token tok = parse_token_kind(TOKEN_WORD);
@@ -910,4 +914,5 @@ void parse_global_scope(void)
                             "Unexpected word %s\n", TS(tok));
         }
         pop_scope();
+        currentFile = (File) -1;
 }

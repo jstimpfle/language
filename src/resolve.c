@@ -208,9 +208,7 @@ void resolve_symbol_references(void)
                 symrefToSym[ref] = sym;
         }
         if (bad) {
-                MSG(lvl_info, "Symbol resolution failed. Terminating early.\n");
-                cleanup();
-                exit_program(1);
+                FATAL("Symbol resolution failed. Terminating early.\n");
         }
 
         RESIZE_GLOBAL_BUFFER(isSymbolExported, symbolCnt);

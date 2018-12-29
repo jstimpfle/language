@@ -1,19 +1,6 @@
 #include "defs.h"
 #include "api.h"
 
-void cleanup(void)
-{
-        for (File i = 0; i < fileCnt; i++)
-                BUF_EXIT(&fileInfo[i].buf, &fileInfo[i].bufAlloc);
-        for (int i = 0; i < NUM_BUFFERS; i++)
-                /* does not work because type of **globalBufferInfo[i].ptr is
-                 * not known. */
-                //BUF_EXIT(globalBufferInfo[i].ptr, &globalBufferAlloc[i]);
-                /* This is the workaround. How to fix this ugly code? */
-                _buf_exit(globalBufferInfo[i].ptr, &globalBufferAlloc[i],
-                          globalBufferInfo[i].elemsize, __FILE__, __LINE__);
-}
-
 INTERNAL
 void print_usage(const char *progname)
 {
@@ -32,8 +19,12 @@ int main(int argc, const char **argv)
         int badCmdline = 0;
 
         for (int i = 1; i < argc; i++) {
-                if (argv[i][0] != '-')
-                        fileToParse = argv[i];
+                if (argv[i][0] != '-') {
+                        File x = fileCnt++;
+                        RESIZE_GLOBAL_BUFFER(fileInfo, fileCnt);
+                        fileInfo[x].filepath = intern_cstring(argv[i]);
+                        read_whole_file(x);
+                }
                 else if (cstr_equal(argv[i], "-help"))
                         wantHelp = 1;
                 else if (cstr_equal(argv[i], "-debug"))
@@ -52,7 +43,7 @@ int main(int argc, const char **argv)
                         badCmdline = 1;
                 }
         }
-        if (fileToParse == 0) {
+        if (fileCnt == 0) {
                 MSG(lvl_error, "No file to compile given on command line\n");
                 badCmdline = 1;
         }
@@ -67,17 +58,12 @@ int main(int argc, const char **argv)
                 return 0;
         }
 
-        init_data();
+        setup_program();
 
-        {
-        File x = fileCnt++;
-        RESIZE_GLOBAL_BUFFER(fileInfo, fileCnt);
-        fileInfo[x].filepath = intern_cstring(fileToParse);
-        read_whole_file(x);
+        for (File file = 0; file < fileCnt; file++) {
+                DEBUG("Parse file %s\n", string_buffer(fileInfo[file].filepath));
+                parse_file(file);
         }
-
-        DEBUG("Parse file %s\n", fileToParse);
-        parse_global_scope();
 
         DEBUG("Resolve symbol references...\n");
         resolve_symbol_references();
@@ -120,7 +106,7 @@ int main(int argc, const char **argv)
         }
 
         DEBUG("Success. Cleanup and terminate program.\n");
-        cleanup();
+        teardown_program();
 
         return 0;
 }

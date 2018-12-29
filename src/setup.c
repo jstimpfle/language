@@ -1,7 +1,7 @@
 #include "defs.h"
 #include "api.h"
 
-void init_data(void)
+void setup_program(void)
 {
         /* initialize constant strings */
         for (int i = 0; i < LENGTH(stringsToBeInterned); i++) {
