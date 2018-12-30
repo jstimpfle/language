@@ -217,6 +217,12 @@ void expand_stmt_exprs(Stmt a)
         case STMT_MACRO:
                 /* ignore */
                 break;
+        case STMT_IGNORE: {
+                /* don't ignore :-). We actually want to expand so we can
+                 * typecheck. That's the point! */
+                expand_stmt_exprs(stmtInfo[a].tIgnore);
+                break;
+        }
         default:
                 UNHANDLED_CASE();
         }

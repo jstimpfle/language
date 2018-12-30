@@ -396,6 +396,9 @@ void check_stmt_types(Stmt a)
         case STMT_MACRO:
                 // TODO constant expressions need to be checked, too!
                 break;
+        case STMT_IGNORE:
+                check_stmt_types(stmtInfo[a].tIgnore);
+                break;
         default:
                 UNHANDLED_CASE();
         }

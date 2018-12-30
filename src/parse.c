@@ -492,6 +492,14 @@ Expr parse_expr(int minprec)
         return expr;
 }
 
+INTERNAL Stmt parse_imperative_statement(void);
+INTERNAL Stmt parse_if_stmt(void);
+INTERNAL Stmt parse_while_stmt(void);
+INTERNAL Stmt parse_for_stmt(void);
+INTERNAL Stmt parse_range_stmt(void);
+INTERNAL Stmt parse_return_stmt(void);
+INTERNAL Stmt parse_stmt(void);
+
 INTERNAL
 Stmt parse_data_stmt(void)
 {
@@ -529,6 +537,18 @@ Stmt parse_macro_stmt(void)
 }
 
 INTERNAL
+Stmt parse_ignore_stmt(void)
+{
+        PARSE_LOG();
+        Stmt stmt = stmtCnt++;
+        Stmt substmt = parse_imperative_statement();
+        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
+        stmtInfo[stmt].stmtKind = STMT_IGNORE;
+        stmtInfo[stmt].tIgnore = substmt;
+        return stmt;
+}
+
+INTERNAL
 Stmt parse_expr_stmt_without_semicolon(void)
 {
         PARSE_LOG();
@@ -548,14 +568,6 @@ Stmt parse_expr_stmt(void)
         parse_token_kind(TOKEN_SEMICOLON);
         return stmt;
 }
-
-INTERNAL Stmt parse_imperative_statement(void);
-INTERNAL Stmt parse_if_stmt(void);
-INTERNAL Stmt parse_while_stmt(void);
-INTERNAL Stmt parse_for_stmt(void);
-INTERNAL Stmt parse_range_stmt(void);
-INTERNAL Stmt parse_return_stmt(void);
-INTERNAL Stmt parse_stmt(void);
 
 INTERNAL
 Stmt parse_compound_stmt(void)
@@ -618,6 +630,16 @@ Stmt parse_imperative_statement(void)
                 }
                 else {
                         return parse_expr_stmt();
+                }
+        }
+        else if (tokenInfo[tok].tokenKind == TOKEN_HASH) {
+                consume_token();
+                tok = parse_token_kind(TOKEN_WORD);
+                if (tokenInfo[tok].tWord.string == constStr[CONSTSTR_IGNORE])
+                        return parse_ignore_stmt();
+                else {
+                        FATAL("Unsupported statement introducer: #%s\n",
+                              string_buffer(tokenInfo[tok].tWord.string));
                 }
         }
         else if (tokenInfo[tok].tokenKind == TOKEN_LEFTBRACE) {

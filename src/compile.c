@@ -546,6 +546,14 @@ void compile_macro_stmt(IrProc irp, Stmt stmt)
 }
 
 INTERNAL
+void compile_ignore_stmt(IrProc irp, Stmt stmt)
+{
+        // Do nothing. That's the point!
+        (void) irp;
+        (void) stmt;
+}
+
+INTERNAL
 void compile_expr_stmt(IrProc irp, Stmt stmt)
 {
         (void) irp;
@@ -726,6 +734,7 @@ void (*const stmtKindToCompileFunc[NUM_STMT_KINDS])(IrProc irp, Stmt stmt) = {
         MAKE( STMT_DATA,      compile_data_stmt     ),
         MAKE( STMT_ARRAY,     compile_array_stmt    ),
         MAKE( STMT_MACRO,     compile_macro_stmt    ),
+        MAKE( STMT_IGNORE,    compile_ignore_stmt   ),
         MAKE( STMT_EXPR,      compile_expr_stmt     ),
         MAKE( STMT_COMPOUND,  compile_compound_stmt ),
         MAKE( STMT_IF,        compile_if_stmt       ),

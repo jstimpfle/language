@@ -1,0 +1,21 @@
+/*
+
+#ignore statements are not compiled, but receive full symbol resolution and
+typechecking. Code that is disabled with #ignore does not bitrot as easily as
+with C preprocessor conditionals.
+
+Later we should probably add #if CONSTEXPR STMT statements as well. We just do
+not have constant expressions currently.
+
+*/
+
+proc int main()
+{
+    prints("Hello\n");
+    #ignore prints("World\n");
+    for i from 0 to 3 do print64(i);
+    #ignore for i from 3 to 6 do print64(i);
+    return 0;
+}
+
+export main;

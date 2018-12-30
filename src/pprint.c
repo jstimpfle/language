@@ -173,12 +173,11 @@ void pp_expr(Expr expr)
 INTERNAL
 void pp_expr_stmt(Stmt stmt)
 {
-        pp_newline();
         pp_expr(stmtInfo[stmt].tExpr.expr);
         outs(";");
 }
 
-INTERNAL void pp_stmt(Stmt stmt);
+INTERNAL void pp_stmt(Stmt stmt, int suppressnewline);
 
 INTERNAL
 void pp_compound_stmt(Stmt stmt)
@@ -187,7 +186,7 @@ void pp_compound_stmt(Stmt stmt)
         add_indent();
         for (int i = stmtInfo[stmt].tCompound.firstChildStmtIdx;
              i < childStmtCnt && childStmtInfo[i].parent == stmt; i++) {
-                pp_stmt(childStmtInfo[i].child);
+                pp_stmt(childStmtInfo[i].child, 0);
         }
         remove_indent();
         pp_newline();
@@ -211,22 +210,23 @@ void pp_childstmt(Stmt stmt)
 {
         if (stmtInfo[stmt].stmtKind == STMT_COMPOUND) {
                 outs(" ");
-                pp_stmt(stmt);
+                pp_stmt(stmt, 0);
         }
         else {
                 add_indent();
-                pp_stmt(stmt);
+                pp_stmt(stmt, 0);
                 remove_indent();
         }
 }
 
 INTERNAL
-void pp_stmt(Stmt stmt)
+void pp_stmt(Stmt stmt, int suppressnewline)
 {
+        if (! suppressnewline)
+                pp_newline();
         switch (stmtInfo[stmt].stmtKind) {
         case STMT_IF: {
                 Stmt ifbody = stmtInfo[stmt].tIf.ifbody;
-                pp_newline();
                 outs("if (");
                 pp_expr(stmtInfo[stmt].tIf.condExpr);
                 outs(")");
@@ -234,7 +234,6 @@ void pp_stmt(Stmt stmt)
                 break;
         }
         case STMT_IFELSE: {
-                pp_newline();
                 outs("if (");
                 pp_expr(stmtInfo[stmt].tIfelse.condExpr);
                 outs(")");
@@ -245,9 +244,8 @@ void pp_stmt(Stmt stmt)
                 break;
         }
         case STMT_FOR: {
-                pp_newline();
                 outs("for (");
-                pp_stmt(stmtInfo[stmt].tFor.initStmt);
+                pp_stmt(stmtInfo[stmt].tFor.initStmt, 0);
                 outs("; ");
                 pp_expr(stmtInfo[stmt].tFor.condExpr);
                 outs("; ");
@@ -258,7 +256,6 @@ void pp_stmt(Stmt stmt)
         }
         case STMT_RANGE: {
                 Symbol sym = dataInfo[stmtInfo[stmt].tRange.variable].sym;
-                pp_newline();
                 outs("for ");
                 outs(SS(sym));
                 outs(" from ");
@@ -270,14 +267,12 @@ void pp_stmt(Stmt stmt)
                 break;
         }
         case STMT_WHILE:
-                pp_newline();
                 outs("while (");
                 pp_expr(stmtInfo[stmt].tWhile.condExpr);
                 outs(")");
                 pp_childstmt(stmtInfo[stmt].tWhile.whilebody);
                 break;
         case STMT_RETURN:
-                pp_newline();
                 outs("return ");
                 pp_expr(stmtInfo[stmt].tReturn.expr);
                 outs(";");
@@ -294,8 +289,15 @@ void pp_stmt(Stmt stmt)
         case STMT_ARRAY:
                 pp_array_stmt(stmt);
                 break;
+        case STMT_MACRO:
+                UNHANDLED_CASE(); // TODO
+                break;
+        case STMT_IGNORE:
+                outs("#ignore ");
+                pp_stmt(stmtInfo[stmt].tIgnore, 1);
+                break;
         default:
-                ASSERT(0 && "Unhandled!\n");
+                UNHANDLED_CASE();
         }
 }
 

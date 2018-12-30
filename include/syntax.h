@@ -213,6 +213,7 @@ enum StmtKind {
         STMT_DATA,
         STMT_ARRAY,
         STMT_MACRO,
+        STMT_IGNORE,
         NUM_STMT_KINDS,
 };
 
@@ -348,6 +349,7 @@ struct StmtInfo {
                 Data tData;
                 Array tArray;
                 Macro tMacro;
+                Stmt tIgnore;
         };
 };
 
@@ -403,6 +405,7 @@ struct ExportInfo {
  */
 
 extern const char *const symbolKindString[NUM_SYMBOL_KINDS];
+extern const char *const stmtKindString[NUM_STMT_KINDS];
 extern const char *const exprKindString[NUM_EXPR_KINDS];
 
 DATA File currentFile;

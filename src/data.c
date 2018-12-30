@@ -58,6 +58,23 @@ const char *const exprKindString[NUM_EXPR_KINDS] = {
 #undef MAKE
 };
 
+const char *const stmtKindString[NUM_STMT_KINDS] = {
+#define MAKE(x) [x] = #x
+        MAKE( STMT_IF ),
+        MAKE( STMT_IFELSE ),
+        MAKE( STMT_FOR ),
+        MAKE( STMT_WHILE ),
+        MAKE( STMT_RANGE ),
+        MAKE( STMT_RETURN ),
+        MAKE( STMT_EXPR ),
+        MAKE( STMT_COMPOUND ),
+        MAKE( STMT_DATA ),
+        MAKE( STMT_ARRAY ),
+        MAKE( STMT_MACRO ),
+        MAKE( STMT_IGNORE ),
+#undef MAKE
+};
+
 const char *const typeKindString[NUM_TYPE_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( TYPE_BASE ),
@@ -218,6 +235,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_TO,     "to"     ),
         MAKE( CONSTSTR_DOWNTO, "downto" ),
         MAKE( CONSTSTR_SIZEOF, "sizeof" ),
+        MAKE( CONSTSTR_IGNORE, "ignore" ),
 #undef MAKE
 };
 
