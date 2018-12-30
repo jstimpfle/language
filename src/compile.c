@@ -232,13 +232,27 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
 INTERNAL
 void compile_member_expr(Expr x, int usedAsLvalue)
 {
-        Expr e = exprInfo[x].tMember.expr;
-        String memberName = exprInfo[x].tMember.name;
+        Expr e;  /* sub expression that the member is relative to */
+        int offset;  /* relative offset in bytes */
+
+        /*
+         * optimization: collapse multiple levels of EXPR_MEMBER
+         * (only one addition for expressions like a.b.c)
+         *
+         * We could also choose to *not* do this optimization and rely on the
+         * backend to collapse the additions. But our backend currently doesn't
+         * do any such optimizations and the optimization is a very low-cost and
+         * low-hanging fruit and I don't think we lose significant clarity.
+         */
+        e = x;
+        offset = 0;
+        while (exprInfo[e].exprKind == EXPR_MEMBER) {
+                String memberName = exprInfo[e].tMember.name;
+                e = exprInfo[e].tMember.expr;
+                offset += find_struct_offset(exprType[e], memberName);
+        }
 
         compile_expr(e, USED_AS_LVALUE);
-        /* XXX: The offset should not be here! struct layout should be done
-         * in the backend. */
-        int offset = find_struct_offset(exprType[e], memberName);
 
         IrReg offsetReg = irRegCnt++;
         IrReg addrReg = irRegCnt++;
