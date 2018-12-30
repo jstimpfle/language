@@ -51,6 +51,7 @@ enum ConstStrKind {
         CONSTSTR_FROM,
         CONSTSTR_TO,
         CONSTSTR_DOWNTO,
+        CONSTSTR_SIZEOF,
         NUM_CONSTSTRS,
 };
 

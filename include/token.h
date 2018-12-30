@@ -41,6 +41,7 @@ enum TokenKind {
         TOKEN_CARET,
         TOKEN_TILDE,
         TOKEN_BANG,
+        TOKEN_HASH,
         TOKEN_ASSIGNEQUALS,
         TOKEN_GT,
         TOKEN_LT,

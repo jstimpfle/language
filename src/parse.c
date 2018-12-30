@@ -365,6 +365,22 @@ Expr parse_expr(int minprec)
                 Expr subexpr = parse_expr(42  /* TODO: unop precedence */);
                 expr = add_unop_expr(opkind, tok, subexpr);
         }
+        else if (tokenInfo[tok].tokenKind == TOKEN_HASH) {
+                consume_token();
+                tok = parse_token_kind(TOKEN_WORD);
+                if (tokenInfo[tok].tWord.string == constStr[CONSTSTR_SIZEOF]) {
+                        Expr subexpr = parse_expr(0);
+                        expr = exprCnt++;
+                        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                        exprInfo[expr].proc = currentProc;
+                        exprInfo[expr].exprKind = EXPR_SIZEOF;
+                        exprInfo[expr].tSizeof.expr = subexpr;
+                }
+                else {
+                        FATAL_PARSE_ERROR_AT_TOK(tok,
+                                "Invalid compiler directive #%s\n", TS(tok));
+                }
+        }
         else if (tokenInfo[tok].tokenKind == TOKEN_WORD) {
                 Symref ref = parse_symref();
                 expr = exprCnt++;

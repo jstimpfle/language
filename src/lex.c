@@ -21,6 +21,7 @@ INTERNAL const struct {
         { '|', TOKEN_PIPE },
         { '^', TOKEN_CARET },
         { '~', TOKEN_TILDE },
+        { '#', TOKEN_HASH },
 };
 
 INTERNAL const struct {

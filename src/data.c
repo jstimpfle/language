@@ -34,6 +34,7 @@ const char *const tokenKindString[NUM_TOKEN_KINDS] = {
         MAKE( TOKEN_CARET ),
         MAKE( TOKEN_TILDE ),
         MAKE( TOKEN_BANG ),
+        MAKE( TOKEN_HASH ),
         MAKE( TOKEN_ASSIGNEQUALS ),
         MAKE( TOKEN_GT ),
         MAKE( TOKEN_LT ),
@@ -216,6 +217,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_FROM,   "from"   ),
         MAKE( CONSTSTR_TO,     "to"     ),
         MAKE( CONSTSTR_DOWNTO, "downto" ),
+        MAKE( CONSTSTR_SIZEOF, "sizeof" ),
 #undef MAKE
 };
 
