@@ -38,6 +38,36 @@ int type_equal(Type a, Type b)
         return a == b;
 }
 
+/*
+ * Check if the argument type is compatible with the parameter type.  They are
+ * compatible if they are structurally the same (ignoring levels of
+ * TYPE_REFERENCE) or if they are pointer types of the same indirection level
+ * and the parameter type has the void type at its base.
+ */
+INTERNAL
+int arg_type_matches_param_type(Type argTp, Type paramTp)
+{
+        int tk;
+        int ptr = 0;
+        while (argTp != paramTp) {
+                argTp = referenced_type(argTp);
+                paramTp = referenced_type(paramTp);
+                tk = typeInfo[argTp].typeKind;
+                if (tk != typeInfo[paramTp].typeKind)
+                        return 0;
+                if (tk != TYPE_POINTER)
+                        break;
+                ptr = 1;
+                argTp = typeInfo[argTp].tPointer.tp;
+                paramTp = typeInfo[paramTp].tPointer.tp;
+        }
+        if (argTp == paramTp)
+                return 1;
+        if (tk == TYPE_BASE && paramTp == builtinType[BUILTINTYPE_VOID])
+                return 1;
+        return 0;
+}
+
 INTERNAL
 Type check_expr_type(Expr x);
 
@@ -297,10 +327,10 @@ Type check_call_expr_type(Expr x)
         for (int i = 0; i < nargs; i++) {
                 Type argTp = exprType[callArgInfo[first + i].argExpr];
                 Type paramTp = paramInfo[firstParam + i].tp;
-                if (! type_equal(argTp, paramTp)) {
+                if (! arg_type_matches_param_type(argTp, paramTp)) {
                         LOG_TYPE_ERROR_EXPR(x,
                                 "In call to %s(): Argument #%d doesn't match "
-                                "type of function parameter\n", procName, i);
+                                "type of function parameter\n", procName, i+1);
                         return (Type) -1;
                 }
         }

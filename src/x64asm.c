@@ -81,8 +81,18 @@ int find_stack_loc(IrReg irreg)
         for (IrReg reg = irreg;
              reg >= 0 && irRegInfo[reg].proc == irRegInfo[irreg].proc;
              reg--) {
-                Type tp = irRegInfo[reg].tp;
+                Type tp = referenced_type(irRegInfo[reg].tp);
                 ASSERT(tp != (Type) -1);
+                if (tp == builtinType[BUILTINTYPE_VOID]) {
+                        /*
+                         * XXX: this is to work around against the IR compiler
+                         * emitting IrReg register of type void. That should be
+                         * fixed in the compiler proper at some point. But it
+                         * will take a few structural changes so its a lot more
+                         * work.
+                         */
+                        continue;
+                }
                 int size = get_type_size(tp);
                 if (size <= 0)
                         MSG(lvl_error, "sizeof reg=%d proc=%d tp=%d is %d\n",
