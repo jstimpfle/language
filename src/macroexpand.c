@@ -132,7 +132,6 @@ isnotamacro:
                         break;
                 case EXPR_CALL: {
                         /* Not a macro invocation! We covered that case above */
-                        DEBUG("callee is %d\n", exprInfo[y].tCall.callee);
                         CAREFUL_EXPAND(exprInfo[y].tCall.callee);
                         /* To make the arguments sequential without sorting,
                          * allocate

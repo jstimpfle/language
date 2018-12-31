@@ -791,12 +791,10 @@ void compile_to_IR(void)
                         exprToIrReg[x] = -1; // really necessary? at least for debugging
         RESIZE_GLOBAL_BUFFER(dataToIrReg, dataCnt);
 
-        DEBUG("For each local variable start without associated IrReg\n");
+        /* For each local variable start without associated IrReg */
         for (Data x = 0; x < dataCnt; x++)
                 dataToIrReg[x] = (IrReg) -1;
 
-        DEBUG("For each expression find its proc.\n");
-        DEBUG("(TODO: think about adding this data already when parsing)?\n");
         DEBUG("For each Proc make an IrProc\n");
         for (Proc p = 0; p < procCnt; p++) {
                 IrProc ip = irProcCnt++;
@@ -807,7 +805,7 @@ void compile_to_IR(void)
                 irProcInfo[ip].firstIrReg = 0;
         }
 
-        DEBUG("For each proc find its first local variable\n");
+        /* For each proc find its first local variable */
         for (Proc p = 0; p < procCnt; p++)
                 firstDataOfProc[p] = dataCnt;
         for (Data d = dataCnt; d --> 0;) {
@@ -815,29 +813,14 @@ void compile_to_IR(void)
                 if (scopeInfo[s].scopeKind == SCOPE_PROC)
                         firstDataOfProc[scopeInfo[s].tProc] = d;
         }
-        for (Data d = 0; d < dataCnt; d++) {
-                Scope s = dataInfo[d].scope;
-                if (scopeInfo[s].scopeKind == SCOPE_PROC) {
-                        DEBUG("data=%d its proc=%d its first data=%d\n",
-                              d, scopeInfo[s].tProc,
-                              firstDataOfProc[scopeInfo[s].tProc]);
-                }
-        }
-        DEBUG("OK\n");
 
-        DEBUG("For each proc add appropriate IrStmts\n");
-        for (Proc p = 0; p < procCnt; p++) {
-                DEBUG("compile_proc(%d)\n", p);
+        for (Proc p = 0; p < procCnt; p++)
                 compile_proc(p);
-        }
-        DEBUG("OK\n");
+
         for (IrStmt i = irStmtCnt; i --> 0;)
                 irProcInfo[irStmtInfo[i].proc].firstIrStmt = i;
 
-        for (Data d = 0; d < dataCnt; d++)
-                DEBUG("data=%d irReg=%d\n", d, dataToIrReg[d]);
-
-        DEBUG("Look for jump targets and sources and sort them by target)\n");
+        /* Look for jump targets and sources and sort them by target */
         for (IrStmt stmt = 0; stmt < irStmtCnt; stmt++) {
                 Stmt tgtstmt;
                 switch (irStmtInfo[stmt].irStmtKind) {

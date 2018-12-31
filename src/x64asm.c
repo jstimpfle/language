@@ -904,7 +904,8 @@ void codegen_x64(void)
         }
 
         for (IrProc x = 0; x < irProcCnt; x++) {
-                DEBUG("Generating code for proc #%d\n", x);
+                DEBUG("Generating code for proc #%d %s\n",
+                      x, SS(irProcInfo[x].symbol));
                 irprocToCodepos[x] = codeSectionCnt;
                 x64asm_proc(x);
         }

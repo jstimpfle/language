@@ -11,7 +11,7 @@ const char *const extsymname[NUM_EXTSYMS] = {
 INTERNAL
 Symbol find_symbol_in_scope(String name, Scope scope)
 {
-        DEBUG("Try to find symbol %s in scope %d\n", string_buffer(name), scope);
+        // DEBUG("Try to find symbol %s in scope %d\n", string_buffer(name), scope);
         for (; scope != -1; scope = scopeInfo[scope].parentScope) {
                 Symbol first = scopeInfo[scope].firstSymbol;
                 Symbol last = first + scopeInfo[scope].numSymbols;
@@ -115,7 +115,6 @@ void add_externparam(int extsymKind, Type paramTp)
 
 void resolve_symbol_references(void)
 {
-        DEBUG("Add external symbols\n");
         for (int i = 0; i < NUM_EXTSYMS; i++)
                 add_externsym(i);
         add_externparam(EXTSYM_print64, builtinType[BUILTINTYPE_INT]);
