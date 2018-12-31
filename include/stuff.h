@@ -53,6 +53,7 @@ enum ConstStrKind {
         CONSTSTR_DOWNTO,
         CONSTSTR_SIZEOF,
         CONSTSTR_IGNORE,
+        CONSTSTR_EXTERN,
         NUM_CONSTSTRS,
 };
 

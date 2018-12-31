@@ -1,4 +1,4 @@
-proc int main()
+proc main() int
 {
     prints("Hello, world!\n");
     return 0;

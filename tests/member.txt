@@ -1,12 +1,12 @@
 struct foo {
-    data int x;
-    data int y;
-    data int z;
+    data x int;
+    data y int;
+    data z int;
 }
 
-proc int main()
+proc main() foo
 {
-    data foo a;
+    data a foo;
 
     a.x = 3;
     a.y = 4;

@@ -1,12 +1,13 @@
-data int testint;
+data testint int;
 
-proc int main()
+proc main() int
 {
-    data int a;
-    data int^ x;
+    data a int;
+    data x ^int;
     a = 3;
     x = &a;
-    print64(x);
+    /*print64(x);
+*/
     print64(x^);
     a = 4;
     print64(x^);

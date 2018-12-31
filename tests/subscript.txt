@@ -1,6 +1,6 @@
-proc int main(int argc, char **argv)
+proc main(argc int, argv ^^char) int
 {
-    data int i;
+    data i int;
     i = 0;
     while (i < argc) {
         prints("Argument #");

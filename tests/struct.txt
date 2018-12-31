@@ -1,17 +1,17 @@
 struct bar {
-    data int x;
-    data int y;
-    data int z;
+    data x int;
+    data y int;
+    data z int;
 }
 
 struct foo {
-    data int x;
-    data bar y;
+    data x int;
+    data y bar;
 }
 
-proc int main()
+proc main() int
 {
-    data foo a;
+    data a foo;
     a.x = 3;
     a.y.x = 4;
     (&a.y.x)[1] = 5;

@@ -1,4 +1,4 @@
-proc int main()
+proc main() int
 {
     if (0 == 1)
         print64(0);

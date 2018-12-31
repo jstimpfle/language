@@ -1,12 +1,12 @@
 struct Foo {
-    data int x;
-    data int y;
+    data x int;
+    data y int;
 }
 
-proc int main()
+proc main() int
 {
-    data int x;
-    data Foo foo;
+    data x int;
+    data foo Foo;
     print64(#sizeof x);
     print64(#sizeof foo);
     return 0;

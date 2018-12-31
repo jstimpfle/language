@@ -1,8 +1,8 @@
-data int y;
-data int a;
-data int b;
+data y int;
+data a int;
+data b int;
 
-proc int main()
+proc main() int
 {
     y = 3;
     a = 4 + 4;

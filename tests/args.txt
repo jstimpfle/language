@@ -1,8 +1,8 @@
-proc int localproc()
+proc localproc() int
 {
 }
 
-proc int main(int argc, char^^ argv)
+proc main(argc int, argv ^^char) int
 {
     if (argc < 2) {
         prints("Need 1 command-line argument!\n");

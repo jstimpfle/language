@@ -240,6 +240,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_DOWNTO, "downto" ),
         MAKE( CONSTSTR_SIZEOF, "sizeof" ),
         MAKE( CONSTSTR_IGNORE, "ignore" ),
+        MAKE( CONSTSTR_EXTERN, "extern" ),
 #undef MAKE
 };
 

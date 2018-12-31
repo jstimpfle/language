@@ -1,4 +1,4 @@
-proc int main()
+proc main() int
 {
     print64(7 + 2);
     print64(7 - 2);

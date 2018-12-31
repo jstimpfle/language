@@ -1,6 +1,6 @@
-proc int main()
+proc main() int
 {
-    data int x;
+    data x int;
 
 /*
     for 0 .. stmtCnt do [x]

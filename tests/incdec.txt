@@ -1,6 +1,6 @@
-proc int main()
+proc main() int
 {
-    data int x;
+    data x int;
     x = 0;
     print64(x++); print64(x);
     print64(x--); print64(x);

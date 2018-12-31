@@ -1,13 +1,13 @@
 macro mul(x, y) = x * y;
 
-proc int main()
+proc main() int
 {
-    data int x;
-    data int y;
+    data x int;
+    data y int;
     macro foo(a, b) = x + mul(a, b);
     x = 1;
     {
-        data int x;
+        data x int;
         x = 13;
     }
     y = 42;

@@ -1,4 +1,4 @@
-proc int fib(int a)
+proc fib(a int) int
 {
     if (a > 1)
         return fib(a - 1) + fib(a - 2);
@@ -6,9 +6,9 @@ proc int fib(int a)
         return 1;
 }
 
-proc int main()
+proc main() int
 {
-    data int r;
+    data r int;
     r = fib(7);
     print64(r);
     return 0;

@@ -9,7 +9,7 @@ not have constant expressions currently.
 
 */
 
-proc int main()
+proc main() int
 {
     prints("Hello\n");
     #ignore prints("World\n");
