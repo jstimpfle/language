@@ -24,14 +24,17 @@ Working on a Compiler to support a minimal set of features.
 - [x] Half-assed IR data structures (`include/ir.h`)
 - [x] Half-assed Parser (`src/parse.c`)
 - [x] Pretty-printer for parsed structures (`src/pprint.c`)
-- [ ] Half-assed Type checker and inference partly finished. (`src/typecheck.c`)
+- [x] Symbol and type resolution (`src/resolve.c`)
+- [x] A simple and sane "hygienic" expression macro system (`src/macroexpand.c`)
+- [ ] Decide what other macro facilities we still want
+- [x] Half-assed Type checker and inference. (`src/typecheck.c`)
 - [x] Half-assed Compiler from "AST" to IR (`src/compile.c`)
 - [x] Pretty-printer for compiled IR code (`src/irprint.c`)
 - [x] Half-assed IR to x64 machine code generator mostly finished (`src/x64asm.c`)
 - [ ] More intelligent Register allocation needed. Generic or x64 specific?
 - [ ] Backend from IR to LLVM, any volunteers?
 - [x] ELF-64 object writer for Linux supports all currently implemented features (`src/elf64.c`)
-- [ ] PE object writer for Windows
+- [ ] PE object writer for Windows (`src/pe64.c`)
 - [ ] Mach-O object writer for Mac OS, any volunteers?
 
 Build
@@ -49,7 +52,7 @@ directory. Run for instance:
 build/language tests/fib.txt tests/EXTSYMS.txt -write-elf-object
 ```
 
-(note: tests/EXTSYMS.txt is currently needed to access the function in
+(note: tests/EXTSYMS.txt is currently needed to access the functions in
 runtime/support.c)
 
 You can also try one of the following options accepted by the `build/language`
