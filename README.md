@@ -46,8 +46,11 @@ You can now try and compile one of the example code files in the `test/`
 directory. Run for instance:
 
 ```sh
-build/language tests/fib.txt -write-elf-object
+build/language tests/fib.txt tests/EXTSYMS.txt -write-elf-object
 ```
+
+(note: tests/EXTSYMS.txt is currently needed to access the function in
+runtime/support.c)
 
 You can also try one of the following options accepted by the `build/language`
 program: `-debug`, `-prettyprint-ast`, `-dump-ir`, `-write-pe-object`.

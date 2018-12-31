@@ -1,13 +1,6 @@
 #include "defs.h"
 #include "api.h"
 
-const char *const extsymname[NUM_EXTSYMS] = {
-#define MAKE(name) [EXTSYM_##name] = #name
-        MAKE( print64 ),
-        MAKE( prints ),
-#undef MAKE
-};
-
 INTERNAL
 Symbol find_symbol_in_scope(String name, Scope scope)
 {
@@ -73,53 +66,8 @@ int compare_CallArgInfo(const void *a, const void *b)
         return COMPARE_ADDRESS(x, y);
 }
 
-INTERNAL
-void add_externsym(int extsymKind)
-{
-        const char *name = extsymname[extsymKind];
-        DEBUG("Add external symbol %s\n", name);
-
-        Type tp = typeCnt++;
-        Symbol sym = symbolCnt++;
-
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[tp].typeKind = TYPE_PROC;
-        typeInfo[tp].tProc.rettp = builtinType[BUILTINTYPE_INT]; //XXX
-        typeInfo[tp].tProc.nparams = 0;
-
-        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        symbolInfo[sym].name = intern_cstring(name);
-        symbolInfo[sym].scope = (Scope) 0;
-        symbolInfo[sym].symbolKind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
-        symbolInfo[sym].tProc.tp = tp;
-        symbolInfo[sym].tProc.optionalproc = -1;
-
-        extsymToSymbol[extsymKind] = sym;
-}
-
-INTERNAL
-void add_externparam(int extsymKind, Type paramTp)
-{
-        DEBUG("Add extsym param extsymname=%s paramTp=%d\n",
-              extsymname[extsymKind], paramTp);
-        Symbol sym = extsymToSymbol[extsymKind];
-        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_PROC);
-        Type procTp = symbolInfo[sym].tProc.tp;
-
-        Param param = paramCnt++;
-        RESIZE_GLOBAL_BUFFER(paramInfo, paramCnt);
-        paramInfo[param].proctp = procTp;
-        paramInfo[param].tp = paramTp;
-        paramInfo[param].sym = 0;  // XXX fake. should this member be removed?
-}
-
 void resolve_symbol_references(void)
 {
-        for (int i = 0; i < NUM_EXTSYMS; i++)
-                add_externsym(i);
-        add_externparam(EXTSYM_print64, builtinType[BUILTINTYPE_INT]);
-        add_externparam(EXTSYM_prints, pointer_type(builtinType[BUILTINTYPE_CHAR]));
-
         {
                 /* permute Symbol array so they are grouped by defining scope */
                 /* TODO: this kind of renaming should be abstracted */
@@ -137,8 +85,6 @@ void resolve_symbol_references(void)
                            compare_Symbol);
                 for (Symbol i = 0; i < symbolCnt; i++)
                         newname[order[i]] = i;
-                for (int i = 0; i < NUM_EXTSYMS; i++)
-                        extsymToSymbol[i] = newname[extsymToSymbol[i]];
                 for (Data i = 0; i < dataCnt; i++)
                         dataInfo[i].sym = newname[dataInfo[i].sym];
                 for (Array i = 0; i < arrayCnt; i++)

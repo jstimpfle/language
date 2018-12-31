@@ -54,19 +54,6 @@ enum SymbolKind {
 
 
 /**
- * A few external symbols that we're currently using in the code generator.
- */
-
-enum {
-        EXTSYM_print64,
-        EXTSYM_prints,
-        NUM_EXTSYMS,
-};
-
-extern const char *const extsymname[NUM_EXTSYMS];
-DATA Symbol extsymToSymbol[NUM_EXTSYMS];
-
-/**
  * \typedef{Expr}: Expression (part of a statement). Expressions have a type and
  * a (runtime) value. Each expressions is of one of the \enum{ExprKind} kinds.
  * See also \ref{ExprInfo}.
