@@ -22,6 +22,10 @@ INTERNAL const struct {
         { '^', TOKEN_CARET },
         { '~', TOKEN_TILDE },
         { '#', TOKEN_HASH },
+        { '$', TOKEN_DOLLAR },
+        { '\\', TOKEN_BACKSLASH },
+        { '?', TOKEN_QUESTIONMARK },
+        { '@', TOKEN_ATSIGN },
 };
 
 INTERNAL const struct {
