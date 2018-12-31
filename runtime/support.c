@@ -17,3 +17,22 @@ uint64_t prints(const char *s)
         fputs(s, stdout);
         return 0;
 }
+
+/*
+ * stdin, stdout, stderr are evil complicated macros on MSVC
+ */
+
+FILE *get_stdin(void)
+{
+        return stdin;
+}
+
+FILE *get_stdout(void)
+{
+        return stdout;
+}
+
+FILE *get_stderr(void)
+{
+        return stderr;
+}

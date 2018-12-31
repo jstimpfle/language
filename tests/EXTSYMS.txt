@@ -8,3 +8,11 @@ compile command-line. E.g.,
 
 extern print64 void(int);
 extern prints  void(^char);
+/* stdin, stdout, stderr are evil complicated macros on MSVC */
+extern get_stdin ^void();
+extern get_stdout ^void();
+extern get_stderr ^void();
+
+extern memset  void(^int, int, int);
+extern malloc  ^void(int);
+extern fgets   int(^void, int, ^void);

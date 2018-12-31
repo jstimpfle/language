@@ -160,7 +160,7 @@ Symref parse_symref(void)
 }
 
 INTERNAL
-Type parse_type(void)
+Type parse_type(int prec)
 {
         PARSE_LOG();
 
@@ -168,12 +168,16 @@ Type parse_type(void)
 
         if (look_token_kind(TOKEN_CARET) != -1) {
                 consume_token();
-                Type subtp = parse_type();
+                Type subtp = parse_type(1);
                 tp = typeCnt++;
                 RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
                 typeInfo[tp].typeKind = TYPE_POINTER;
                 typeInfo[tp].tPointer.tp = subtp;
-                return tp;
+        }
+        else if (look_token_kind(TOKEN_LEFTPAREN) != (Token) -1) {
+                consume_token();
+                tp = parse_type(0);
+                parse_token_kind(TOKEN_RIGHTPAREN);
         }
         else {
                 Symref ref = parse_symref();
@@ -184,6 +188,9 @@ Type parse_type(void)
                 typeInfo[tp].tRef.resolvedTp = (Type) -1;
         }
 
+        if (prec > 0)
+                return tp;
+
         while (look_token_kind(TOKEN_LEFTPAREN) != (Token) -1) {
                 consume_token();
                 Type proctp = typeCnt++;
@@ -192,7 +199,9 @@ Type parse_type(void)
                 typeInfo[proctp].tProc.rettp = tp;
                 typeInfo[proctp].tProc.nparams = 0;
                 for (;;) {
-                        Type ptp = parse_type();
+                        if (look_token_kind(TOKEN_RIGHTPAREN) != (Token) -1)
+                                break;
+                        Type ptp = parse_type(0);
                         Param param = paramCnt++;
                         RESIZE_GLOBAL_BUFFER(paramInfo, paramCnt);
                         paramInfo[param].proctp = proctp;
@@ -215,7 +224,7 @@ INTERNAL
 Type parse_entity(void)
 {
         PARSE_LOG();
-        Type tp = parse_type();
+        Type tp = parse_type(0);
         String name = parse_name();
         parse_token_kind(TOKEN_SEMICOLON);
         Type etp = typeCnt++;
@@ -231,7 +240,7 @@ INTERNAL
 Symbol parse_extern(void)
 {
         String name = parse_name();
-        Type tp = parse_type();
+        Type tp = parse_type(0);
         parse_token_kind(TOKEN_SEMICOLON);
         Type tt = referenced_type(tp);
         Symbol sym = symbolCnt++;
@@ -239,6 +248,7 @@ Symbol parse_extern(void)
         symbolInfo[sym].name = name;
         symbolInfo[sym].scope = currentScope;
         switch (typeInfo[tt].typeKind) {
+        case TYPE_POINTER:
         case TYPE_BASE: {
                 symbolInfo[sym].symbolKind = SYMBOL_DATA;
                 symbolInfo[sym].tData.tp = tp;
@@ -262,10 +272,10 @@ Array parse_array(void)
 {
         PARSE_LOG();
 
-        Type valuetp = parse_type();
+        Type valuetp = parse_type(0);
         String name = parse_name();
         parse_token_kind(TOKEN_LEFTBRACKET);
-        Type idxtp = parse_type();
+        Type idxtp = parse_type(0);
         parse_token_kind(TOKEN_RIGHTBRACKET);
         parse_token_kind(TOKEN_SEMICOLON);
 
@@ -297,7 +307,7 @@ void parse_struct_member(Type structTp)
                 FATAL_PARSE_ERROR_AT_TOK(tok,
                         "struct data member expected\n");
         String memberName = parse_name();
-        Type memberTp = parse_type();
+        Type memberTp = parse_type(0);
         parse_token_kind(TOKEN_SEMICOLON);
         Structmember y = structmemberCnt++;
         RESIZE_GLOBAL_BUFFER(structmemberInfo, structmemberCnt);
@@ -328,7 +338,7 @@ Data parse_data(void)
 {
         PARSE_LOG();
         String name = parse_name();
-        Type tp = parse_type();
+        Type tp = parse_type(0);
         parse_token_kind(TOKEN_SEMICOLON);
 
         Scope scope = currentScope;
@@ -921,7 +931,7 @@ Proc parse_proc(void)
                 if (tokenInfo[tok].tokenKind == TOKEN_RIGHTPAREN)
                         break;
                 String paramname = parse_name();
-                Type paramtp = parse_type();
+                Type paramtp = parse_type(0);
                 Param param = paramCnt++;
                 Symbol paramsym = symbolCnt++;
                 Data paramdata = dataCnt++;
@@ -945,7 +955,7 @@ Proc parse_proc(void)
         }
         parse_token_kind(TOKEN_RIGHTPAREN);
 
-        Type rettp = parse_type();
+        Type rettp = parse_type(0);
         Stmt pbody = parse_compound_stmt();
         pop_scope();
 
