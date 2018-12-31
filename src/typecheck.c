@@ -261,25 +261,50 @@ Type check_call_expr_type(Expr x)
 {
         Expr calleeExpr = exprInfo[x].tCall.callee;
         Type calleeTp = check_expr_type(calleeExpr);
-        Type tp = -1;
         if (calleeTp == -1) {
                 LOG_TYPE_ERROR_EXPR(x, "Type of callee is unknown\n");
+                return (Type) -1;
         }
         else if (typeInfo[calleeTp].typeKind != TYPE_PROC) {
                 LOG_TYPE_ERROR_EXPR(x, "Not a callable but a %s\n",
                                     typeKindString[typeInfo[calleeTp].typeKind]);
+                return (Type) -1;
         }
-        else {
-                check_expr_type(exprInfo[x].tCall.callee);
-                int first = exprInfo[x].tCall.firstArgIdx;
-                int last = first + exprInfo[x].tCall.nargs;
-                for (int i = first; i < last; i++) {
-                        check_expr_type(callArgInfo[i].argExpr);
+
+        check_expr_type(exprInfo[x].tCall.callee);
+        int first = exprInfo[x].tCall.firstArgIdx;
+        int nargs = exprInfo[x].tCall.nargs;
+        for (int i = 0; i < nargs; i++) {
+                check_expr_type(callArgInfo[first + i].argExpr);
+        }
+
+        /* XXX: string_buffer() does not return a stable address currently.
+         * We must take care not to allocate new strings as long as procName
+         * is in use */
+        const char *procName = (exprInfo[calleeExpr].exprKind == EXPR_SYMREF)
+                ? string_buffer(symrefInfo[exprInfo[calleeExpr].tSymref.ref].name)
+                : "<complex proc expr>";
+
+        Param firstParam = firstProctypeParam[calleeTp];
+        int nparams = typeInfo[calleeTp].tProc.nparams;
+        if (nparams != nargs) {
+                LOG_TYPE_ERROR_EXPR(x,
+                        "In call to %s(): Wrong number of arguments. "
+                        "Need %d, but got %d\n", procName, nparams, nargs);
+                return (Type) -1;
+        }
+
+        for (int i = 0; i < nargs; i++) {
+                Type argTp = exprType[callArgInfo[first + i].argExpr];
+                Type paramTp = paramInfo[firstParam + i].tp;
+                if (! type_equal(argTp, paramTp)) {
+                        LOG_TYPE_ERROR_EXPR(x,
+                                "In call to %s(): Argument #%d doesn't match "
+                                "type of function parameter\n", procName, i);
+                        return (Type) -1;
                 }
-                // TODO: match arguments with function parameters
-                tp = typeInfo[calleeTp].tProc.rettp;
         }
-        return tp;
+        return typeInfo[calleeTp].tProc.rettp;
 }
 
 INTERNAL

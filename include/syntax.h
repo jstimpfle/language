@@ -377,7 +377,6 @@ struct ArrayInfo {
 struct ProcInfo {
         Symbol sym;
         Scope scope;
-        int nparams;
         Stmt body;
 };
 

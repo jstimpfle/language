@@ -856,12 +856,10 @@ Proc parse_proc(void)
         push_scope(pscope);
 
         parse_token_kind(TOKEN_LEFTPAREN);
-        int nparams = 0;
         for (;;) {
                 Token tok = look_next_token();
                 if (tokenInfo[tok].tokenKind == TOKEN_RIGHTPAREN)
                         break;
-                nparams++;
                 Type paramtp = parse_type();
                 String paramname = parse_name();
                 Param param = paramCnt++;
@@ -898,7 +896,6 @@ Proc parse_proc(void)
         scopeInfo[pscope].tProc = currentProc;
         procInfo[proc].sym = psym;
         procInfo[proc].scope = pscope;
-        procInfo[proc].nparams = 0;
         procInfo[proc].body = pbody;
         procToType[proc] = ptype;
         symbolInfo[psym].name = pname;
@@ -908,7 +905,7 @@ Proc parse_proc(void)
         symbolInfo[psym].tProc.optionalproc = currentProc;
         typeInfo[ptype].typeKind = TYPE_PROC;
         typeInfo[ptype].tProc.rettp = rettp;
-        typeInfo[ptype].tProc.nparams = nparams;
+        typeInfo[ptype].tProc.nparams = 0;
 
         currentProc = (Proc) -1; // "pop proc"
         return proc;

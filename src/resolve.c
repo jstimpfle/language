@@ -73,30 +73,52 @@ int compare_CallArgInfo(const void *a, const void *b)
         return COMPARE_ADDRESS(x, y);
 }
 
+INTERNAL
+void add_externsym(int extsymKind)
+{
+        const char *name = extsymname[extsymKind];
+        DEBUG("Add external symbol %s\n", name);
+
+        Type tp = typeCnt++;
+        Symbol sym = symbolCnt++;
+
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+        typeInfo[tp].typeKind = TYPE_PROC;
+        typeInfo[tp].tProc.rettp = builtinType[BUILTINTYPE_INT]; //XXX
+        typeInfo[tp].tProc.nparams = 0;
+
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+        symbolInfo[sym].name = intern_cstring(name);
+        symbolInfo[sym].scope = (Scope) 0;
+        symbolInfo[sym].symbolKind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
+        symbolInfo[sym].tProc.tp = tp;
+        symbolInfo[sym].tProc.optionalproc = -1;
+
+        extsymToSymbol[extsymKind] = sym;
+}
+
+INTERNAL
+void add_externparam(int extsymKind, Type paramTp)
+{
+        DEBUG("Add extsym param extsymname=%s paramTp=%d\n",
+              extsymname[extsymKind], paramTp);
+        Symbol sym = extsymToSymbol[extsymKind];
+        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_PROC);
+        Type procTp = symbolInfo[sym].tProc.tp;
+
+        Param param = paramCnt++;
+        RESIZE_GLOBAL_BUFFER(paramInfo, paramCnt);
+        paramInfo[param].proctp = procTp;
+        paramInfo[param].tp = paramTp;
+        paramInfo[param].sym = 0;  // XXX fake. should this member be removed?
+}
+
 void resolve_symbol_references(void)
 {
         DEBUG("Add external symbols\n");
-        for (int i = 0; i < NUM_EXTSYMS; i++) {
-                const char *name = extsymname[i];
-                DEBUG("Add external symbol %s\n", name);
-
-                Type tp = typeCnt++;
-                Symbol sym = symbolCnt++;
-
-                RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-                typeInfo[tp].typeKind = TYPE_PROC;
-                typeInfo[tp].tProc.rettp = builtinType[BUILTINTYPE_INT]; //XXX
-                typeInfo[tp].tProc.nparams = 0;
-
-                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-                symbolInfo[sym].name = intern_cstring(name);
-                symbolInfo[sym].scope = (Scope) 0;
-                symbolInfo[sym].symbolKind = SYMBOL_PROC;  //XXX or sth like SYMBOL_UNDEFINED?
-                symbolInfo[sym].tProc.tp = tp;
-                symbolInfo[sym].tProc.optionalproc = -1;
-
-                extsymToSymbol[i] = sym;
-        }
+        for (int i = 0; i < NUM_EXTSYMS; i++)
+                add_externsym(i);
+        add_externparam(EXTSYM_print64, builtinType[BUILTINTYPE_INT]);
 
         {
                 /* permute Symbol array so they are grouped by defining scope */
@@ -145,15 +167,19 @@ void resolve_symbol_references(void)
                    compare_ParamInfo);
 
         RESIZE_GLOBAL_BUFFER(firstProctypeParam, typeCnt);
-        for (int i = 0; i < typeCnt; i++)
+        for (Type i = 0; i < typeCnt; i++) {
                 firstProctypeParam[i] = 0; /* some proctypes do not have params.
                                               we should initialize the value
                                               nevertheless */
+                if (typeInfo[i].typeKind == TYPE_PROC)
+                        typeInfo[i].tProc.nparams = 0;
+        }
         for (Param param = paramCnt; param --> 0;) {
                 Type proctp = paramInfo[param].proctp;
                 ASSERT(0 <= proctp && proctp < typeCnt);
                 ASSERT(typeInfo[proctp].typeKind == TYPE_PROC);
                 firstProctypeParam[proctp] = param;
+                typeInfo[proctp].tProc.nparams ++;
         }
 
         sort_array(childStmtInfo, childStmtCnt, sizeof *childStmtInfo,
