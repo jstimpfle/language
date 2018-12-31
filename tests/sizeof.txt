@@ -7,8 +7,8 @@ proc main() int
 {
     data x int;
     data foo Foo;
-    print64(#sizeof x);
-    print64(#sizeof foo);
+    print64(#sizeof(x));
+    print64(#sizeof(foo));
     return 0;
 }
 

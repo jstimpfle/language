@@ -440,7 +440,9 @@ Expr parse_expr(int minprec)
                 consume_token();
                 tok = parse_token_kind(TOKEN_WORD);
                 if (tokenInfo[tok].tWord.string == constStr[CONSTSTR_SIZEOF]) {
+                        parse_token_kind(TOKEN_LEFTPAREN);
                         Expr subexpr = parse_expr(0);
+                        parse_token_kind(TOKEN_RIGHTPAREN);
                         expr = exprCnt++;
                         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
                         exprInfo[expr].proc = currentProc;
