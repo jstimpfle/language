@@ -29,3 +29,30 @@ int get_type_size(Type tp)
                 UNHANDLED_CASE();
         }
 }
+
+/* let's just put this here since we don't have a good place */
+void print_type(Type tp)
+{
+        switch (typeInfo[tp].typeKind) {
+        case TYPE_BASE:
+                outs(string_buffer(typeInfo[tp].tBase.name));
+                break;
+        case TYPE_REFERENCE: {
+                Symref ref = typeInfo[tp].tRef.ref;
+                outs(SS(symrefToSym[ref]));
+                break;
+        }
+        case TYPE_STRUCT:
+                outs(string_buffer(typeInfo[tp].tStruct.name));
+                break;
+        case TYPE_POINTER:
+                outs("^");
+                print_type(typeInfo[tp].tPointer.tp);
+                break;
+        case TYPE_PROC:
+                outs("(procedure)");
+                break;
+        default:
+                UNHANDLED_CASE();
+        }
+}
