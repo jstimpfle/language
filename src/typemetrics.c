@@ -56,3 +56,15 @@ void print_type(Type tp)
                 UNHANDLED_CASE();
         }
 }
+
+/* another one */
+Type pointer_type(Type t)
+{
+        // TODO: cache pointer-to version of this type
+        Type r = typeCnt++;
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+        typeInfo[r].typeKind = TYPE_POINTER;
+        typeInfo[r].tPointer.tp = t;
+        typeInfo[r].isComplete = typeInfo[t].isComplete; //XXX?
+        return r;
+}

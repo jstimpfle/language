@@ -12,18 +12,6 @@ int is_lvalue_expression(Expr x)
                 (kind == EXPR_UNOP && exprInfo[x].tUnop.unopKind == UNOP_DEREF));
 }
 
-INTERNAL
-Type pointer_type(Type t)
-{
-        // TODO: cache pointer-to version of this type
-        Type r = typeCnt++;
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[r].typeKind = TYPE_POINTER;
-        typeInfo[r].tPointer.tp = t;
-        typeInfo[r].isComplete = typeInfo[t].isComplete; //XXX?
-        return r;
-}
-
 INTERNAL UNUSEDFUNC
 int type_equal(Type a, Type b)
 {

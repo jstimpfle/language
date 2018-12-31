@@ -118,6 +118,7 @@ void resolve_symbol_references(void)
         for (int i = 0; i < NUM_EXTSYMS; i++)
                 add_externsym(i);
         add_externparam(EXTSYM_print64, builtinType[BUILTINTYPE_INT]);
+        add_externparam(EXTSYM_prints, pointer_type(builtinType[BUILTINTYPE_CHAR]));
 
         {
                 /* permute Symbol array so they are grouped by defining scope */
