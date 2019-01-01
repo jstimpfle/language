@@ -77,7 +77,7 @@ const int cc[] = { /* "calling convention" */
 INTERNAL
 int find_stack_loc(IrReg irreg)
 {
-        int out = 0;
+        int out = 8;  // eight bytes reserved for return address
         for (IrReg reg = irreg;
              reg >= 0 && irRegInfo[reg].proc == irRegInfo[irreg].proc;
              reg--) {
