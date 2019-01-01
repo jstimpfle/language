@@ -196,7 +196,19 @@ void pp_compound_stmt(Stmt stmt)
 INTERNAL
 void pp_data_stmt(Stmt stmt)
 {
-        pp_data(stmtInfo[stmt].tData);
+        Data data = stmtInfo[stmt].tData.data;
+        Expr expr = stmtInfo[stmt].tData.optionalInitializerExpr;
+        pp_newline();
+        outs("data ");
+        pp_type(dataInfo[data].tp);
+        outs(" ");
+        outs(SS(dataInfo[data].sym));
+        if (expr != (Expr) -1) {
+                outs(" = ");
+                pp_expr(expr);
+        }
+        outs(";");
+
 }
 
 INTERNAL

@@ -548,8 +548,21 @@ INTERNAL
 void compile_data_stmt(IrProc irp, Stmt stmt)
 {
         (void) irp;
-        (void) stmt;
-        /* We have allocated a register in compile_to_IR() */
+        Expr expr = stmtInfo[stmt].tData.optionalInitializerExpr;
+        if (expr != (Expr) -1) {
+                Data data = stmtInfo[stmt].tData.data;
+                compile_expr(expr, NOT_USED_AS_LVALUE);
+                /* XXX: The usual trick with overwriting exprToIrReg doesn't
+                 * work from statement compile functions. We really need to
+                 * restructure the code. For now, we insert a register move
+                 * here. */
+                IrStmt y = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irStmtInfo[y].proc = exprInfo[expr].proc;
+                irStmtInfo[y].irStmtKind = IRSTMT_REGREG;
+                irStmtInfo[y].tRegreg.srcreg = exprToIrReg[expr];
+                irStmtInfo[y].tRegreg.tgtreg = dataToIrReg[data];
+        }
 }
 
 INTERNAL

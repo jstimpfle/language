@@ -339,7 +339,6 @@ Data parse_data(void)
         PARSE_LOG();
         String name = parse_name();
         Type tp = parse_type(0);
-        parse_token_kind(TOKEN_SEMICOLON);
 
         Scope scope = currentScope;
         Data data = dataCnt++;
@@ -355,6 +354,13 @@ Data parse_data(void)
         symbolInfo[sym].tData.tp = tp;
         symbolInfo[sym].tData.optionaldata = data;
         return data;
+}
+
+INTERNAL
+void parse_global_data_decl(void)
+{
+        parse_data();
+        parse_token_kind(TOKEN_SEMICOLON);
 }
 
 // TODO: think about dependencies between the parsed things here.
@@ -595,10 +601,20 @@ Stmt parse_data_stmt(void)
 {
         PARSE_LOG();
         Data data = parse_data();
+        Expr expr;
+        if (look_token_kind(TOKEN_ASSIGNEQUALS) != (Token) -1) {
+                consume_token();
+                expr = parse_expr(0);
+        }
+        else {
+                expr = (Expr) -1;
+        }
+        parse_token_kind(TOKEN_SEMICOLON);
         Stmt stmt = stmtCnt++;
         RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
         stmtInfo[stmt].stmtKind = STMT_DATA;
-        stmtInfo[stmt].tData = data;
+        stmtInfo[stmt].tData.data = data;
+        stmtInfo[stmt].tData.optionalInitializerExpr = expr;
         return stmt;
 }
 
@@ -1030,7 +1046,7 @@ void parse_file(File file)
                 else if (s == constStr[CONSTSTR_STRUCT])
                         parse_struct();
                 else if (s == constStr[CONSTSTR_DATA])
-                        parse_data();
+                        parse_global_data_decl();
                 else if (s == constStr[CONSTSTR_MACRO])
                         parse_macro();
                 else if (s == constStr[CONSTSTR_PROC])

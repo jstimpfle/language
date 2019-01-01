@@ -341,6 +341,11 @@ struct ReturnStmtInfo {
         Expr expr;
 };
 
+struct DataStmtInfo {
+        Data data;
+        Expr optionalInitializerExpr;
+};
+
 struct StmtInfo {
         int stmtKind;
         union {
@@ -352,7 +357,7 @@ struct StmtInfo {
                 struct ForStmtInfo tFor;
                 struct RangeStmtInfo tRange;
                 struct ReturnStmtInfo tReturn;
-                Data tData;
+                struct DataStmtInfo tData;
                 Array tArray;
                 Macro tMacro;
                 Stmt tIgnore;

@@ -228,6 +228,9 @@ void expand_stmt_exprs(Stmt a)
                 break;
         }
         case STMT_DATA:
+                if (stmtInfo[a].tData.optionalInitializerExpr != (Expr) -1)
+                        EXPAND(stmtInfo[a].tData.optionalInitializerExpr);
+                break;
         case STMT_ARRAY:
         case STMT_MACRO:
                 /* ignore */
