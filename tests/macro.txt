@@ -1,6 +1,18 @@
+data globalValue int;
+
+macro pi = 3;
+macro macroValue = pi + 7 + globalValue;
+
+proc testvaluemacro() int
+{
+    globalValue = 2;
+    print64(macroValue);
+    return 0;
+}
+
 macro mul(x, y) = x * y;
 
-proc main() int
+proc testfunctionmacro() int
 {
     data x int;
     data y int;
@@ -13,6 +25,14 @@ proc main() int
     y = 42;
     x = foo(3, 5);
     print64(x);
+    return 0;
+}
+
+proc main() int
+{
+    testfunctionmacro();
+    testvaluemacro();
+
     return 0;
 }
 

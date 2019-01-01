@@ -102,6 +102,13 @@ const char *const symbolKindString[NUM_SYMBOL_KINDS] = {
 #undef MAKE
 };
 
+const char *const macroKindString[NUM_MACRO_KINDS] = {
+#define MAKE(x) [x] = #x
+        MAKE( MACRO_VALUE ),
+        MAKE( MACRO_FUNCTION ),
+#undef MAKE
+};
+
 const char* const irStmtString[NUM_IRSTMT_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( IRSTMT_LOADCONSTANT ),

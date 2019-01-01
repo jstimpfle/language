@@ -88,6 +88,19 @@ typedef int MacroParam;
 typedef int Export;
 
 
+/*
+ * Macro kinds. Currently we have function macros and value macros.
+ */
+
+enum {
+        MACRO_VALUE,
+        MACRO_FUNCTION,
+        NUM_MACRO_KINDS
+};
+
+const char *const macroKindString[NUM_MACRO_KINDS];
+
+
 /**
  * \struct{SymbolInfo}: Contains the name and scope of a symbol as well as a
  * reference to the named item (by means of a kind tag and union containing an
@@ -367,19 +380,26 @@ struct ProcInfo {
         Stmt body;
 };
 
-struct MacroParamInfo {
+struct MacroParamInfo {  // parameter for MACRO_FUNCTION macro
         Macro macro;
         String name;
+};
+
+struct FunctionMacroInfo {
+        // speed-up indices. Note that the params of a macro are contiguous
+        // in memory due to the way they are parsed.
+        MacroParam firstMacroParam;
+        int nparams;
 };
 
 struct MacroInfo {
         Symbol symbol;
         Scope scope;
         Expr expr;
-        // speed-up indices. Note that the params of a macro are contiguous
-        // in memory due to the way they are parsed.
-        MacroParam firstMacroParam;
-        int nparams;
+        int macroKind;
+        union {
+                struct FunctionMacroInfo tFunction;
+        };
 };
 
 struct ExportInfo {

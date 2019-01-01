@@ -29,9 +29,7 @@ INTERNAL Proc CURRENTLY_EXPANDED_PROC;
 INTERNAL
 Expr expand_expr(Expr x)
 {
-        {
-                if (exprInfo[x].exprKind != EXPR_SYMREF)
-                        goto isnotamacroparamref;
+        if (exprInfo[x].exprKind == EXPR_SYMREF) {
 
                 /* Expressions that reference a MacroParam are somewhat special since
                  * here we don't expand the reference but the bound expression */
@@ -39,17 +37,26 @@ Expr expand_expr(Expr x)
                 Symbol sym = symrefToSym[ref];
                 ASSERT(sym != (Symbol) -1);
 
-                if (symbolInfo[sym].symbolKind != SYMBOL_MACROPARAM)
-                        goto isnotamacroparamref;
-
-                Expr expr = lookup_macro_param(symbolInfo[sym].tMacroParam);
-                return expand_expr(expr);
+                if (symbolInfo[sym].symbolKind == SYMBOL_MACROPARAM) {
+                        Expr expr = lookup_macro_param(symbolInfo[sym].tMacroParam);
+                        return expand_expr(expr);
+                }
+                else if (symbolInfo[sym].symbolKind == SYMBOL_MACRO) {
+                        Macro macro = symbolInfo[sym].tMacro;
+                        int macroKind = macroInfo[macro].macroKind;
+                        if (macroInfo[macro].macroKind != MACRO_VALUE) {
+                                FATAL("Invalid use of %s macro. Expected %s macro\n",
+                                      macroKindString[macroKind],
+                                      macroKindString[MACRO_VALUE]);
+                        }
+                        return expand_expr(macroInfo[macro].expr);
+                }
+                else {
+                        goto isnotamacro;
+                }
         }
 
-isnotamacroparamref:
-        {
-                if (exprInfo[x].exprKind != EXPR_CALL)
-                        goto isnotamacro;
+        else if (exprInfo[x].exprKind == EXPR_CALL) {
 
                 Expr callee = exprInfo[x].tCall.callee;
                 if (exprInfo[callee].exprKind != EXPR_SYMREF)
@@ -62,11 +69,17 @@ isnotamacroparamref:
                         goto isnotamacro;
 
                 Macro macro = symbolInfo[sym].tMacro;
-                MacroParam firstMacroParam = macroInfo[macro].firstMacroParam;
-                int nparams = macroInfo[macro].nparams;
+                int macroKind = macroInfo[macro].macroKind;
+                if (macroInfo[macro].macroKind != MACRO_FUNCTION) {
+                        FATAL("Invalid use of %s macro. Expected %s macro\n",
+                              macroKindString[macroKind],
+                              macroKindString[MACRO_FUNCTION]);
+                }
+                MacroParam firstMacroParam = macroInfo[macro].tFunction.firstMacroParam;
+                int nparams = macroInfo[macro].tFunction.nparams;
                 int firstArgIdx = exprInfo[x].tCall.firstArgIdx;
                 int nargs = exprInfo[x].tCall.nargs;
-                if (macroInfo[macro].nparams != nargs) {
+                if (macroInfo[macro].tFunction.nparams != nargs) {
                         FATAL("Bad macro invocation: macro %s has %d "
                               "parameters, but invocation provides %d\n",
                               SS(macroInfo[macro].symbol), nparams, nargs);

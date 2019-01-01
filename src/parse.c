@@ -373,28 +373,38 @@ Macro parse_macro(void)
         MacroParam firstMacroParam = macroParamCnt;
         int nparams = 0;
         RESIZE_GLOBAL_BUFFER(macroInfo, macroCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
         push_scope(scope);
-        parse_token_kind(TOKEN_LEFTPAREN);
-        while (look_token_kind(TOKEN_RIGHTPAREN) == -1) {
-                Token token = parse_token_kind(TOKEN_WORD);
-                String paramname = tokenInfo[token].tWord.string;
-                MacroParam param = macroParamCnt++;
-                Symbol paramsym = symbolCnt++;
-                RESIZE_GLOBAL_BUFFER(macroParamInfo, macroParamCnt);
-                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-                macroParamInfo[param].macro = macro;
-                macroParamInfo[param].name = paramname;
-                symbolInfo[paramsym].name = paramname;
-                symbolInfo[paramsym].scope = scope;
-                symbolInfo[paramsym].symbolKind = SYMBOL_MACROPARAM;
-                symbolInfo[paramsym].tMacroParam = param;
-                nparams++;
-                if (look_token_kind(TOKEN_COMMA) == -1)
-                        break;
+
+        if (look_token_kind(TOKEN_LEFTPAREN) != (Token) -1) {
                 consume_token();
+                while (look_token_kind(TOKEN_RIGHTPAREN) == -1) {
+                        Token token = parse_token_kind(TOKEN_WORD);
+                        String paramname = tokenInfo[token].tWord.string;
+                        MacroParam param = macroParamCnt++;
+                        Symbol paramsym = symbolCnt++;
+                        RESIZE_GLOBAL_BUFFER(macroParamInfo, macroParamCnt);
+                        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+                        macroParamInfo[param].macro = macro;
+                        macroParamInfo[param].name = paramname;
+                        symbolInfo[paramsym].name = paramname;
+                        symbolInfo[paramsym].scope = scope;
+                        symbolInfo[paramsym].symbolKind = SYMBOL_MACROPARAM;
+                        symbolInfo[paramsym].tMacroParam = param;
+                        nparams++;
+                        if (look_token_kind(TOKEN_COMMA) == -1)
+                                break;
+                        consume_token();
+                }
+                parse_token_kind(TOKEN_RIGHTPAREN);
+                macroInfo[macro].macroKind = MACRO_FUNCTION;
+                macroInfo[macro].tFunction.firstMacroParam = firstMacroParam;
+                macroInfo[macro].tFunction.nparams = nparams;
         }
-        parse_token_kind(TOKEN_RIGHTPAREN);
+        else {
+                macroInfo[macro].macroKind = MACRO_VALUE;
+        }
         parse_token_kind(TOKEN_ASSIGNEQUALS);
         Expr expr;
         {
@@ -418,8 +428,6 @@ Macro parse_macro(void)
         macroInfo[macro].symbol = symbol;
         macroInfo[macro].scope = scope;
         macroInfo[macro].expr = expr;
-        macroInfo[macro].firstMacroParam = firstMacroParam;
-        macroInfo[macro].nparams = nparams;
         return macro;
 }
 
