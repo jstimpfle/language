@@ -167,6 +167,9 @@ isnotamacro:
                         CAREFUL_EXPAND(exprInfo[y].tSizeof.expr);
                         break;
                 }
+                case EXPR_STRINGIFY:
+                        CAREFUL_EXPAND(exprInfo[y].tStringify.expr);
+                        break;
                 default:
                         UNHANDLED_CASE();
                 }

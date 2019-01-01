@@ -336,6 +336,12 @@ Type check_sizeof_expr_type(Expr x)
 }
 
 INTERNAL
+Type check_stringify_expr_type(Expr x)
+{
+        return pointer_type(builtinType[BUILTINTYPE_CHAR]);
+}
+
+INTERNAL
 Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
 #define MAKE(x, y) [x] = &y
         MAKE(  EXPR_LITERAL,    check_literal_expr_type    ),
@@ -346,6 +352,7 @@ Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
         MAKE(  EXPR_SUBSCRIPT,  check_subscript_expr_type  ),
         MAKE(  EXPR_CALL,       check_call_expr_type       ),
         MAKE(  EXPR_SIZEOF,     check_sizeof_expr_type     ),
+        MAKE(  EXPR_STRINGIFY,  check_stringify_expr_type     ),
 #undef MAKE
 };
 
@@ -357,6 +364,9 @@ Type check_expr_type(Expr x)
 
         int kind = exprInfo[x].exprKind;
         ASSERT(0 <= kind && kind < NUM_EXPR_KINDS);
+
+        if (! exprKindToTypecheckFunc [kind])
+                UNHANDLED_CASE();
         tp = exprKindToTypecheckFunc [kind] (x);
 
         if (tp == -1) {

@@ -1,0 +1,11 @@
+macro printval(x) = prints(#stringify x);
+
+proc main() int
+{
+    data foo int;
+    printval(foo);
+    prints("\n");
+    return 0;
+}
+
+export main;

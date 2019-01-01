@@ -447,7 +447,8 @@ Expr parse_expr(int minprec)
         else if (tokenInfo[tok].tokenKind == TOKEN_HASH) {
                 consume_token();
                 tok = parse_token_kind(TOKEN_WORD);
-                if (tokenInfo[tok].tWord.string == constStr[CONSTSTR_SIZEOF]) {
+                String string = tokenInfo[tok].tWord.string;
+                if (string == constStr[CONSTSTR_SIZEOF]) {
                         parse_token_kind(TOKEN_LEFTPAREN);
                         Expr subexpr = parse_expr(0);
                         parse_token_kind(TOKEN_RIGHTPAREN);
@@ -456,6 +457,14 @@ Expr parse_expr(int minprec)
                         exprInfo[expr].proc = currentProc;
                         exprInfo[expr].exprKind = EXPR_SIZEOF;
                         exprInfo[expr].tSizeof.expr = subexpr;
+                }
+                else if (string == constStr[CONSTSTR_STRINGIFY]) {
+                        Expr subexpr = parse_expr(5); // TODO: very high precedence level
+                        expr = exprCnt++;
+                        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                        exprInfo[expr].proc = currentProc;
+                        exprInfo[expr].exprKind = EXPR_STRINGIFY;
+                        exprInfo[expr].tStringify.expr = subexpr;
                 }
                 else {
                         FATAL_PARSE_ERROR_AT_TOK(tok,

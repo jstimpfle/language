@@ -198,6 +198,7 @@ enum ExprKind {
         EXPR_SUBSCRIPT,
         EXPR_CALL,
         EXPR_SIZEOF,
+        EXPR_STRINGIFY,
         NUM_EXPR_KINDS,
 };
 
@@ -272,6 +273,10 @@ struct SizeofExprInfo {
         Expr expr;
 };
 
+struct StringifyExprInfo {
+        Expr expr;
+};
+
 struct ExprInfo {
         Proc proc;
         int exprKind;
@@ -284,6 +289,7 @@ struct ExprInfo {
                 struct SubscriptExprInfo tSubscript;
                 struct CallExprInfo tCall;
                 struct SizeofExprInfo tSizeof;
+                struct StringifyExprInfo tStringify;
         };
 };
 

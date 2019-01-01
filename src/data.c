@@ -59,6 +59,7 @@ const char *const exprKindString[NUM_EXPR_KINDS] = {
         MAKE( EXPR_SUBSCRIPT ),
         MAKE( EXPR_CALL ),
         MAKE( EXPR_SIZEOF ),
+        MAKE( EXPR_STRINGIFY ),
 #undef MAKE
 };
 
@@ -248,6 +249,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_SIZEOF, "sizeof" ),
         MAKE( CONSTSTR_IGNORE, "ignore" ),
         MAKE( CONSTSTR_EXTERN, "extern" ),
+        MAKE( CONSTSTR_STRINGIFY, "stringify" ),
 #undef MAKE
 };
 

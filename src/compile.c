@@ -475,6 +475,27 @@ void compile_sizeof_expr(Expr x, int usedAsLvalue)
 }
 
 INTERNAL
+void compile_stringify_expr(Expr x, int usedAsLvalue)
+{
+        Expr y = exprInfo[x].tSizeof.expr;
+        if (exprInfo[y].exprKind != EXPR_SYMREF) {
+                FATAL("Currently, only symbol reference (simple names) can be #stringify'd\n");
+        }
+        Symref ref = exprInfo[y].tSymref.ref;
+        String s = symrefInfo[ref].name;
+        /* This is a copy-paste of the code for LITERAL_STRING */
+        {
+                IrStmt y = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irStmtInfo[y].proc = exprInfo[x].proc;
+                irStmtInfo[y].irStmtKind = IRSTMT_LOADCONSTANT;
+                irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_STRING;
+                irStmtInfo[y].tLoadConstant.tString = s;
+                irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
+        }
+}
+
+INTERNAL
 void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x, int usedAsLvalue) = {
 #define MAKE(x, y) [x] = &y
         MAKE( EXPR_LITERAL,    compile_literal_expr   ),
@@ -485,6 +506,7 @@ void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x, int usedAsLvalue) = 
         MAKE( EXPR_SYMREF,     compile_symref_expr    ),
         MAKE( EXPR_CALL,       compile_call_expr      ),
         MAKE( EXPR_SIZEOF,     compile_sizeof_expr    ),
+        MAKE( EXPR_STRINGIFY,  compile_stringify_expr ),
 #undef MAKE
 };
 
@@ -752,6 +774,9 @@ void compile_stmt(IrProc irp, Stmt stmt)
         int kind = stmtInfo[stmt].stmtKind;
         ASSERT(0 <= kind && kind < NUM_STMT_KINDS);
         ASSERT(stmtKindToCompileFunc[kind] != 0);
+
+        if (! stmtKindToCompileFunc [kind])
+                UNHANDLED_CASE();
         stmtKindToCompileFunc [kind] (irp, stmt);
 }
 
