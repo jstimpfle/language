@@ -477,6 +477,7 @@ void compile_sizeof_expr(Expr x, int usedAsLvalue)
 INTERNAL
 void compile_stringify_expr(Expr x, int usedAsLvalue)
 {
+        (void) usedAsLvalue;
         Expr y = exprInfo[x].tSizeof.expr;
         if (exprInfo[y].exprKind != EXPR_SYMREF) {
                 FATAL("Currently, only symbol reference (simple names) can be #stringify'd\n");

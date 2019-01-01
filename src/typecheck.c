@@ -338,6 +338,7 @@ Type check_sizeof_expr_type(Expr x)
 INTERNAL
 Type check_stringify_expr_type(Expr x)
 {
+        (void) x;
         return pointer_type(builtinType[BUILTINTYPE_CHAR]);
 }
 
