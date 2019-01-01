@@ -1,7 +1,6 @@
 proc main(argc int, argv ^^char) int
 {
-    data i int;
-    i = 0;
+    data i int = 0;
     while (i < argc) {
         prints("Argument #");
         print64(i);

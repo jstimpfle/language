@@ -2,10 +2,8 @@ data testint int;
 
 proc main() int
 {
-    data a int;
-    data x ^int;
-    a = 3;
-    x = &a;
+    data a int = 3;
+    data x ^int = &a;
     /*print64(x);
 */
     print64(x^);

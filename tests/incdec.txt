@@ -1,7 +1,6 @@
 proc main() int
 {
-    data x int;
-    x = 0;
+    data x int = 0;
     print64(x++); print64(x);
     print64(x--); print64(x);
     print64(++x); print64(x);

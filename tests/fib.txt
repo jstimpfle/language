@@ -8,8 +8,7 @@ proc fib(a int) int
 
 proc main() int
 {
-    data r int;
-    r = fib(7);
+    data r int = fib(7);
     print64(r);
     return 0;
 }
