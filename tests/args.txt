@@ -1,16 +1,14 @@
-proc localproc() int
-{
-}
-
 proc main(argc int, argv ^^char) int
 {
     if (argc < 2) {
-        prints("Need 1 command-line argument!\n");
+        prints("Need at least 1 command-line argument!\n");
         return 1;
     }
-    prints("The command-line argument is: ");
-    prints(argv[1]);
-    prints("\n");
+    for i from 1 to argc do {
+        prints("range arg: ");
+        prints(argv[i]);
+        prints("\n");
+    }
     return 0;
 }
 

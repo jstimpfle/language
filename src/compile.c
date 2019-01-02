@@ -702,11 +702,6 @@ void compile_range_stmt(IrProc irp, Stmt stmt)
         Expr e2 = stmtInfo[stmt].tRange.stopExpr;
         Stmt rangebody = stmtInfo[stmt].tRange.rangebody;
 
-        /* XXX Override: place start value directly in the IrReg of the
-         * iteration variable, instead of placing it in the automatically
-         * generated IrReg first. This must come before compile_expr(e1,...) */
-        exprToIrReg[e1] = dataToIrReg[variable];
-
         compile_expr(e1, NOT_USED_AS_LVALUE);
         compile_expr(e2, NOT_USED_AS_LVALUE);
 
@@ -714,6 +709,14 @@ void compile_range_stmt(IrProc irp, Stmt stmt)
         IrReg stopvalueReg = exprToIrReg[e2];
         IrReg cmpReg = irRegCnt++;
 
+        /* XXX: initStmt now needed because we cannot route expressions
+         * registers when compiling statements: exprToIrReg is written only when
+         * compiling the expression now.
+         *
+         * Remove initStmt later when we have better structure, and properly
+         * route the e1 expression to the variable instead!
+         */
+        IrStmt initStmt = irStmtCnt++;
         IrStmt checkStmt = irStmtCnt++;
         IrStmt breakStmt = irStmtCnt++;
         compile_stmt(irp, rangebody);
@@ -727,6 +730,10 @@ void compile_range_stmt(IrProc irp, Stmt stmt)
         irRegInfo[cmpReg].name = -1;
         irRegInfo[cmpReg].sym = -1;
         irRegInfo[cmpReg].tp = builtinType[BUILTINTYPE_INT];
+        irStmtInfo[initStmt].proc = irp;
+        irStmtInfo[initStmt].irStmtKind = IRSTMT_REGREG;
+        irStmtInfo[initStmt].tRegreg.srcreg = exprToIrReg[e1];
+        irStmtInfo[initStmt].tRegreg.tgtreg = varReg;
         irStmtInfo[checkStmt].proc = irp;
         irStmtInfo[checkStmt].irStmtKind = IRSTMT_CMP;
         irStmtInfo[checkStmt].tCmp.irCmpKind = IRCMP_GE;
