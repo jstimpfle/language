@@ -194,6 +194,7 @@ Token lex_token(void);
 
 /* parse.c */
 void parse_file(File file);
+void fixup_parsed_data(void);
 
 /* pprint.c */
 void prettyprint(void);

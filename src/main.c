@@ -65,18 +65,19 @@ int main(int argc, const char **argv)
                 parse_file(file);
         }
 
+        DEBUG("Fix up parsed data...\n");
+        fixup_parsed_data();
+
+        if (doPrettyPrintAst) {
+                DEBUG("Pretty print input...\n\n");
+                prettyprint();
+        }
+
         DEBUG("Resolve symbol references...\n");
         resolve_symbol_references();
 
         DEBUG("Resolve type references...\n");
         resolve_type_references();
-
-        /* XXX: this must currently come *after* resolve phase. TODO move the
-         * relevant code that fixes the indices out of resolve.c. */
-        if (doPrettyPrintAst) {
-                DEBUG("Pretty print input...\n\n");
-                prettyprint();
-        }
 
         DEBUG("Expand macros...\n");
         expand_macros();
