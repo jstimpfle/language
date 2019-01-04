@@ -92,3 +92,7 @@ extern const struct ToktypeToPostfixUnop toktypeToPostfixUnop[];
 extern const struct ToktypeToBinop toktypeToBinop[];
 extern const struct UnopInfo unopInfo[NUM_UNOPS];
 extern const struct BinopInfo binopInfo[NUM_BINOPS];
+
+extern const int toktypeToPrefixUnopCnt;
+extern const int toktypeToPostfixUnopCnt;
+extern const int toktypeToBinopCnt;
