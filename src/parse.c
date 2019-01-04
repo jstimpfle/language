@@ -1062,23 +1062,26 @@ void parse_file(File file)
 }
 
 
+INTERNAL
+int compare_Symbol(const void *a, const void *b)
+{
+        Symbol x = *(const Symbol *) a;
+        Symbol y = *(const Symbol *) b;
+        Scope s1 = symbolInfo[x].scope;
+        Scope s2 = symbolInfo[y].scope;
+        if (s1 != s2)
+                return s1 - s2;
+        String n1 = symbolInfo[x].name;
+        String n2 = symbolInfo[y].name;
+        return (n2 < n1) - (n1 < n2);
+}
+
+
 /* BUG BUG BUG: We cannot use COMPARE_ADDRESS to achieve a stable sort since
  * elements get swapped around even if not compared (to make room for compared
  * ones). COMPARE_ADDRESS should be removed as soon as possible. We should
  * reintroduce the "rank" struct member or use a stable sorting function. */
 #define COMPARE_ADDRESS(x, y) ((x > y) - (x < y))
-
-INTERNAL
-int compare_Symbol(const void *a, const void *b)
-{
-        const Symbol *x = a;
-        const Symbol *y = b;
-        Scope s1 = symbolInfo[*x].scope;
-        Scope s2 = symbolInfo[*y].scope;
-        if (s1 != s2)
-                return s1 - s2;
-        return COMPARE_ADDRESS(x, y);
-}
 
 
 INTERNAL
