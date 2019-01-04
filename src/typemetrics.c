@@ -39,7 +39,8 @@ void print_type(Type tp)
                 break;
         case TYPE_REFERENCE: {
                 Symref ref = typeInfo[tp].tRef.ref;
-                outs(SS(symrefToSym[ref]));
+                String name = symrefInfo[ref].name;
+                outs(string_buffer(name));
                 break;
         }
         case TYPE_STRUCT:
