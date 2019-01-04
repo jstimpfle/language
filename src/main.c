@@ -84,6 +84,9 @@ int main(int argc, const char **argv)
         DEBUG("Check types...\n");
         check_types();
 
+        DEBUG("Print interface file to stdout...\n");
+        generate_interface_file();
+
         DEBUG("Compile to IR...\n");
         compile_to_IR();
 

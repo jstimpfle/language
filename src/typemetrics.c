@@ -49,9 +49,20 @@ void print_type(Type tp)
                 outs("^");
                 print_type(typeInfo[tp].tPointer.tp);
                 break;
-        case TYPE_PROC:
-                outs("(procedure)");
+        case TYPE_PROC: {
+                print_type(typeInfo[tp].tProc.rettp);
+                outs("(");
+                int first = firstProctypeParam[tp];
+                int nparams = typeInfo[tp].tProc.nparams;
+                for (int i = 0; i < nparams; i++) {
+                        Type ptp = paramInfo[first + i].tp;
+                        if (i > 0)
+                                outs(", ");
+                        print_type(ptp);
+                }
+                outs(")");
                 break;
+        }
         default:
                 UNHANDLED_CASE();
         }

@@ -214,6 +214,9 @@ Type pointer_type(Type t);
 /* typecheck.c */
 void check_types(void);
 
+/* ifacegen.c */
+void generate_interface_file(void);
+
 /* compile.c */
 void compile_to_IR(void);
 
