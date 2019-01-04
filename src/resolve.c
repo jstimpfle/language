@@ -2,19 +2,25 @@
 #include "api.h"
 
 INTERNAL
-Symbol find_symbol_in_scope(String name, Scope scope)
+Symbol find_first_matching_symbol_in_scope(String name, Scope scope)
 {
         // DEBUG("Try to find symbol %s in scope %d\n", string_buffer(name), scope);
         for (; scope != -1; scope = scopeInfo[scope].parentScope) {
                 Symbol first = scopeInfo[scope].firstSymbol;
                 Symbol last = first + scopeInfo[scope].numSymbols;
-                for (Symbol i = first; i < last; i++) {
-                        if (symbolInfo[i].name == name) {
-                                return i;
-                        }
+
+                while (first < last) {
+                        Symbol mid = first + (last - first) / 2;
+                        if (symbolInfo[mid].name < name)
+                                first = mid + 1;
+                        else
+                                last = mid;
                 }
+
+                if (first < symbolCnt && symbolInfo[first].name == name)
+                        return first;
         }
-        return -1;
+        return (Symbol) -1;
 }
 
 void resolve_symbol_references(void)
@@ -24,8 +30,8 @@ void resolve_symbol_references(void)
         for (Symref ref = 0; ref < symrefCnt; ref++) {
                 String name = symrefInfo[ref].name;
                 Scope refScope = symrefInfo[ref].refScope;
-                Symbol sym = find_symbol_in_scope(name, refScope);
-                if (sym < 0) {
+                Symbol sym = find_first_matching_symbol_in_scope(name, refScope);
+                if (sym == (Symbol) -1) {
                         MSG_AT_TOK(lvl_error, symrefToToken[ref],
                                    "unresolved symbol reference %s\n",
                                    string_buffer(name));
