@@ -337,6 +337,14 @@ void pp_proc(Proc p)
         outs("\n");
 }
 
+INTERNAL
+void pp_export(Export x)
+{
+        Symref ref = exportInfo[x].ref;
+        String name = symrefInfo[ref].name;
+        outf("export %s;\n", string_buffer(name));
+}
+
 void prettyprint(void)
 {
         for (Type i = 0; i < typeCnt; i++)
@@ -353,5 +361,8 @@ void prettyprint(void)
         pp_newline();
         for (Proc i = 0; i < procCnt; i++)
                 pp_proc(i);
+        pp_newline();
+        for (Export x = 0; x < exportCnt; x++)
+                pp_export(x);
         pp_newline();
 }
