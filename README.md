@@ -16,19 +16,22 @@ user-defined code.
 Status
 ------
 
-Working on a Compiler to support a minimal set of features.
+Working on a Compiler to support a minimal set of features. Features that are
+marked as done here are mostly functional and usable. Nevertheless much of the
+implementation will be extended or restructured completely.
 
 - [x] Build on Linux
 - [x] Build on Windows
 - [x] Half-assed "AST" data structures (`include/syntax.h`)
 - [x] Half-assed IR data structures (`include/ir.h`)
-- [x] Half-assed Parser (`src/parse.c`)
+- [x] Syntax parser (`src/parse.c`)
 - [x] Pretty-printer for parsed structures (`src/pprint.c`)
 - [x] Symbol and type resolution (`src/resolve.c`)
 - [x] A simple and sane "hygienic" expression macro system (`src/macroexpand.c`)
+- [x] Interface file generator (`src/ifacegen.c`)
 - [ ] Decide what other macro facilities we still want
-- [x] Half-assed Type checker and inference. (`src/typecheck.c`)
-- [x] Half-assed Compiler from "AST" to IR (`src/compile.c`)
+- [x] Type checker and inference. (`src/typecheck.c`)
+- [x] Compiler from "AST" to IR (`src/compile.c`)
 - [x] Pretty-printer for compiled IR code (`src/irprint.c`)
 - [x] Half-assed IR to x64 machine code generator mostly finished (`src/x64asm.c`)
 - [ ] More intelligent Register allocation needed. Generic or x64 specific?
@@ -36,6 +39,9 @@ Working on a Compiler to support a minimal set of features.
 - [x] ELF-64 object writer for Linux supports all currently implemented features (`src/elf64.c`)
 - [ ] PE object writer for Windows (`src/pe64.c`)
 - [ ] Mach-O object writer for Mac OS, any volunteers?
+
+A list of bugs, structural problems, and cross-cutting concern type missing
+things, can be found in TODO.txt.
 
 Build
 -----
