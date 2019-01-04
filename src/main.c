@@ -68,6 +68,9 @@ int main(int argc, const char **argv)
         DEBUG("Fix up parsed data...\n");
         fixup_parsed_data();
 
+        DEBUG("Ensure there are no symbol collisions...\n");
+        ensure_there_are_no_symbol_collisions();
+
         if (doPrettyPrintAst) {
                 DEBUG("Pretty print input...\n\n");
                 prettyprint();

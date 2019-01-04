@@ -16,7 +16,3 @@ emitter).
 
 Need to support loading and moving quantities other than 64-bit integers (IR /
 machine code emitter)
-
-Detect and fail on symbol collisions early. Especially simple declarations
-where type and name of a variable name are swapped can be hard to debug when
-collisions aren't reported.

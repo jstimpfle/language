@@ -1,6 +1,18 @@
 #include "defs.h"
 #include "api.h"
 
+void ensure_there_are_no_symbol_collisions(void)
+{
+        for (Symbol sym = 1; sym < symbolCnt; sym++) {
+                if (symbolInfo[sym].scope == symbolInfo[sym - 1].scope &&
+                    symbolInfo[sym].name == symbolInfo[sym - 1].name) {
+                        // TODO better message
+                        FATAL("Symbol already defined in this scope: %s\n",
+                              SS(sym));
+                }
+        }
+}
+
 INTERNAL
 Symbol find_first_matching_symbol_in_scope(String name, Scope scope)
 {

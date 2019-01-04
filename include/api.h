@@ -200,6 +200,7 @@ void fixup_parsed_data(void);
 void prettyprint(void);
 
 /* resolve.c */
+void ensure_there_are_no_symbol_collisions(void);
 void resolve_symbol_references(void);
 void resolve_type_references(void);
 
