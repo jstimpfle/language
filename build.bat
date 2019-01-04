@@ -1,10 +1,8 @@
 rem Build script for Windows (MSVC compiler).
 rem You must setup the environment using vcvars64 before calling this script
 
-if not exist build mkdir build
-
 @echo on
-cl /Fe"build\language.exe" /I include\ src\*.c /Zi
+cl /Fe"blunt.exe" /I include\ src\*.c /Zi
 
 @echo off
 if %ERRORLEVEL% NEQ 0 (

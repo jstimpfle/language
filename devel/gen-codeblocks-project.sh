@@ -1,7 +1,7 @@
 # (linux) shell script to generate a codeblocks project. I've used codeblocks
 # for automated variable renamings.
 
-PROJECTNAME=language
+PROJECTNAME=blunt
 CB_PROJECTDIR=codeblocks
 CB_PROJECTFILE=$CB_PROJECTDIR/$PROJECTNAME.cbp
 

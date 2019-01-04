@@ -7,7 +7,7 @@ void print_usage(const char *progname)
         outf("\n");
         outf("Usage:\n");
         outf("  %s -help\n", progname);
-        outf("  %s [-debug] [-dump-ir] [-prettyprint-ast] [-write-elf-object] [-write-pe-object] <prog.txt>\n",
+        outf("  %s [-debug] [-dump-ir] [-prettyprint-ast] [-write-elf-object] [-write-pe-object] <prog.bl>\n",
              progname);
         outf("\n");
 }

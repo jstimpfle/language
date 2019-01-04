@@ -1,5 +1,4 @@
 #!/bin/sh
 # Build script for Linux / Unix
 
-mkdir -p build
-cc -std=c99 -g -Wall -Wextra -o build/language -I include/ src/*.c
+cc -std=c99 -O2 -g -Wall -Wextra -o blunt -I include/ src/*.c

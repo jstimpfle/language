@@ -3,7 +3,7 @@ This file contains function signatures of functions used in some or most of the
 other programs in this directory. To compile those programs add this file to the
 compile command-line. E.g.,
 
-    build/language -debug tests/pointer.txt tests/EXTSYM.txt
+    ./blunt -debug tests/pointer.bl tests/EXTSYM.bl
 */
 
 extern print64 void(int);
