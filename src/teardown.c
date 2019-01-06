@@ -3,6 +3,8 @@
 
 void teardown_program(void)
 {
+        MSG(lvl_info, "Total bytes alloc'ed: %lld\n", DBG_totalbytesalloced);
+        MSG(lvl_info, "Total bytes realloc'ed: %lld\n", DBG_totalbytesrealloced);
         for (File i = 0; i < fileCnt; i++)
                 BUF_EXIT(&fileInfo[i].buf, &fileInfo[i].bufAlloc);
         for (int i = 0; i < NUM_BUFFERS; i++)

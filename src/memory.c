@@ -5,7 +5,7 @@
 void check_global_buffer_allocations(void)
 {
         #define DUMP(x) outf("%sCnt=%d, allocated=%d\n", #x, globalBufferAlloc[BUFFER_##x].cap);
-        #define CHECk(x) if (x##Cnt < globalBufferAlloc[BUFFER_##x].cap) { FATAL("%s = %d but %s = %d\n", #x "Cnt", x##Cnt, #x "Alloc", globalBufferAlloc[BUFFER_##x].cap);
+        #define CHECK(x) if (x##Cnt < globalBufferAlloc[BUFFER_##x].cap) { FATAL("%s = %d but %s = %d\n", #x "Cnt", x##Cnt, #x "Alloc", globalBufferAlloc[BUFFER_##x].cap);
         for (int i = 0; i < NUM_BUFFERS; i++) {
                 const char *name = globalBufferInfo[i].__bufferName;
                 int cnt = *globalBufferInfo[i].__bufferCnt;
@@ -57,6 +57,17 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                         clear_mem((char*)p + alloc->cap * elsize,
                                   (cnt - alloc->cap) * elsize);
                 *ptr = p;
+
+                if (alloc->cap > 0) {
+                        DEBUG("Realloc'ing %d more elements (%d bytes). "
+                             "increase to %d elems (%d bytes)\n",
+                             alloc->cap, alloc->cap * elsize,
+                             cnt, cnt * elsize);
+                        DBG_totalbytesrealloced += alloc->cap * elsize;
+                        DBG_totalbytesalloced -= alloc->cap * elsize;
+                }
+                DBG_totalbytesalloced += cnt * elsize;
+
                 alloc->cap = cnt;
         }
 }

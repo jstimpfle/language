@@ -22,7 +22,14 @@ void read_whole_file(File file)
         if (f == NULL)
                 FATAL("Failed to open file %s\n", string_buffer(fpath));
 
+        /* best effort-determining of filesize to do upfront allocation */
+        fseek(f, 0, SEEK_END);
+        int tentative_filesize = ftell(f);
+        fseek(f, 0, SEEK_SET);
+
         BUF_INIT(&fileInfo[file].buf, &fileInfo[file].bufAlloc);
+        BUF_RESERVE(&fileInfo[file].buf, &fileInfo[file].bufAlloc,
+                    tentative_filesize);
         fileInfo[file].size = 0;
         while (!feof(f) && !ferror(f)) {
                 BUF_RESERVE(&fileInfo[file].buf,

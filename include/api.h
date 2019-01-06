@@ -134,6 +134,9 @@ void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
 
 /* memory.c */
 
+DATA long long DBG_totalbytesalloced;
+DATA long long DBG_totalbytesrealloced;
+
 void _buf_init(void **ptr, struct Alloc *alloc, int elsize,
                const char *UNUSED file, int UNUSED line);
 void _buf_exit(void **ptr, struct Alloc *alloc, int elsize,
