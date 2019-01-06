@@ -80,3 +80,16 @@ Type pointer_type(Type t)
         typeInfo[r].isComplete = typeInfo[t].isComplete; //XXX?
         return r;
 }
+
+int type_equal(Type a, Type b)
+{
+        if (!typeInfo[a].isComplete)
+                return 0;
+        if (!typeInfo[b].isComplete)
+                return 0;
+        a = referenced_type(a);
+        b = referenced_type(b);
+        ASSERT(a != -1);
+        ASSERT(b != -1);
+        return a == b;
+}

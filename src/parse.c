@@ -268,35 +268,11 @@ Symbol parse_extern(void)
 }
 
 INTERNAL
-Array parse_array(void)
+Directive parse_array(void)
 {
         PARSE_LOG();
-
-        Type valuetp = parse_type(0);
-        String name = parse_name();
-        parse_token_kind(TOKEN_LEFTBRACKET);
-        Type idxtp = parse_type(0);
-        parse_token_kind(TOKEN_RIGHTBRACKET);
-        parse_token_kind(TOKEN_SEMICOLON);
-
-        Array array = arrayCnt++;
-        Type tp = typeCnt++;
-        Symbol sym = symbolCnt++;
-        add_type_symbol(name, currentScope, tp);
-        RESIZE_GLOBAL_BUFFER(arrayInfo, arrayCnt);
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        arrayInfo[array].scope = currentScope;
-        arrayInfo[array].tp = tp;
-        arrayInfo[array].sym = sym;
-        typeInfo[tp].typeKind = TYPE_ARRAY;
-        typeInfo[tp].tArray.idxtp = idxtp;
-        typeInfo[tp].tArray.valuetp = valuetp;
-        symbolInfo[sym].name = name;
-        symbolInfo[sym].scope = currentScope;
-        symbolInfo[sym].symbolKind = SYMBOL_ARRAY;
-        symbolInfo[sym].tArray = array;
-        return array;
+        /* TODO */
+        return (Directive) -1;
 }
 
 INTERNAL
@@ -435,6 +411,36 @@ Macro parse_macro(void)
         macroInfo[macro].scope = scope;
         macroInfo[macro].expr = expr;
         return macro;
+}
+
+INTERNAL
+Constant parse_constant(void)
+{
+        PARSE_LOG();
+        Symbol symbol = symbolCnt++;
+        Constant constant = constantCnt++;
+        String name = parse_name();
+        parse_token_kind(TOKEN_ASSIGNEQUALS);
+        Expr expr;
+        {
+                Proc proc = currentProc;
+                currentProc = (Proc) -1;  // macro expr shouldn't have a proc
+                expr = parse_expr(0);
+                ASSERT(exprInfo[expr].proc == (Proc) -1);
+                currentProc = proc;
+        }
+        parse_token_kind(TOKEN_SEMICOLON);
+        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+        RESIZE_GLOBAL_BUFFER(constantInfo, constantCnt);
+        symbolInfo[symbol].name = name;
+        symbolInfo[symbol].scope = currentScope;
+        symbolInfo[symbol].symbolKind = SYMBOL_CONSTANT;
+        symbolInfo[symbol].tConstant = constant;
+        constantInfo[constant].symbol = symbol;
+        constantInfo[constant].scope = currentScope;
+        constantInfo[constant].expr = expr;
+        return constant;
 }
 
 INTERNAL
@@ -622,12 +628,8 @@ INTERNAL
 Stmt parse_array_stmt(void)
 {
         PARSE_LOG();
-        Array array = parse_array();
-        Stmt stmt = stmtCnt++;
-        RESIZE_GLOBAL_BUFFER(stmtInfo, stmtCnt);
-        stmtInfo[stmt].stmtKind = STMT_ARRAY;
-        stmtInfo[stmt].tArray = array;
-        return stmt;
+        /* TODO */
+        return (Stmt) -1;
 }
 
 INTERNAL
@@ -1049,6 +1051,8 @@ void parse_file(File file)
                         parse_global_data_decl();
                 else if (s == constStr[CONSTSTR_MACRO])
                         parse_macro();
+                else if (s == constStr[CONSTSTR_CONSTANT])
+                        parse_constant();
                 else if (s == constStr[CONSTSTR_PROC])
                         parse_proc();
                 else if (s == constStr[CONSTSTR_EXPORT])
@@ -1144,12 +1148,12 @@ void fixup_parsed_data(void)
                         newname[order[i]] = i;
                 for (Data i = 0; i < dataCnt; i++)
                         dataInfo[i].sym = newname[dataInfo[i].sym];
-                for (Array i = 0; i < arrayCnt; i++)
-                        arrayInfo[i].sym = newname[arrayInfo[i].sym];
                 for (Proc i = 0; i < procCnt; i++)
                         procInfo[i].sym = newname[procInfo[i].sym];
                 for (Param i = 0; i < paramCnt; i++)
                         paramInfo[i].sym = newname[paramInfo[i].sym];
+                for (Constant i = 0; i < constantCnt; i++)
+                        constantInfo[i].symbol = newname[constantInfo[i].symbol];
                 for (Symbol i = 0; i < symbolCnt; i++) {
                         Symbol j = newname[i];
                         while (j != i) {

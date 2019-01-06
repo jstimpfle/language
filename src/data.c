@@ -49,6 +49,13 @@ const char *const tokenKindString[NUM_TOKEN_KINDS] = {
 #undef MAKE
 };
 
+const char *const literalKindString[NUM_LITERAL_KINDS] = {
+#define MAKE(x) [x] = #x
+        MAKE( LITERAL_INTEGER ),
+        MAKE( LITERAL_STRING ),
+#undef MAKE
+};
+
 const char *const exprKindString[NUM_EXPR_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( EXPR_LITERAL ),
@@ -96,7 +103,6 @@ const char *const symbolKindString[NUM_SYMBOL_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( SYMBOL_TYPE ),
         MAKE( SYMBOL_DATA ),
-        MAKE( SYMBOL_ARRAY ),
         MAKE( SYMBOL_PROC ),
         MAKE( SYMBOL_MACRO ),
         MAKE( SYMBOL_MACROPARAM ),
@@ -107,6 +113,13 @@ const char *const macroKindString[NUM_MACRO_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( MACRO_VALUE ),
         MAKE( MACRO_FUNCTION ),
+#undef MAKE
+};
+
+const char *const constantKindString[NUM_CONSTANT_KINDS] = {
+#define MAKE(x) [x] = #x
+        MAKE( CONSTANT_INTEGER ),
+        MAKE( CONSTANT_STRING ),
 #undef MAKE
 };
 
@@ -250,6 +263,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_IGNORE, "ignore" ),
         MAKE( CONSTSTR_EXTERN, "extern" ),
         MAKE( CONSTSTR_STRINGIFY, "stringify" ),
+        MAKE( CONSTSTR_CONSTANT,  "constant" ),
 #undef MAKE
 };
 

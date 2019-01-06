@@ -1,0 +1,9 @@
+macro foo(a, b) = a / b;
+
+constant x = 3;
+constant y = x + 3;
+constant z = foo(x, y);
+
+export x;
+export y;
+export z;

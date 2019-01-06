@@ -123,6 +123,11 @@ void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
         ABORT(); \
 } while (0)
 
+#define FATAL_ERROR_AT_EXPR(...) do { \
+        MSG_AT_EXPR(lvl_fatal, __VA_ARGS__); \
+        ABORT(); \
+} while (0)
+
 #define FATAL(fmt, ...) _fatal(__FILE__, __LINE__, (fmt), ##__VA_ARGS__)
 #define UNHANDLED_CASE() FATAL("Unhandled case!\n");
 
@@ -212,9 +217,13 @@ Type referenced_type(Type tp);//XXX try to get rid of this
 int get_type_size(Type tp);
 void print_type(Type tp);
 Type pointer_type(Type t);
+int type_equal(Type a, Type b);
 
 /* typecheck.c */
 void check_types(void);
+
+/* constantfold.c */
+void fold_constants(void);
 
 /* ifacegen.c */
 void generate_interface_file(void);

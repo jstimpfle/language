@@ -49,7 +49,7 @@ INTERNAL
 void insert_string_with_hash(String s, unsigned hsh)
 {
         unsigned bck;
-       
+
         bck = hsh & (strBucketCnt - 1);
         stringInfo[s].next = strBucketInfo[bck].firstString;
         strBucketInfo[bck].firstString = s;

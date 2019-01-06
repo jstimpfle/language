@@ -8,6 +8,7 @@ compile command-line. E.g.,
 
 extern print64 void(int);
 extern prints  void(^char);
+
 /* stdin, stdout, stderr are evil complicated macros on MSVC */
 extern get_stdin ^void();
 extern get_stdout ^void();

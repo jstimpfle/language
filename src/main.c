@@ -88,6 +88,9 @@ int main(int argc, const char **argv)
         DEBUG("Check types...\n");
         check_types();
 
+        DEBUG("Fold constants...\n");
+        fold_constants();
+
         DEBUG("Print interface file to stdout...\n");
         generate_interface_file();
 

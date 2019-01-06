@@ -55,6 +55,7 @@ enum ConstStrKind {
         CONSTSTR_IGNORE,
         CONSTSTR_EXTERN,
         CONSTSTR_STRINGIFY,
+        CONSTSTR_CONSTANT,
         NUM_CONSTSTRS,
 };
 
@@ -125,10 +126,11 @@ struct StringToBeInterned {
    grouped by topic / file name.
 */
 #define GLOBAL_BUFFERS_X_MACRO  \
-        MAKE_GLOBAL_BUFFER(  arrayCnt,           arrayInfo            ),  \
         MAKE_GLOBAL_BUFFER(  callArgCnt,         callArgInfo          ),  \
         MAKE_GLOBAL_BUFFER(  childStmtCnt,       childStmtInfo        ),  \
         MAKE_GLOBAL_BUFFER(  codeSectionCnt,     codeSection          ),  \
+        MAKE_GLOBAL_BUFFER(  constantCnt,        constantInfo         ),  \
+        MAKE_GLOBAL_BUFFER(  constantCnt,        constantValue        ),  \
         MAKE_GLOBAL_BUFFER(  dataCnt,            dataInfo             ),  \
         MAKE_GLOBAL_BUFFER(  dataCnt,            dataToIrReg          ),  \
         MAKE_GLOBAL_BUFFER(  dataSectionCnt,     dataSection          ),  \

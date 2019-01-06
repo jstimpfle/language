@@ -12,20 +12,6 @@ int is_lvalue_expression(Expr x)
                 (kind == EXPR_UNOP && exprInfo[x].tUnop.unopKind == UNOP_DEREF));
 }
 
-INTERNAL UNUSEDFUNC
-int type_equal(Type a, Type b)
-{
-        if (!typeInfo[a].isComplete)
-                return 0;
-        if (!typeInfo[b].isComplete)
-                return 0;
-        a = referenced_type(a);
-        b = referenced_type(b);
-        ASSERT(a != -1);
-        ASSERT(b != -1);
-        return a == b;
-}
-
 /*
  * Check if the argument type is compatible with the parameter type.  They are
  * compatible if they are structurally the same (ignoring levels of
@@ -92,12 +78,30 @@ Type check_symref_expr_type(Expr x)
                         break;
                 case SYMBOL_DATA:
                         return symbolInfo[sym].tData.tp;
-                case SYMBOL_ARRAY:
-                        return arrayInfo[symbolInfo[sym].tArray].tp;
                 case SYMBOL_PROC:
                         return symbolInfo[sym].tProc.tp;
                 case SYMBOL_MACRO:
                         FATAL("TODO: We cannot check the type of a (call to a) macro. We need to implement some kind of cloning/instancing of the macro expression subtree first, and then replace the EXPR_CALL invocation of the macro by that new subtree.\n");
+                case SYMBOL_CONSTANT: {
+                        /* XXX: see note for Constants in check_types() */
+                        Constant constant = symbolInfo[sym].tConstant;
+                        ASSERT(constant != (Constant) -1);
+                        Expr expr = constantInfo[constant].expr;
+                        if (exprType[expr] == (Type) -2) {
+                                /* already being processed: cycle in constant.
+                                 * We might want to factor out the cycle
+                                 * detection because the code is a little
+                                 * complex by now */
+                                // XXX: better report the error at the
+                                // *constant*, not at the expr
+                                FATAL_ERROR_AT_EXPR(expr,
+                                        "Cycle detected while resolving type of constant %s. Cannot continue\n", SS(sym));
+
+                        }
+                        exprType[expr] = (Type) -2;
+                        check_expr_type(expr);
+                        return exprType[expr];
+                }
                 default:
                         UNHANDLED_CASE();
         }
@@ -470,6 +474,17 @@ void check_types(void)
 
         for (Proc p = 0; p < procCnt; p++)
                 check_stmt_types(procInfo[p].body);
+
+        /* XXX: must make sure there are no cycles.  In normal expressions,
+         * there is no need for this.  But since constants are not typed we need
+         * to manually detect and break cycles. We do this by setting the
+         * exprType to -3 when never visited and to -2 when being processed.  As
+         * usual it is -1 when type checking failed and >= 0 if the expression
+         * was successfully resolved to a type */
+        for (Constant constant = 0; constant < constantCnt; constant++)
+                exprType[constantInfo[constant].expr] = (Type) -3;
+        for (Constant constant = 0; constant < constantCnt; constant++)
+                check_expr_type(constantInfo[constant].expr);
 
         for (Type tp = 0; tp < typeCnt; tp++)
                 if (typeInfo[tp].typeKind == TYPE_STRUCT)

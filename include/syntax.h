@@ -45,9 +45,9 @@ enum ScopeKind {
 enum SymbolKind {
         SYMBOL_TYPE,
         SYMBOL_DATA,
-        SYMBOL_ARRAY,
         SYMBOL_PROC,
         SYMBOL_MACRO,
+        SYMBOL_CONSTANT,
         SYMBOL_MACROPARAM,
         NUM_SYMBOL_KINDS,
 };
@@ -66,25 +66,26 @@ typedef int Expr;
 typedef int Stmt;
 
 /**
- * Top-level syntactic elements:
+ * Top-level Program elements:
  *
- * \typedef{Data}: Data declaration. See also \ref{DataInfo}.
+ * \typedef{Data}: Data value. See also \ref{DataInfo}.
  *
- * \typedef{Array}: Array definition. See also \ref{ArrayInfo}.
- *
- * \typedef{Proc}: Procedure definition. See also \ref{ProcInfo}.
+ * \typedef{Proc}: Procedure. See also \ref{ProcInfo}.
  *
  * \typedef{Macro}: Simple expression replacement
  * \typedef{MacroParam}: Formal macro parameter
  *
- * \typedef{Export}: Statement that some definition should be "exported"
+ * \typedef{Constant}: Compile-time constant value (defined using an Expr)
+ *
+ * \typedef{Export}: Statement that some definition should be "exported" (TODO:
+ * not a program element. Move to another place)
  */
 
 typedef int Data;
-typedef int Array;
 typedef int Proc;
 typedef int Macro;
 typedef int MacroParam;
+typedef int Constant;
 typedef int Export;
 
 
@@ -95,10 +96,23 @@ typedef int Export;
 enum {
         MACRO_VALUE,
         MACRO_FUNCTION,
-        NUM_MACRO_KINDS
+        NUM_MACRO_KINDS,
 };
 
 const char *const macroKindString[NUM_MACRO_KINDS];
+
+
+/*
+ * Constant kinds. Currently we have integer and string constnats
+ */
+
+enum {
+        CONSTANT_INTEGER,
+        CONSTANT_STRING,
+        NUM_CONSTANT_KINDS,
+};
+
+const char *const constantKindString[NUM_CONSTANT_KINDS];
 
 
 /**
@@ -138,10 +152,10 @@ struct SymbolInfo {
         union {
                 Type tType;
                 struct DatasymbolInfo tData;
-                Array tArray;
                 struct ProcsymbolInfo tProc;
                 Macro tMacro;
                 MacroParam tMacroParam;
+                Constant tConstant;
         };
 };
 
@@ -187,6 +201,7 @@ DATA unsigned char *isSymbolExported;
 enum LiteralKind {
         LITERAL_INTEGER,
         LITERAL_STRING,
+        NUM_LITERAL_KINDS,
 };
 
 enum ExprKind {
@@ -346,6 +361,10 @@ struct DataStmtInfo {
         Expr optionalInitializerExpr;
 };
 
+struct ArrayStmtInfo {
+        Data data;
+};
+
 struct StmtInfo {
         int stmtKind;
         union {
@@ -358,7 +377,7 @@ struct StmtInfo {
                 struct RangeStmtInfo tRange;
                 struct ReturnStmtInfo tReturn;
                 struct DataStmtInfo tData;
-                Array tArray;
+                struct ArrayStmtInfo tArray;
                 Macro tMacro;
                 Stmt tIgnore;
         };
@@ -379,15 +398,9 @@ struct DataInfo {
         Symbol sym;  // back-link
 };
 
-struct ArrayInfo {
-        Scope scope;
-        Type tp;
-        Symbol sym;  // back-link
-};
-
 struct ProcInfo {
         Symbol sym;
-        Scope scope;
+        Scope scope; // same scope as symbol's scope. Is this too redundant?
         Stmt body;
 };
 
@@ -405,7 +418,7 @@ struct FunctionMacroInfo {
 
 struct MacroInfo {
         Symbol symbol;
-        Scope scope;
+        Scope scope; // same scope as symbol's scope. Is this too redundant?
         Expr expr;
         int macroKind;
         union {
@@ -413,8 +426,57 @@ struct MacroInfo {
         };
 };
 
+struct ConstantInfo {
+        Symbol symbol;
+        Scope scope; // same scope as symbol's scope. Is this too redundant?
+        Expr expr;
+};
+
+/* type and value of a constant. Calculated after typechecking phase */
+struct ConstantValue {
+        int constantKind;
+        union {
+                long long tInteger;  // for now, long long
+                String tString;
+        };
+};
+
 struct ExportInfo {
         Symref ref;
+};
+
+/*
+ * Directives = Top-level syntactic elements. Each file is grammatically a
+ * sequence of directives.
+ */
+
+typedef int Directive;
+
+enum {
+        DIRECTIVE_DATA,
+        DIRECTIVE_ARRAY,
+        DIRECTIVE_PROC,
+        DIRECTIVE_MACRO,
+        DIRECTIVE_CONSTANT,
+        DIRECTIVE_EXPORT,
+        NUM_DIRECTIVE_KINDS,
+};
+
+struct ArrayDirectiveInfo {
+        Data data;
+        Expr numElements;  // EXPR_CONSTANT expressions
+};
+
+struct DirectiveInfo {
+        int directiveKind;
+        union {
+                Data tData;
+                struct ArrayDirectiveInfo tArray;
+                Proc tProc;
+                Macro tMacro;
+                Constant tConstant;
+                Export tExport;
+        };
 };
 
 /*
@@ -424,6 +486,7 @@ struct ExportInfo {
 extern const char *const symbolKindString[NUM_SYMBOL_KINDS];
 extern const char *const stmtKindString[NUM_STMT_KINDS];
 extern const char *const exprKindString[NUM_EXPR_KINDS];
+extern const char *const literalKindString[NUM_LITERAL_KINDS];
 
 DATA File currentFile;
 DATA int currentOffset;
@@ -448,6 +511,7 @@ DATA int dataCnt;
 DATA int arrayCnt;
 DATA int procCnt;
 DATA int macroCnt;
+DATA int constantCnt;
 DATA int macroParamCnt;
 DATA int exportCnt;
 
@@ -464,4 +528,6 @@ DATA Data *firstDataOfProc;
 DATA Expr *firstExprOfProc;
 DATA struct MacroInfo *macroInfo;
 DATA struct MacroParamInfo *macroParamInfo;
+DATA struct ConstantInfo *constantInfo;
+DATA struct ConstantValue *constantValue;
 DATA struct ExportInfo *exportInfo;

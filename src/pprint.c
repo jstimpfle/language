@@ -78,21 +78,6 @@ void pp_data(Data d)
 }
 
 INTERNAL
-void pp_array(Array a)
-{
-        Type t = arrayInfo[a].tp;
-        pp_newline();
-        outs("array ");
-        pp_type(typeInfo[t].tArray.valuetp);
-        outs(" ");
-        outs(SS(arrayInfo[a].sym));
-        outs("[");
-        pp_type(typeInfo[t].tArray.idxtp);
-        outs("]");
-        outs(";");
-}
-
-INTERNAL
 void pp_expr(Expr expr)
 {
         switch (exprInfo[expr].exprKind) {
@@ -214,7 +199,8 @@ void pp_data_stmt(Stmt stmt)
 INTERNAL
 void pp_array_stmt(Stmt stmt)
 {
-        pp_array(stmtInfo[stmt].tArray);
+        /* TODO */
+        (void) stmt;
 }
 
 INTERNAL
@@ -354,10 +340,6 @@ void prettyprint(void)
         for (Data i = 0; i < dataCnt; i++)
                 if (scopeInfo[dataInfo[i].scope].scopeKind == SCOPE_GLOBAL)
                         pp_data(i);
-        pp_newline();
-        for (Array i = 0; i < arrayCnt; i++)
-                if (scopeInfo[arrayInfo[i].scope].scopeKind == SCOPE_GLOBAL)
-                        pp_array(i);
         pp_newline();
         for (Proc i = 0; i < procCnt; i++)
                 pp_proc(i);
