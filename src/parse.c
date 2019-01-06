@@ -387,7 +387,7 @@ Macro parse_macro(void)
         else {
                 macroInfo[macro].macroKind = MACRO_VALUE;
         }
-        parse_token_kind(TOKEN_ASSIGNEQUALS);
+        parse_token_kind(TOKEN_RIGHTARROW);
         Expr expr;
         {
                 Proc proc = currentProc;

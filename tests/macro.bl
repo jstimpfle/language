@@ -1,7 +1,7 @@
 data globalValue int;
 
-macro pi = 3;
-macro macroValue = pi + 7 + globalValue;
+macro pi => 3;
+macro macroValue => pi + 7 + globalValue;
 
 proc testvaluemacro() int
 {
@@ -10,13 +10,13 @@ proc testvaluemacro() int
     return 0;
 }
 
-macro mul(x, y) = x * y;
+macro mul(x, y) => x * y;
 
 proc testfunctionmacro() int
 {
     data x int;
     data y int;
-    macro foo(a, b) = x + mul(a, b);
+    macro foo(a, b) => x + mul(a, b);
     x = 1;
     {
         data x int;

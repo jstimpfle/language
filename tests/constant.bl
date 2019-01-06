@@ -1,4 +1,4 @@
-macro foo(a, b) = a / b;
+macro foo(a, b) => a / b;
 
 constant x = 3;
 constant y = x + 3;

@@ -40,6 +40,7 @@ const char *const tokenKindString[NUM_TOKEN_KINDS] = {
         MAKE( TOKEN_QUESTIONMARK ),
         MAKE( TOKEN_ATSIGN ),
         MAKE( TOKEN_ASSIGNEQUALS ),
+        MAKE( TOKEN_RIGHTARROW ),
         MAKE( TOKEN_GT ),
         MAKE( TOKEN_LT ),
         MAKE( TOKEN_GE ),

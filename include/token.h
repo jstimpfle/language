@@ -47,6 +47,7 @@ enum TokenKind {
         TOKEN_QUESTIONMARK,
         TOKEN_ATSIGN,
         TOKEN_ASSIGNEQUALS,
+        TOKEN_RIGHTARROW,
         TOKEN_GT,
         TOKEN_LT,
         TOKEN_GE,

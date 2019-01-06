@@ -34,12 +34,22 @@ INTERNAL const struct {
         int k1;
         int k2;
 } t2[] = {
-        { '=', '=', TOKEN_ASSIGNEQUALS, TOKEN_EQ },
         { '+', '+', TOKEN_PLUS, TOKEN_DOUBLEPLUS },
         { '-', '-', TOKEN_MINUS, TOKEN_DOUBLEMINUS },
         { '!', '=', TOKEN_BANG, TOKEN_NE },
         { '>', '=', TOKEN_GT, TOKEN_GE },
         { '<', '=', TOKEN_LT, TOKEN_LE, },
+};
+
+INTERNAL const struct {
+        char c1;
+        char c2;
+        char c3;
+        int k1;
+        int k2;
+        int k3;
+} t3[] = {
+        { '=', '=', '>', TOKEN_ASSIGNEQUALS, TOKEN_EQ, TOKEN_RIGHTARROW },
 };
 
 
@@ -195,6 +205,22 @@ baretoken:
                         }
                         else {
                                 tokenKind = t2[i].k1;
+                        }
+                        goto goodbaretoken;
+                }
+        }
+        for (int i = 0; i < LENGTH(t3); i++) {
+                if (c == t3[i].c1) {
+                        if (look_char() == t3[i].c2) {
+                                consume_char();
+                                tokenKind = t3[i].k2;
+                        }
+                        else if (look_char() == t3[i].c3) {
+                                consume_char();
+                                tokenKind = t3[i].k3;
+                        }
+                        else {
+                                tokenKind = t3[i].k1;
                         }
                         goto goodbaretoken;
                 }

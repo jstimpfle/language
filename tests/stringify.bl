@@ -1,4 +1,4 @@
-macro printval(x) = prints(#stringify x);
+macro printval(x) => prints(#stringify x);
 
 proc main() int
 {
