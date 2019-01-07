@@ -191,7 +191,7 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 case BINOP_MINUS: irOp2Kind = IROP2_SUB; break;
                 case BINOP_MUL:   irOp2Kind = IROP2_MUL; break;
                 case BINOP_DIV:   irOp2Kind = IROP2_DIV; break;
-                default: ASSERT(0);
+                default: UNREACHABLE();
                 }
                 IrStmt y = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);

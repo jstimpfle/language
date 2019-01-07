@@ -8,7 +8,7 @@ Expr lookup_macro_param(MacroParam macroParam)
                 if (macroParam == macroBoundArg[i].macroParam)
                         return macroBoundArg[i].expr;
         /* the symbol resolution phase should have worked out this error */
-        ASSERT(0);
+        UNREACHABLE();
 }
 
 INTERNAL Proc CURRENTLY_EXPANDED_PROC;
