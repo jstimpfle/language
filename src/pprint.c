@@ -105,8 +105,8 @@ void pp_expr(Expr expr)
                 }
                 case EXPR_UNOP: {
                         int unop = exprInfo[expr].tUnop.unopKind;
-                        int isprefix = unopInfo[unop].isprefix;
-                        const char *str = unopInfo[unop].str;
+                        int isprefix = unopIsPrefix[unop];
+                        const char *str = unopString[unop];
                         if (isprefix)
                                 outs(str);
                         pp_expr(exprInfo[expr].tUnop.expr);
@@ -118,7 +118,7 @@ void pp_expr(Expr expr)
                         pp_expr(exprInfo[expr].tBinop.expr1);
                         int binop = exprInfo[expr].tBinop.binopKind;
                         outs(" ");
-                        outs(binopInfo[binop].str);
+                        outs(binopString[binop]);
                         outs(" ");
                         pp_expr(exprInfo[expr].tBinop.expr2);
                         break;

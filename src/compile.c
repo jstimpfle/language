@@ -215,7 +215,7 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 case BINOP_NE: irCmpKind = IRCMP_NE; break;
                 default:
                         MSG(lvl_error, "Can't handle %s!\n",
-                            binopInfo[exprInfo[x].tBinop.binopKind].str);
+                            binopKindString[exprInfo[x].tBinop.binopKind]);
                         UNHANDLED_CASE();
                 }
                 IrStmt y = irStmtCnt++;

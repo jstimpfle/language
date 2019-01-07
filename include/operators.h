@@ -23,7 +23,7 @@ enum UnopKind {
         UNOP_PREINCREMENT,
         UNOP_POSTDECREMENT,
         UNOP_POSTINCREMENT,
-        NUM_UNOPS,
+        NUM_UNOP_KINDS,
 };
 
 enum BinopKind {
@@ -41,7 +41,7 @@ enum BinopKind {
         BINOP_BITAND,
         BINOP_BITOR,
         BINOP_BITXOR,
-        NUM_BINOPS,
+        NUM_BINOP_KINDS,
 };
 
 /*
@@ -90,8 +90,12 @@ struct BinopInfo {
 extern const struct ToktypeToPrefixUnop toktypeToPrefixUnop[];
 extern const struct ToktypeToPostfixUnop toktypeToPostfixUnop[];
 extern const struct ToktypeToBinop toktypeToBinop[];
-extern const struct UnopInfo unopInfo[NUM_UNOPS];
-extern const struct BinopInfo binopInfo[NUM_BINOPS];
+extern const char *const unopKindString[NUM_UNOP_KINDS];
+extern const char *const binopKindString[NUM_BINOP_KINDS];
+extern const char *const unopString[NUM_UNOP_KINDS];
+extern const char *const binopString[NUM_BINOP_KINDS];
+extern const int unopIsPrefix[NUM_UNOP_KINDS];
+extern const int binopPrec[NUM_BINOP_KINDS];
 
 extern const int toktypeToPrefixUnopCnt;
 extern const int toktypeToPostfixUnopCnt;

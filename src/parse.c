@@ -572,7 +572,7 @@ Expr parse_expr(int minprec)
                         exprInfo[expr].tSubscript.expr2 = expr2;
                 }
                 else if (token_is_binary_infix_operator(tok, &opkind)) {
-                        int opprec = binopInfo[opkind].prec;
+                        int opprec = binopPrec[opkind];
                         if (opprec < minprec)
                                 break;
                         consume_token();

@@ -28,7 +28,7 @@ long long fold_integer_expr(Expr x)
                         FATAL_ERROR_AT_EXPR(expr,
                                 "Invalid constant expression: "
                                 "%s expressions are not supported\n",
-                                unopInfo[unopKind].str);
+                                unopKindString[unopKind]);
                 }
         }
         else if (exprKind == EXPR_BINOP) {

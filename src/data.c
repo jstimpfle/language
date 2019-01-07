@@ -57,6 +57,40 @@ const char *const literalKindString[NUM_LITERAL_KINDS] = {
 #undef MAKE
 };
 
+const char *const unopKindString[NUM_UNOP_KINDS] = {
+#define MAKE(x) [x] = #x
+        MAKE( UNOP_INVERTBITS ),
+        MAKE( UNOP_NOT ),
+        MAKE( UNOP_ADDRESSOF ),
+        MAKE( UNOP_DEREF ),
+        MAKE( UNOP_NEGATIVE ),
+        MAKE( UNOP_POSITIVE ),
+        MAKE( UNOP_PREDECREMENT ),
+        MAKE( UNOP_PREINCREMENT ),
+        MAKE( UNOP_POSTDECREMENT ),
+        MAKE( UNOP_POSTINCREMENT ),
+#undef MAKE
+};
+
+const char *const binopKindString[NUM_BINOP_KINDS] = {
+#define MAKE(x) [x] = #x
+        MAKE( BINOP_ASSIGN ),
+        MAKE( BINOP_GT ),
+        MAKE( BINOP_LT ),
+        MAKE( BINOP_GE ),
+        MAKE( BINOP_LE ),
+        MAKE( BINOP_EQ ),
+        MAKE( BINOP_NE ),
+        MAKE( BINOP_MINUS ),
+        MAKE( BINOP_PLUS ),
+        MAKE( BINOP_MUL ),
+        MAKE( BINOP_DIV ),
+        MAKE( BINOP_BITAND ),
+        MAKE( BINOP_BITOR ),
+        MAKE( BINOP_BITXOR ),
+#undef MAKE
+};
+
 const char *const exprKindString[NUM_EXPR_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( EXPR_LITERAL ),
@@ -142,6 +176,40 @@ const char* const irStmtString[NUM_IRSTMT_KINDS] = {
 #undef MAKE
 };
 
+const char *const unopString[NUM_UNOP_KINDS] = {
+#define MAKE(x, y) [x] = y
+        MAKE( UNOP_INVERTBITS,    "~"  ),
+        MAKE( UNOP_NOT,           "!"  ),
+        MAKE( UNOP_ADDRESSOF,     "&"  ),
+        MAKE( UNOP_DEREF,         "^"  ),
+        MAKE( UNOP_NEGATIVE,      "-"  ),
+        MAKE( UNOP_POSITIVE,      "+"  ),
+        MAKE( UNOP_PREDECREMENT,  "--" ),
+        MAKE( UNOP_PREINCREMENT,  "++" ),
+        MAKE( UNOP_POSTDECREMENT, "--" ),
+        MAKE( UNOP_POSTINCREMENT, "++" ),
+#undef MAKE
+};
+
+const char *const binopString[NUM_BINOP_KINDS] = {
+#define MAKE(x, y) [x] = y
+        MAKE( BINOP_ASSIGN,  "="  ),
+        MAKE( BINOP_GT,      ">"  ),
+        MAKE( BINOP_LT,      "<"  ),
+        MAKE( BINOP_GE,      ">=" ),
+        MAKE( BINOP_LE,      "<=" ),
+        MAKE( BINOP_EQ,      "==" ),
+        MAKE( BINOP_NE,      "!=" ),
+        MAKE( BINOP_MINUS,   "-"  ),
+        MAKE( BINOP_PLUS,    "+"  ),
+        MAKE( BINOP_MUL,     "*"  ),
+        MAKE( BINOP_DIV,     "/"  ),
+        MAKE( BINOP_BITAND,  "&"  ),
+        MAKE( BINOP_BITOR,   "|"  ),
+        MAKE( BINOP_BITXOR,  "^"  ),
+#undef MAKE
+};
+
 const char *const irOp1String[NUM_IROP1_KINDS] = {
 #define MAKE(x, y) [x] = y
         MAKE( IROP1_INC,    "INC" ),
@@ -168,6 +236,40 @@ const char *const irCmpString[NUM_IRCMP_KINDS] = {
         MAKE( IRCMP_GE, "cmp>=" ),
         MAKE( IRCMP_EQ, "cmp==" ),
         MAKE( IRCMP_NE, "cmp!=" ),
+#undef MAKE
+};
+
+const int unopIsPrefix[NUM_UNOP_KINDS] = {
+#define MAKE(x, y) [x] = y
+        MAKE( UNOP_INVERTBITS,     1 ),
+        MAKE( UNOP_NOT,            1 ),
+        MAKE( UNOP_ADDRESSOF,      1 ),
+        MAKE( UNOP_DEREF,          1 ),
+        MAKE( UNOP_NEGATIVE,       1 ),
+        MAKE( UNOP_POSITIVE,       1 ),
+        MAKE( UNOP_PREDECREMENT,   1 ),
+        MAKE( UNOP_PREINCREMENT,   1 ),
+        MAKE( UNOP_POSTDECREMENT,  0 ),
+        MAKE( UNOP_POSTINCREMENT,  0 ),
+#undef MAKE
+};
+
+const int binopPrec[NUM_BINOP_KINDS] = {
+#define MAKE(x, y) [x] = y
+        MAKE( BINOP_ASSIGN,  1 ),
+        MAKE( BINOP_GT,      2 ),
+        MAKE( BINOP_LT,      2 ),
+        MAKE( BINOP_GE,      2 ),
+        MAKE( BINOP_LE,      2 ),
+        MAKE( BINOP_EQ,      2 ),
+        MAKE( BINOP_NE,      2 ),
+        MAKE( BINOP_MINUS,   3 ),
+        MAKE( BINOP_PLUS,    3 ),
+        MAKE( BINOP_MUL,     4 ),
+        MAKE( BINOP_DIV,     4 ),
+        MAKE( BINOP_BITAND,  4 ),
+        MAKE( BINOP_BITOR,   4 ),
+        MAKE( BINOP_BITXOR,  4 ),
 #undef MAKE
 };
 
@@ -204,40 +306,6 @@ const struct ToktypeToBinop toktypeToBinop[] = {
         /* caret is our dereference operator now.
          * { TOKEN_CARET,        BINOP_BITXOR  },
          */
-};
-
-const struct UnopInfo unopInfo[NUM_UNOPS] = {
-#define MAKE(x, y, z) [x] = { y, z }
-        MAKE( UNOP_INVERTBITS,    1, "~"  ),
-        MAKE( UNOP_NOT,           1, "!"  ),
-        MAKE( UNOP_ADDRESSOF,     1, "&"  ),
-        MAKE( UNOP_DEREF,         1, "^"  ),
-        MAKE( UNOP_NEGATIVE,      1, "-"  ),
-        MAKE( UNOP_POSITIVE,      1, "+"  ),
-        MAKE( UNOP_PREDECREMENT,  1, "--" ),
-        MAKE( UNOP_PREINCREMENT,  1, "++" ),
-        MAKE( UNOP_POSTDECREMENT, 0, "--" ),
-        MAKE( UNOP_POSTINCREMENT, 0, "++" ),
-#undef MAKE
-};
-
-const struct BinopInfo binopInfo[NUM_BINOPS] = {
-#define MAKE(x, y, z) [x] = { y, z }
-        MAKE( BINOP_ASSIGN, 1,  "="  ),
-        MAKE( BINOP_GT, 2,  ">" ),
-        MAKE( BINOP_LT, 2,  "<" ),
-        MAKE( BINOP_GE, 2,  ">=" ),
-        MAKE( BINOP_LE, 2,  "<=" ),
-        MAKE( BINOP_EQ, 2,  "==" ),
-        MAKE( BINOP_NE, 2,  "!=" ),
-        MAKE( BINOP_MINUS,  3,  "-"  ),
-        MAKE( BINOP_PLUS,   3,  "+"  ),
-        MAKE( BINOP_MUL,    4,  "*"  ),
-        MAKE( BINOP_DIV,    4,  "/"  ),
-        MAKE( BINOP_BITAND, 4,  "&"  ),
-        MAKE( BINOP_BITOR,  4,  "|"  ),
-        MAKE( BINOP_BITXOR, 4,  "^"  ),
-#undef MAKE
 };
 
 const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
