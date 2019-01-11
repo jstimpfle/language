@@ -1,0 +1,15 @@
+enum {
+    FOO_A;
+    FOO_B;
+    FOO_C;
+}
+
+proc main() int
+{
+    print64(FOO_A);
+    print64(FOO_B);
+    print64(FOO_C);
+    return 0;
+}
+
+export main;

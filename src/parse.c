@@ -445,6 +445,35 @@ Constant parse_constant(void)
 }
 
 INTERNAL
+void parse_enum(void)
+{
+        PARSE_LOG();
+        int size = 0;
+        parse_token_kind(TOKEN_LEFTBRACE);
+        while (look_token_kind(TOKEN_RIGHTBRACE) == (Token) -1) {
+                String name = parse_name();
+                parse_token_kind(TOKEN_SEMICOLON);
+                int value = size++;
+                Symbol symbol = symbolCnt++;
+                Constant constant = constantCnt++;
+                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+                RESIZE_GLOBAL_BUFFER(constantInfo, constantCnt);
+                RESIZE_GLOBAL_BUFFER(constantValue, constantCnt);
+                symbolInfo[symbol].name = name;
+                symbolInfo[symbol].scope = currentScope;
+                symbolInfo[symbol].symbolKind = SYMBOL_CONSTANT;
+                symbolInfo[symbol].tConstant = constant;
+                constantInfo[constant].constantKind = CONSTANT_INTEGER;
+                constantInfo[constant].symbol = symbol;
+                constantInfo[constant].scope = currentScope;
+                constantInfo[constant].tExpr = (Expr) -1;
+                constantValue[constant].valueKind = VALUE_INTEGER;
+                constantValue[constant].tInteger = value;
+        }
+        parse_token_kind(TOKEN_RIGHTBRACE);
+}
+
+INTERNAL
 Expr parse_expr(int minprec)
 {
         PARSE_LOG();
@@ -1054,6 +1083,8 @@ void parse_file(File file)
                         parse_macro();
                 else if (s == constStr[CONSTSTR_CONSTANT])
                         parse_constant();
+                else if (s == constStr[CONSTSTR_ENUM])
+                        parse_enum();
                 else if (s == constStr[CONSTSTR_PROC])
                         parse_proc();
                 else if (s == constStr[CONSTSTR_EXPORT])

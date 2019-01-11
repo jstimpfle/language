@@ -56,6 +56,7 @@ enum ConstStrKind {
         CONSTSTR_EXTERN,
         CONSTSTR_STRINGIFY,
         CONSTSTR_CONSTANT,
+        CONSTSTR_ENUM,
         NUM_CONSTSTRS,
 };
 

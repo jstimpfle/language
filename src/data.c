@@ -352,6 +352,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_EXTERN, "extern" ),
         MAKE( CONSTSTR_STRINGIFY, "stringify" ),
         MAKE( CONSTSTR_CONSTANT,  "constant" ),
+        MAKE( CONSTSTR_ENUM,   "enum" ),
 #undef MAKE
 };
 
