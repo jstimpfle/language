@@ -303,7 +303,16 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
         Symref ref = exprInfo[x].tSymref.ref;
         Symbol sym = symrefToSym[ref];
         ASSERT(sym >= 0);
-        if (symbolInfo[sym].symbolKind == SYMBOL_DATA &&
+        int symbolKind = symbolInfo[sym].symbolKind;
+        if (symbolKind == SYMBOL_CONSTANT) {
+                ASSERT(! usedAsLvalue);
+                /*
+                Constant constant = symbolInfo[sym].tConstant;
+                Expr subx = constantInfo[constant].expr;
+                */
+                FATAL("TODO: compile SYMBOL_CONSTANT symref expression. Must be compiled similar to literals. Can NOT be compiled as expression (issue with undefined IrStmt.proc)\n");
+        }
+        else if (symbolKind == SYMBOL_DATA &&
             scopeInfo[symbolInfo[sym].scope].scopeKind == SCOPE_PROC) {
                 Data data = symbolInfo[sym].tData.optionaldata;
                 ASSERT(data != (Data) -1);  // proc-local data must exist
