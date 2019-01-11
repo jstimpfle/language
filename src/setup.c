@@ -38,4 +38,14 @@ void setup_program(void)
 
                 *basetypesToBeInitialized[i].builtinTypePtr = tp;
         }
+
+        /* initialize top-level (directive) parsers */
+        for (int i = 0; i < builtinDirectiveKindCnt; i++) {
+                int kind = directiveKindCnt++;
+                RESIZE_GLOBAL_BUFFER(directiveKindInfo, directiveKindCnt);
+                directiveKindInfo[kind].keyword = constStr[
+                                builtinDirectiveKindInfo[i].constStrKind];
+                directiveKindInfo[kind].parser =
+                                builtinDirectiveKindInfo[i].parser;
+        }
 }

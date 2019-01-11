@@ -103,11 +103,9 @@ void resolve_ref_type(Type t)
                 isComplete = typeInfo[typeInfo[t].tEntity.tp].isComplete;
                 break;
         case TYPE_ARRAY:
-                resolve_ref_type(typeInfo[t].tArray.idxtp);
-                resolve_ref_type(typeInfo[t].tArray.valuetp);
-                isComplete =
-                        typeInfo[typeInfo[t].tArray.idxtp].isComplete &&
-                        typeInfo[typeInfo[t].tArray.valuetp].isComplete;
+                resolve_ref_type(typeInfo[t].tArray.valueTp);
+                isComplete = typeInfo[typeInfo[t].tArray.valueTp].isComplete
+                        && typeInfo[t].tArray.length != -1;
                 break;
         case TYPE_POINTER:
                 resolve_ref_type(typeInfo[t].tPointer.tp);

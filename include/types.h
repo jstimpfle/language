@@ -77,8 +77,10 @@ struct EntitytypeInfo {
 };
 
 struct ArraytypeInfo {
-        Type idxtp;
-        Type valuetp;
+        Type valueTp;
+        /* If the array is defined by an "array" directive, then the length
+         * field is -1 until the constant length expression is evaluated */
+        int length;
 };
 
 struct PointertypeInfo {

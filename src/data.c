@@ -165,18 +165,6 @@ const char *const valueKindString[NUM_VALUE_KINDS] = {
 #undef MAKE
 };
 
-const char *const directiveKindString[NUM_DIRECTIVE_KINDS] = {
-#define MAKE(x) [x] = #x
-        MAKE( DIRECTIVE_DATA ),
-        MAKE( DIRECTIVE_ARRAY ),
-        MAKE( DIRECTIVE_PROC ),
-        MAKE( DIRECTIVE_MACRO ),
-        MAKE( DIRECTIVE_ENUM ),
-        MAKE( DIRECTIVE_CONSTANT ),
-        MAKE( DIRECTIVE_EXPORT ),
-#undef MAKE
-};
-
 const char* const irStmtString[NUM_IRSTMT_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( IRSTMT_LOADCONSTANT ),

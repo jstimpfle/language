@@ -237,7 +237,7 @@ Type parse_entity(void)
 }
 
 INTERNAL
-Symbol parse_extern(void)
+void parse_extern_directive(Directive directive)
 {
         String name = parse_name();
         Type tp = parse_type(0);
@@ -264,15 +264,49 @@ Symbol parse_extern(void)
         default:
                 UNHANDLED_CASE();
         }
-        return sym;
+
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_EXTERN;
+        directiveInfo[directive].tExtern.symbol = sym;
 }
 
 INTERNAL
-Directive parse_array(void)
+void parse_array_directive(Directive directive)
 {
         PARSE_LOG();
-        /* TODO */
-        return (Directive) -1;
+
+        String name = parse_name();
+        parse_token_kind(TOKEN_LEFTBRACKET);
+        Expr lengthExpr = parse_expr(0);
+        parse_token_kind(TOKEN_RIGHTBRACKET);
+        Type valueTp = parse_type(0);
+        parse_token_kind(TOKEN_SEMICOLON);
+
+        Scope scope = currentScope;
+        Symbol symbol = symbolCnt++;
+        Type tp = typeCnt++;
+        Data data = dataCnt++;
+
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+        RESIZE_GLOBAL_BUFFER(dataInfo, dataCnt);
+
+        symbolInfo[symbol].name = name;
+        symbolInfo[symbol].scope = scope;
+        symbolInfo[symbol].symbolKind = SYMBOL_DATA;
+        symbolInfo[symbol].tData.tp = tp;
+        symbolInfo[symbol].tData.optionaldata = data;
+
+        typeInfo[tp].typeKind = TYPE_ARRAY;
+        typeInfo[tp].tArray.valueTp = valueTp;
+        typeInfo[tp].tArray.length = -1;  /* evaluated later from lengthExpr */
+
+        dataInfo[data].scope = scope;
+        dataInfo[data].tp = tp;
+        dataInfo[data].sym = symbol;
+
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_ARRAY;
+        directiveInfo[directive].tArray.data = data;
+        directiveInfo[directive].tArray.lengthExpr = lengthExpr;
 }
 
 INTERNAL
@@ -330,13 +364,6 @@ Data parse_data(void)
         symbolInfo[sym].tData.tp = tp;
         symbolInfo[sym].tData.optionaldata = data;
         return data;
-}
-
-INTERNAL
-void parse_global_data_decl(void)
-{
-        parse_data();
-        parse_token_kind(TOKEN_SEMICOLON);
 }
 
 // TODO: think about dependencies between the parsed things here.
@@ -411,66 +438,6 @@ Macro parse_macro(void)
         macroInfo[macro].scope = scope;
         macroInfo[macro].expr = expr;
         return macro;
-}
-
-INTERNAL
-Constant parse_constant(void)
-{
-        PARSE_LOG();
-        Symbol symbol = symbolCnt++;
-        Constant constant = constantCnt++;
-        String name = parse_name();
-        parse_token_kind(TOKEN_ASSIGNEQUALS);
-        Expr expr;
-        {
-                Proc proc = currentProc;
-                currentProc = (Proc) -1;  // macro expr shouldn't have a proc
-                expr = parse_expr(0);
-                ASSERT(exprInfo[expr].proc == (Proc) -1);
-                currentProc = proc;
-        }
-        parse_token_kind(TOKEN_SEMICOLON);
-        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
-        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        RESIZE_GLOBAL_BUFFER(constantInfo, constantCnt);
-        symbolInfo[symbol].name = name;
-        symbolInfo[symbol].scope = currentScope;
-        symbolInfo[symbol].symbolKind = SYMBOL_CONSTANT;
-        symbolInfo[symbol].tConstant = constant;
-        constantInfo[constant].constantKind = CONSTANT_EXPRESSION;
-        constantInfo[constant].symbol = symbol;
-        constantInfo[constant].scope = currentScope;
-        constantInfo[constant].tExpr = expr;
-        return constant;
-}
-
-INTERNAL
-void parse_enum(void)
-{
-        PARSE_LOG();
-        int size = 0;
-        parse_token_kind(TOKEN_LEFTBRACE);
-        while (look_token_kind(TOKEN_RIGHTBRACE) == (Token) -1) {
-                String name = parse_name();
-                parse_token_kind(TOKEN_SEMICOLON);
-                int value = size++;
-                Symbol symbol = symbolCnt++;
-                Constant constant = constantCnt++;
-                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-                RESIZE_GLOBAL_BUFFER(constantInfo, constantCnt);
-                RESIZE_GLOBAL_BUFFER(constantValue, constantCnt);
-                symbolInfo[symbol].name = name;
-                symbolInfo[symbol].scope = currentScope;
-                symbolInfo[symbol].symbolKind = SYMBOL_CONSTANT;
-                symbolInfo[symbol].tConstant = constant;
-                constantInfo[constant].constantKind = CONSTANT_INTEGER;
-                constantInfo[constant].symbol = symbol;
-                constantInfo[constant].scope = currentScope;
-                constantInfo[constant].tExpr = (Expr) -1;
-                constantValue[constant].valueKind = VALUE_INTEGER;
-                constantValue[constant].tInteger = value;
-        }
-        parse_token_kind(TOKEN_RIGHTBRACE);
 }
 
 INTERNAL
@@ -971,7 +938,88 @@ Stmt parse_stmt(void)
 }
 
 INTERNAL
-Proc parse_proc(void)
+void parse_data_directive(Directive directive)
+{
+        parse_data();
+        parse_token_kind(TOKEN_SEMICOLON);
+}
+
+INTERNAL
+void parse_macro_directive(Directive directive)
+{
+        Macro macro = parse_macro();
+
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_MACRO;
+        directiveInfo[directive]; // TODO set other members
+}
+
+INTERNAL
+void parse_constant_directive(Directive directive)
+{
+        PARSE_LOG();
+        Symbol symbol = symbolCnt++;
+        Constant constant = constantCnt++;
+        String name = parse_name();
+        parse_token_kind(TOKEN_ASSIGNEQUALS);
+        Expr expr;
+        {
+                Proc proc = currentProc;
+                currentProc = (Proc) -1; // constant expr shouldn't have a proc
+                expr = parse_expr(0);
+                ASSERT(exprInfo[expr].proc == (Proc) -1);
+                currentProc = proc;
+        }
+        parse_token_kind(TOKEN_SEMICOLON);
+        RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+        RESIZE_GLOBAL_BUFFER(constantInfo, constantCnt);
+        symbolInfo[symbol].name = name;
+        symbolInfo[symbol].scope = currentScope;
+        symbolInfo[symbol].symbolKind = SYMBOL_CONSTANT;
+        symbolInfo[symbol].tConstant = constant;
+        constantInfo[constant].constantKind = CONSTANT_EXPRESSION;
+        constantInfo[constant].symbol = symbol;
+        constantInfo[constant].scope = currentScope;
+        constantInfo[constant].tExpr = expr;
+
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_CONSTANT;
+        // TODO
+}
+
+INTERNAL
+void parse_enum_directive(Directive directive)
+{
+        PARSE_LOG();
+        int size = 0;
+        parse_token_kind(TOKEN_LEFTBRACE);
+        while (look_token_kind(TOKEN_RIGHTBRACE) == (Token) -1) {
+                String name = parse_name();
+                parse_token_kind(TOKEN_SEMICOLON);
+                int value = size++;
+                Symbol symbol = symbolCnt++;
+                Constant constant = constantCnt++;
+                RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+                RESIZE_GLOBAL_BUFFER(constantInfo, constantCnt);
+                RESIZE_GLOBAL_BUFFER(constantValue, constantCnt);
+                symbolInfo[symbol].name = name;
+                symbolInfo[symbol].scope = currentScope;
+                symbolInfo[symbol].symbolKind = SYMBOL_CONSTANT;
+                symbolInfo[symbol].tConstant = constant;
+                constantInfo[constant].constantKind = CONSTANT_INTEGER;
+                constantInfo[constant].symbol = symbol;
+                constantInfo[constant].scope = currentScope;
+                constantInfo[constant].tExpr = (Expr) -1;
+                constantValue[constant].valueKind = VALUE_INTEGER;
+                constantValue[constant].tInteger = value;
+        }
+        parse_token_kind(TOKEN_RIGHTBRACE);
+
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_ENUM;
+        // TODO
+}
+
+INTERNAL
+void parse_proc_directive(Directive directive)
 {
         PARSE_LOG();
 
@@ -1047,11 +1095,13 @@ Proc parse_proc(void)
         typeInfo[ptype].tProc.nparams = 0;
 
         currentProc = (Proc) -1; // "pop proc"
-        return proc;
+
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_PROC;
+        // TODO
 }
 
 INTERNAL
-void parse_export(void)
+void parse_export_directive(Directive directive)
 {
         PARSE_LOG();
         Symref ref = parse_symref();
@@ -1059,6 +1109,9 @@ void parse_export(void)
         Export x = exportCnt++;
         RESIZE_GLOBAL_BUFFER(exportInfo, exportCnt);
         exportInfo[x].ref = ref;
+
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_EXPORT;
+        // TODO
 }
 
 void parse_file(File file)
@@ -1069,29 +1122,21 @@ void parse_file(File file)
         while (look_next_token() != -1) {
                 Token tok = parse_token_kind(TOKEN_WORD);
                 String s = tokenInfo[tok].tWord.string;
-                if (s == constStr[CONSTSTR_ENTITY])
-                        parse_entity();
-                else if (s == constStr[CONSTSTR_EXTERN])
-                        parse_extern();
-                else if (s == constStr[CONSTSTR_ARRAY])
-                        parse_array();
-                else if (s == constStr[CONSTSTR_STRUCT])
-                        parse_struct();
-                else if (s == constStr[CONSTSTR_DATA])
-                        parse_global_data_decl();
-                else if (s == constStr[CONSTSTR_MACRO])
-                        parse_macro();
-                else if (s == constStr[CONSTSTR_CONSTANT])
-                        parse_constant();
-                else if (s == constStr[CONSTSTR_ENUM])
-                        parse_enum();
-                else if (s == constStr[CONSTSTR_PROC])
-                        parse_proc();
-                else if (s == constStr[CONSTSTR_EXPORT])
-                        parse_export();
-                else
+
+                int kind = 0;
+                while (kind < directiveKindCnt &&
+                       s != directiveKindInfo[kind].keyword)
+                        kind++;
+                if (kind == directiveKindCnt)
                         FATAL_PARSE_ERROR_AT_TOK(tok,
-                            "Unexpected word %s\n", TS(tok));
+                                    "Unexpected word %s\n", TS(tok));
+                ASSERT( directiveKindInfo[kind].parser );
+
+                Directive directive = directiveCnt++;
+                RESIZE_GLOBAL_BUFFER(directiveInfo, directiveCnt);
+
+                /* parse! */
+                directiveKindInfo[kind].parser(directive);
         }
         pop_scope();
         currentFile = (File) -1;
@@ -1258,3 +1303,19 @@ void fixup_parsed_data(void)
                 typeInfo[t].tStruct.firstStructmember = m;
         }
 }
+
+
+/* initializer for directiveKindInfo */
+const struct BuiltinDirectiveKindInfo builtinDirectiveKindInfo[] = {
+#define MAKE(bdir, keyword, parser) [bdir] = { keyword, &(parser) }
+        MAKE( BUILTINDIRECTIVE_EXTERN,   CONSTSTR_EXTERN,   parse_extern_directive ),
+        MAKE( BUILTINDIRECTIVE_DATA,     CONSTSTR_DATA,     parse_data_directive ),
+        MAKE( BUILTINDIRECTIVE_ARRAY,    CONSTSTR_ARRAY,    parse_array_directive ),
+        MAKE( BUILTINDIRECTIVE_PROC,     CONSTSTR_PROC,     parse_proc_directive ),
+        MAKE( BUILTINDIRECTIVE_MACRO,    CONSTSTR_MACRO,    parse_macro_directive ),
+        MAKE( BUILTINDIRECTIVE_ENUM,     CONSTSTR_ENUM,     parse_enum_directive ),
+        MAKE( BUILTINDIRECTIVE_CONSTANT, CONSTSTR_CONSTANT, parse_constant_directive ),
+        MAKE( BUILTINDIRECTIVE_EXPORT,   CONSTSTR_EXPORT,   parse_export_directive ),
+#undef MAKE
+};
+const int builtinDirectiveKindCnt = LENGTH(builtinDirectiveKindInfo);

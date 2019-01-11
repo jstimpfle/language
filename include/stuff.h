@@ -135,6 +135,8 @@ struct StringToBeInterned {
         MAKE_GLOBAL_BUFFER(  dataCnt,            dataInfo             ),  \
         MAKE_GLOBAL_BUFFER(  dataCnt,            dataToIrReg          ),  \
         MAKE_GLOBAL_BUFFER(  dataSectionCnt,     dataSection          ),  \
+        MAKE_GLOBAL_BUFFER(  directiveKindCnt,   directiveKindInfo    ),  \
+        MAKE_GLOBAL_BUFFER(  directiveCnt,       directiveInfo        ),  \
         MAKE_GLOBAL_BUFFER(  exportCnt,          exportInfo           ),  \
         MAKE_GLOBAL_BUFFER(  exprCnt,            exprInfo             ),  \
         MAKE_GLOBAL_BUFFER(  exprCnt,            exprToIrReg          ),  \

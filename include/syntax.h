@@ -139,9 +139,6 @@ const char *const valueKindString[NUM_VALUE_KINDS];
  *
  * \struct{DataInfo}: Contains the name, scope, and type of a data declaration.
  *
- * \struct{ArrayInfo}: Contains the name and scope of a data declaration as well
- * as the type of indices needed and the type of elements contained.
- *
  * \struct{ProcInfo}: Result from parsing a `proc` declaration.
  */
 
@@ -465,34 +462,51 @@ struct ExportInfo {
 typedef int Directive;
 
 enum {
-        DIRECTIVE_DATA,
-        DIRECTIVE_ARRAY,
-        DIRECTIVE_PROC,
-        DIRECTIVE_MACRO,
-        DIRECTIVE_ENUM,
-        DIRECTIVE_CONSTANT,
-        DIRECTIVE_EXPORT,
-        NUM_DIRECTIVE_KINDS,
+        BUILTINDIRECTIVE_EXTERN,
+        BUILTINDIRECTIVE_DATA,
+        BUILTINDIRECTIVE_ARRAY,
+        BUILTINDIRECTIVE_PROC,
+        BUILTINDIRECTIVE_MACRO,
+        BUILTINDIRECTIVE_ENUM,
+        BUILTINDIRECTIVE_CONSTANT,
+        BUILTINDIRECTIVE_EXPORT,
+        NUM_BUILTINDIRECTIVE_KINDS,
+};
+
+struct DirectiveKindInfo {
+        String keyword;
+        void (*parser)(Directive directive);
+};
+
+/* initializer for DirectiveKindInfo */
+struct BuiltinDirectiveKindInfo {
+        int constStrKind;
+        void (*parser)(Directive directive);
+};
+
+struct ExternDirectiveInfo {
+        Symbol symbol;
 };
 
 struct ArrayDirectiveInfo {
         Data data;
-        Expr numElements;
+        Expr lengthExpr;
 };
 
 struct DirectiveInfo {
         int directiveKind;
         union {
+                struct ExternDirectiveInfo tExtern;
                 Data tData;
                 struct ArrayDirectiveInfo tArray;
                 Proc tProc;
                 Macro tMacro;
                 Constant tConstant;  // Constant of kind CONSTANT_EXPRESSION
                 Export tExport;
+                /* hook for future extensions */
+                long long tGeneric;
         };
 };
-
-const char *const directiveKindString[NUM_DIRECTIVE_KINDS];
 
 /*
  * Data
@@ -502,6 +516,14 @@ extern const char *const symbolKindString[NUM_SYMBOL_KINDS];
 extern const char *const stmtKindString[NUM_STMT_KINDS];
 extern const char *const exprKindString[NUM_EXPR_KINDS];
 extern const char *const literalKindString[NUM_LITERAL_KINDS];
+
+/* initializer for directiveKindInfo */
+extern const struct BuiltinDirectiveKindInfo builtinDirectiveKindInfo[];
+extern const int builtinDirectiveKindCnt;
+
+/* constant after initialization time. But not constants technically */
+DATA struct DirectiveKindInfo *directiveKindInfo;
+DATA int directiveKindCnt;
 
 DATA File currentFile;
 DATA int currentOffset;
@@ -523,12 +545,12 @@ DATA int stmtCnt;
 DATA int childStmtCnt;
 
 DATA int dataCnt;
-DATA int arrayCnt;
 DATA int procCnt;
 DATA int macroCnt;
 DATA int constantCnt;
 DATA int macroParamCnt;
 DATA int exportCnt;
+DATA int directiveCnt;
 
 DATA struct ExprInfo *exprInfo;
 DATA struct CallArgInfo *callArgInfo;
@@ -536,7 +558,6 @@ DATA struct StmtInfo *stmtInfo;
 DATA struct ChildStmtInfo *childStmtInfo;
 
 DATA struct DataInfo *dataInfo;
-DATA struct ArrayInfo *arrayInfo;
 DATA struct ProcInfo *procInfo;
 DATA Type *procToType;
 DATA Data *firstDataOfProc;
@@ -546,3 +567,4 @@ DATA struct MacroParamInfo *macroParamInfo;
 DATA struct ConstantInfo *constantInfo;
 DATA struct ConstantValue *constantValue;
 DATA struct ExportInfo *exportInfo;
+DATA struct DirectiveInfo *directiveInfo;
