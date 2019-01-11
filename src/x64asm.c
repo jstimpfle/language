@@ -100,6 +100,11 @@ int find_stack_loc(IrReg irreg)
                 ASSERT(size > 0);
                 out += size;
         }
+        /*
+        Type tp = referenced_type(irRegInfo[irreg].tp);
+        int size = get_type_size(tp);
+        DEBUG("IrReg %d (proc=%d) has size %d and location %d\n", irreg, irRegInfo[irreg].proc, size, -out);
+        */
         return -out;
 }
 
@@ -797,12 +802,20 @@ void x64asm_call_irstmt(IrStmt irs)
                 // register is free
                 emit_mov_64_stack_reg(loc, cc[i]);
         }
-        IrCallResult cr0 = irStmtInfo[irs].tCall.firstIrCallResult;
-        IrReg rreg = irCallResultInfo[cr0].tgtreg;
-        X64StackLoc rloc = find_stack_loc(rreg);
         emit_mov_64_stack_reg(calleeloc, X64_R11);
         emit_call_reg(X64_R11);
-        emit_mov_64_reg_stack(X64_RAX, rloc);
+        IrCallResult cr0 = irStmtInfo[irs].tCall.firstIrCallResult;
+        IrReg rreg = irCallResultInfo[cr0].tgtreg;
+        ASSERT(rreg != (IrReg)-1); // is this true? what about void returns? How to handle multiple return values later?
+        /* FIXME: if the return value is void then the stack location is the
+        * same as previous register's stack location. That's not a problem in
+        * itself, but since we currently *always* move 8 bytes, ignoring the
+        * types real size, that results in overwriting the previous register's
+        * data. So for now we make this conditional */
+        if (get_type_size(irRegInfo[rreg].tp) > 0) {
+                X64StackLoc rloc = find_stack_loc(rreg);
+                emit_mov_64_reg_stack(X64_RAX, rloc);
+        }
 }
 
 INTERNAL
