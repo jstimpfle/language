@@ -1,15 +1,15 @@
 The blunt programming language
 ==============================
 
-Blunt is a C-like imperative programming language in development. It's meant to
-be a practical, imperative language with well-defined semantics. It has an easy
-to parse, extensible syntax. While blunt affords a few more special words than
-C has, it is still concise.
+Blunt is a practical C-like imperative programming language in development.  It
+tries to improve on C with a cleaned up syntax, better ergonomics, and a more
+robust compilation model. While it affords a few more special words than C has,
+it is still concise.
 
-Beyond that, the main feature of the language is extreme minimalism. The
-overarching philosophy is that programs should not be specified using clever
-syntactical or semantical tricks of the language, since the information encoded
-in such ways is hard to process (or even access, in the first place) by
+Beyond that, the main feature of the language is extreme minimalism, like C.
+The overarching philosophy is that programs should not be specified using
+clever syntactical or semantical tricks of the language, since the information
+encoded in such ways is hard to process (or even access, in the first place) by
 user-defined code.
 
 Some support for metaprogramming is offered by expression macros. Blunt
