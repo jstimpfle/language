@@ -472,9 +472,6 @@ void check_types(void)
         ASSERT(globalBufferAlloc[BUFFER_exprType].cap == 0);
         RESIZE_GLOBAL_BUFFER(exprType, exprCnt);
 
-        for (Proc p = 0; p < procCnt; p++)
-                check_stmt_types(procInfo[p].body);
-
         /* XXX: must make sure there are no cycles.  In normal expressions,
          * there is no need for this.  But since constants are not typed we need
          * to manually detect and break cycles. We do this by setting the
@@ -485,6 +482,9 @@ void check_types(void)
                 exprType[constantInfo[constant].expr] = (Type) -3;
         for (Constant constant = 0; constant < constantCnt; constant++)
                 check_expr_type(constantInfo[constant].expr);
+
+        for (Proc p = 0; p < procCnt; p++)
+                check_stmt_types(procInfo[p].body);
 
         for (Type tp = 0; tp < typeCnt; tp++)
                 if (typeInfo[tp].typeKind == TYPE_STRUCT)
