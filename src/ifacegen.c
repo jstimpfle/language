@@ -24,10 +24,10 @@ void generate_constant_iface(Symbol sym)
 {
         Constant constant = symbolInfo[sym].tConstant;
         outf("const %s = ", SS(sym));
-        int constantKind = constantValue[constant].constantKind;
-        if (constantKind == CONSTANT_INTEGER)
+        int valueKind = constantValue[constant].valueKind;
+        if (valueKind == VALUE_INTEGER)
                 outf("%lld", constantValue[constant].tInteger);
-        else if (constantKind == CONSTANT_STRING)
+        else if (valueKind == VALUE_INTEGER)
                 outf("%s", string_buffer(constantValue[constant].tString));
         else
                 UNHANDLED_CASE();

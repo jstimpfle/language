@@ -253,10 +253,12 @@ void expand_macros(void)
                 expand_stmt_exprs(procInfo[p].body);
         }
         for (Constant constant = 0; constant < constantCnt; constant++) {
+                if (constantInfo[constant].constantKind != CONSTANT_EXPRESSION)
+                        continue;
                 CURRENTLY_EXPANDED_PROC = (Proc) -1;
                 DEBUG("macroexpand constant %s constant-expr=%d\n",
                         SS(constantInfo[constant].symbol),
-                        constantInfo[constant].expr);
-                EXPAND(constantInfo[constant].expr);
+                        constantInfo[constant].tExpr);
+                EXPAND(constantInfo[constant].tExpr);
         }
 }

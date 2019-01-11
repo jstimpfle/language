@@ -61,7 +61,7 @@ long long fold_integer_expr(Expr x)
                 Constant constant = symbolInfo[symbol].tConstant;
                 fold_constant(constant);
 
-                ASSERT(constantValue[constant].constantKind == CONSTANT_INTEGER);
+                ASSERT(constantValue[constant].valueKind == VALUE_INTEGER);
                 return constantValue[constant].tInteger;
         }
         else {
@@ -86,18 +86,21 @@ String fold_string_expr(Expr x)
 INTERNAL
 void fold_constant(Constant constant)
 {
-        if (constantValue[constant].constantKind >= 0)
+        if (constantInfo[constant].constantKind != CONSTANT_EXPRESSION)
+                return;  /* nothing to do */
+
+        if (constantValue[constant].valueKind >= 0)
                 return; /* already folded */
 
-        Expr x = constantInfo[constant].expr;
+        Expr x = constantInfo[constant].tExpr;
         Type tp = exprType[x];
         if (type_equal(tp, builtinType[BUILTINTYPE_INT])) {
+                constantValue[constant].valueKind = VALUE_INTEGER;
                 constantValue[constant].tInteger = fold_integer_expr(x);
-                constantValue[constant].constantKind = CONSTANT_INTEGER;
         }
         else if (type_equal(tp, pointer_type(builtinType[BUILTINTYPE_CHAR]))) {
+                constantValue[constant].valueKind = VALUE_STRING;
                 constantValue[constant].tString = fold_string_expr(x);
-                constantValue[constant].constantKind = CONSTANT_STRING;
         }
         else {
                 UNHANDLED_CASE();
@@ -113,8 +116,15 @@ void fold_constants(void)
          * recursing since that case should have been caught in the type
          * checking phase already. */
         for (Constant constant = 0; constant < constantCnt; constant++)
-                constantValue[constant].constantKind = -1;
+                if (constantInfo[constant].constantKind == CONSTANT_EXPRESSION)
+                        constantValue[constant].valueKind = -1;
+
+        /* (TODO: alternatively, we could opt to do much of the constant folding
+         * before type checking. Only constants that are used as parts of types
+         * (thinking off array sizes now) can be resolved only later.
+         * That approach would split everything in two, though.) */
 
         for (Constant constant = 0; constant < constantCnt; constant++)
-                fold_constant(constant);
+                if (constantInfo[constant].constantKind == CONSTANT_EXPRESSION)
+                        fold_constant(constant);
 }

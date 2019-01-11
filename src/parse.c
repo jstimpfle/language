@@ -437,9 +437,10 @@ Constant parse_constant(void)
         symbolInfo[symbol].scope = currentScope;
         symbolInfo[symbol].symbolKind = SYMBOL_CONSTANT;
         symbolInfo[symbol].tConstant = constant;
+        constantInfo[constant].constantKind = CONSTANT_EXPRESSION;
         constantInfo[constant].symbol = symbol;
         constantInfo[constant].scope = currentScope;
-        constantInfo[constant].expr = expr;
+        constantInfo[constant].tExpr = expr;
         return constant;
 }
 

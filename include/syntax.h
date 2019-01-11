@@ -90,29 +90,40 @@ typedef int Export;
 
 
 /*
- * Macro kinds. Currently we have function macros and value macros.
+ * \enum{MacroKind}: Macro kinds. Currently we have function macros and value
+ * macros.
+
+ * \enum{ConstantKind}: Constant kinds. Currently we have integer and expression
+ * constants.  Expression constants are declared by "constant" directives in the
+ * source file. Integer constants are defined by "enum" directives.
+ *
+ * \enum{ValueKind}: Value Kinds. These values are used for the representation
+ * of constants.  CONSTANT_INTEGER constants have a value of kind VALUE_INTEGER.
+ * CONSTANT_EXPRESSION constants have a value of a kind that depends on the type
+ * of the expression (typechecking needed).
  */
 
-enum {
+enum MacroKind {
         MACRO_VALUE,
         MACRO_FUNCTION,
         NUM_MACRO_KINDS,
 };
 
-const char *const macroKindString[NUM_MACRO_KINDS];
-
-
-/*
- * Constant kinds. Currently we have integer and string constnats
- */
-
-enum {
+enum ConstantKind {
         CONSTANT_INTEGER,
-        CONSTANT_STRING,
+        CONSTANT_EXPRESSION,
         NUM_CONSTANT_KINDS,
 };
 
+enum ValueKind {
+        VALUE_INTEGER,
+        VALUE_STRING,
+        NUM_VALUE_KINDS
+};
+
+const char *const macroKindString[NUM_MACRO_KINDS];
 const char *const constantKindString[NUM_CONSTANT_KINDS];
+const char *const valueKindString[NUM_VALUE_KINDS];
 
 
 /**
@@ -427,14 +438,15 @@ struct MacroInfo {
 };
 
 struct ConstantInfo {
+        int constantKind;
         Symbol symbol;
         Scope scope; // same scope as symbol's scope. Is this too redundant?
-        Expr expr;
+        Expr tExpr;
 };
 
 /* type and value of a constant. Calculated after typechecking phase */
 struct ConstantValue {
-        int constantKind;
+        int valueKind;
         union {
                 long long tInteger;  // for now, long long
                 String tString;
@@ -446,8 +458,8 @@ struct ExportInfo {
 };
 
 /*
- * Directives = Top-level syntactic elements. Each file is grammatically a
- * sequence of directives.
+ * \typedef{Directive}: Top-level syntactic element. Each file is grammatically
+ * a sequence of directives.
  */
 
 typedef int Directive;
@@ -457,6 +469,7 @@ enum {
         DIRECTIVE_ARRAY,
         DIRECTIVE_PROC,
         DIRECTIVE_MACRO,
+        DIRECTIVE_ENUM,
         DIRECTIVE_CONSTANT,
         DIRECTIVE_EXPORT,
         NUM_DIRECTIVE_KINDS,
@@ -464,7 +477,7 @@ enum {
 
 struct ArrayDirectiveInfo {
         Data data;
-        Expr numElements;  // EXPR_CONSTANT expressions
+        Expr numElements;
 };
 
 struct DirectiveInfo {
@@ -474,10 +487,12 @@ struct DirectiveInfo {
                 struct ArrayDirectiveInfo tArray;
                 Proc tProc;
                 Macro tMacro;
-                Constant tConstant;
+                Constant tConstant;  // Constant of kind CONSTANT_EXPRESSION
                 Export tExport;
         };
 };
+
+const char *const directiveKindString[NUM_DIRECTIVE_KINDS];
 
 /*
  * Data

@@ -154,7 +154,26 @@ const char *const macroKindString[NUM_MACRO_KINDS] = {
 const char *const constantKindString[NUM_CONSTANT_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( CONSTANT_INTEGER ),
-        MAKE( CONSTANT_STRING ),
+        MAKE( CONSTANT_EXPRESSION ),
+#undef MAKE
+};
+
+const char *const valueKindString[NUM_VALUE_KINDS] = {
+#define MAKE(x) [x] = #x
+        MAKE( VALUE_INTEGER ),
+        MAKE( VALUE_STRING ),
+#undef MAKE
+};
+
+const char *const directiveKindString[NUM_DIRECTIVE_KINDS] = {
+#define MAKE(x) [x] = #x
+        MAKE( DIRECTIVE_DATA ),
+        MAKE( DIRECTIVE_ARRAY ),
+        MAKE( DIRECTIVE_PROC ),
+        MAKE( DIRECTIVE_MACRO ),
+        MAKE( DIRECTIVE_ENUM ),
+        MAKE( DIRECTIVE_CONSTANT ),
+        MAKE( DIRECTIVE_EXPORT ),
 #undef MAKE
 };
 

@@ -86,21 +86,29 @@ Type check_symref_expr_type(Expr x)
                         /* XXX: see note for Constants in check_types() */
                         Constant constant = symbolInfo[sym].tConstant;
                         ASSERT(constant != (Constant) -1);
-                        Expr expr = constantInfo[constant].expr;
-                        if (exprType[expr] == (Type) -2) {
-                                /* already being processed: cycle in constant.
-                                 * We might want to factor out the cycle
-                                 * detection because the code is a little
-                                 * complex by now */
-                                // XXX: better report the error at the
-                                // *constant*, not at the expr
-                                FATAL_ERROR_AT_EXPR(expr,
-                                        "Cycle detected while resolving type of constant %s. Cannot continue\n", SS(sym));
+                        int constantKind = constantInfo[constant].constantKind;
+                        if (constantKind == CONSTANT_INTEGER)
+                                return builtinType[BUILTINTYPE_INT];
+                        else if (constantKind == CONSTANT_EXPRESSION) {
+                                Expr expr = constantInfo[constant].tExpr;
+                                if (exprType[expr] == (Type) -2) {
+                                        /* already being processed: cycle in
+                                         * constant.  We might want to factor
+                                         * out the cycle detection because the
+                                         * code is a little complex by now */
+                                        // XXX: better report the error at the
+                                        // *constant*, not at the expr
+                                        FATAL_ERROR_AT_EXPR(expr,
+                                                "Cycle detected while resolving type of constant %s. Cannot continue\n", SS(sym));
 
+                                }
+                                exprType[expr] = (Type) -2;
+                                check_expr_type(expr);
+                                return exprType[expr];
                         }
-                        exprType[expr] = (Type) -2;
-                        check_expr_type(expr);
-                        return exprType[expr];
+                        else {
+                                UNHANDLED_CASE();
+                        }
                 }
                 default:
                         UNHANDLED_CASE();
@@ -479,9 +487,11 @@ void check_types(void)
          * usual it is -1 when type checking failed and >= 0 if the expression
          * was successfully resolved to a type */
         for (Constant constant = 0; constant < constantCnt; constant++)
-                exprType[constantInfo[constant].expr] = (Type) -3;
+                if (constantInfo[constant].constantKind == CONSTANT_EXPRESSION)
+                        exprType[constantInfo[constant].tExpr] = (Type) -3;
         for (Constant constant = 0; constant < constantCnt; constant++)
-                check_expr_type(constantInfo[constant].expr);
+                if (constantInfo[constant].constantKind == CONSTANT_EXPRESSION)
+                        check_expr_type(constantInfo[constant].tExpr);
 
         for (Proc p = 0; p < procCnt; p++)
                 check_stmt_types(procInfo[p].body);
