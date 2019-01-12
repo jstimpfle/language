@@ -108,6 +108,26 @@ int find_stack_loc(IrReg irreg)
         return -out;
 }
 
+INTERNAL
+int compute_size_of_stack_frame(IrProc irp)
+{
+        int out = 8;  // eight bytes reserved for return address
+        for (IrReg irreg = irProcInfo[irp].firstIrReg;
+             irreg < irRegCnt && irRegInfo[irreg].proc == irp;
+             irreg++)
+        {
+                Type tp = irRegInfo[irreg].tp;
+                ASSERT(tp >= 0);
+                int size = get_type_size(tp);
+                if (size < 0) {
+                        /* There are still issues causing void on the stack. */
+                        continue;
+                }
+                out += size;
+        }
+        return out;
+}
+
 INTERNAL UNUSEDFUNC
 int is_imm8(Imm64 imm)
 {
@@ -604,11 +624,13 @@ void emit_local_conditional_jump(X64StackLoc condloc, IrStmt tgtstmt, int isNeg)
 }
 
 INTERNAL
-void emit_function_prologue(void)
+void emit_function_prologue(IrProc irp)
 {
         emit(0x55);  // push rbp
         emit_mov_64_reg_reg(X64_RSP, X64_RBP);
-        emit_add_imm32_reg(-0x100 /*XXX*/, X64_RSP);
+
+        int size = compute_size_of_stack_frame(irp);
+        emit_add_imm32_reg(-size, X64_RSP);
 }
 
 INTERNAL
@@ -880,7 +902,7 @@ void x64asm_proc(IrProc irp)
         ASSERT(typeInfo[tp].typeKind == TYPE_PROC);
 
         begin_symbol(psym);
-        emit_function_prologue();
+        emit_function_prologue(irp);
 
         {
                 int j = 0;

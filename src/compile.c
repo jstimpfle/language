@@ -932,6 +932,9 @@ void compile_to_IR(void)
 
         for (IrStmt i = irStmtCnt; i --> 0;)
                 irProcInfo[irStmtInfo[i].proc].firstIrStmt = i;
+        for (IrReg i = irRegCnt; i --> 0;)
+                irProcInfo[irRegInfo[i].proc].firstIrReg = i;
+
 
         /* Look for jump targets and sources and sort them by target */
         for (IrStmt stmt = 0; stmt < irStmtCnt; stmt++) {
