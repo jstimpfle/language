@@ -8,11 +8,12 @@ Things that don't work in PECOFF writer (pe64.c):
     should be later put. That's pretty awkward! If we don't get that to work we
     might have to resort simply to an anonymous symbol for each symbol-relative
     relocation.
-  - BSS section isn't output. There must be some strange thing going on. Maybe
-    sections must be aligned in the file to a multiple of some value?
 
 Calling to function pointers does not seem to work (compiler or machine code
 emitter).
 
 Need to support loading and moving quantities other than 64-bit integers (IR /
 machine code emitter)
+
+Think about and implement syntax for complex literals (arrays and structs). We
+also want to support addressof-literal expressions, even for complex literals.
