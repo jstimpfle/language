@@ -465,6 +465,7 @@ enum {
         BUILTINDIRECTIVE_EXTERN,
         BUILTINDIRECTIVE_DATA,
         BUILTINDIRECTIVE_ARRAY,
+        BUILTINDIRECTIVE_STRUCT,
         BUILTINDIRECTIVE_PROC,
         BUILTINDIRECTIVE_MACRO,
         BUILTINDIRECTIVE_ENUM,
@@ -493,12 +494,17 @@ struct ArrayDirectiveInfo {
         Expr lengthExpr;
 };
 
+struct StructDirectiveInfo {
+        Type tp;
+};
+
 struct DirectiveInfo {
         int directiveKind;
         union {
                 struct ExternDirectiveInfo tExtern;
                 Data tData;
                 struct ArrayDirectiveInfo tArray;
+                struct StructDirectiveInfo tStruct;
                 Proc tProc;
                 Macro tMacro;
                 Constant tConstant;  // Constant of kind CONSTANT_EXPRESSION

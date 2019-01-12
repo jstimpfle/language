@@ -221,95 +221,6 @@ Type parse_type(int prec)
 }
 
 INTERNAL
-Type parse_entity(void)
-{
-        PARSE_LOG();
-        Type tp = parse_type(0);
-        String name = parse_name();
-        parse_token_kind(TOKEN_SEMICOLON);
-        Type etp = typeCnt++;
-        add_type_symbol(name, currentScope, etp);
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        typeInfo[etp].typeKind = TYPE_ENTITY;
-        typeInfo[etp].tEntity.name = name;
-        typeInfo[etp].tEntity.tp = tp;
-        return etp;
-}
-
-INTERNAL
-void parse_extern_directive(Directive directive)
-{
-        String name = parse_name();
-        Type tp = parse_type(0);
-        parse_token_kind(TOKEN_SEMICOLON);
-        Type tt = referenced_type(tp);
-        Symbol sym = symbolCnt++;
-        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        symbolInfo[sym].name = name;
-        symbolInfo[sym].scope = currentScope;
-        switch (typeInfo[tt].typeKind) {
-        case TYPE_POINTER:
-        case TYPE_BASE: {
-                symbolInfo[sym].symbolKind = SYMBOL_DATA;
-                symbolInfo[sym].tData.tp = tp;
-                symbolInfo[sym].tData.optionaldata = (Data) -1;
-                break;
-        }
-        case TYPE_PROC: {
-                symbolInfo[sym].symbolKind = SYMBOL_PROC;
-                symbolInfo[sym].tProc.tp = tp;
-                symbolInfo[sym].tProc.optionalproc = (Proc) -1;
-                break;
-        }
-        default:
-                UNHANDLED_CASE();
-        }
-
-        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_EXTERN;
-        directiveInfo[directive].tExtern.symbol = sym;
-}
-
-INTERNAL
-void parse_array_directive(Directive directive)
-{
-        PARSE_LOG();
-
-        String name = parse_name();
-        parse_token_kind(TOKEN_LEFTBRACKET);
-        Expr lengthExpr = parse_expr(0);
-        parse_token_kind(TOKEN_RIGHTBRACKET);
-        Type valueTp = parse_type(0);
-        parse_token_kind(TOKEN_SEMICOLON);
-
-        Scope scope = currentScope;
-        Symbol symbol = symbolCnt++;
-        Type tp = typeCnt++;
-        Data data = dataCnt++;
-
-        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        RESIZE_GLOBAL_BUFFER(dataInfo, dataCnt);
-
-        symbolInfo[symbol].name = name;
-        symbolInfo[symbol].scope = scope;
-        symbolInfo[symbol].symbolKind = SYMBOL_DATA;
-        symbolInfo[symbol].tData.tp = tp;
-        symbolInfo[symbol].tData.optionaldata = data;
-
-        typeInfo[tp].typeKind = TYPE_ARRAY;
-        typeInfo[tp].tArray.valueTp = valueTp;
-        typeInfo[tp].tArray.length = -1;  /* evaluated later from lengthExpr */
-
-        dataInfo[data].scope = scope;
-        dataInfo[data].tp = tp;
-        dataInfo[data].sym = symbol;
-
-        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_ARRAY;
-        directiveInfo[directive].tArray.data = data;
-        directiveInfo[directive].tArray.lengthExpr = lengthExpr;
-}
-
-INTERNAL
 void parse_struct_member(Type structTp)
 {
         Token tok = parse_token_kind(TOKEN_WORD);
@@ -938,19 +849,102 @@ Stmt parse_stmt(void)
 }
 
 INTERNAL
+void parse_extern_directive(Directive directive)
+{
+        String name = parse_name();
+        Type tp = parse_type(0);
+        parse_token_kind(TOKEN_SEMICOLON);
+        Type tt = referenced_type(tp);
+        Symbol sym = symbolCnt++;
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+        symbolInfo[sym].name = name;
+        symbolInfo[sym].scope = currentScope;
+        switch (typeInfo[tt].typeKind) {
+        case TYPE_POINTER:
+        case TYPE_BASE: {
+                symbolInfo[sym].symbolKind = SYMBOL_DATA;
+                symbolInfo[sym].tData.tp = tp;
+                symbolInfo[sym].tData.optionaldata = (Data) -1;
+                break;
+        }
+        case TYPE_PROC: {
+                symbolInfo[sym].symbolKind = SYMBOL_PROC;
+                symbolInfo[sym].tProc.tp = tp;
+                symbolInfo[sym].tProc.optionalproc = (Proc) -1;
+                break;
+        }
+        default:
+                UNHANDLED_CASE();
+        }
+
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_EXTERN;
+        directiveInfo[directive].tExtern.symbol = sym;
+}
+
+INTERNAL
 void parse_data_directive(Directive directive)
 {
-        parse_data();
+        Data data = parse_data();
         parse_token_kind(TOKEN_SEMICOLON);
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_DATA;
+        directiveInfo[directive].tData = data;
 }
+
+INTERNAL
+void parse_array_directive(Directive directive)
+{
+        PARSE_LOG();
+
+        String name = parse_name();
+        parse_token_kind(TOKEN_LEFTBRACKET);
+        Expr lengthExpr = parse_expr(0);
+        parse_token_kind(TOKEN_RIGHTBRACKET);
+        Type valueTp = parse_type(0);
+        parse_token_kind(TOKEN_SEMICOLON);
+
+        Scope scope = currentScope;
+        Symbol symbol = symbolCnt++;
+        Type tp = typeCnt++;
+        Data data = dataCnt++;
+
+        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+        RESIZE_GLOBAL_BUFFER(dataInfo, dataCnt);
+
+        symbolInfo[symbol].name = name;
+        symbolInfo[symbol].scope = scope;
+        symbolInfo[symbol].symbolKind = SYMBOL_DATA;
+        symbolInfo[symbol].tData.tp = tp;
+        symbolInfo[symbol].tData.optionaldata = data;
+
+        typeInfo[tp].typeKind = TYPE_ARRAY;
+        typeInfo[tp].tArray.valueTp = valueTp;
+        typeInfo[tp].tArray.length = -1;  /* evaluated later from lengthExpr */
+
+        dataInfo[data].scope = scope;
+        dataInfo[data].tp = tp;
+        dataInfo[data].sym = symbol;
+
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_ARRAY;
+        directiveInfo[directive].tArray.data = data;
+        directiveInfo[directive].tArray.lengthExpr = lengthExpr;
+}
+
+INTERNAL
+void parse_struct_directive(Directive directive)
+{
+        Type tp = parse_struct();
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_STRUCT;
+        directiveInfo[directive].tStruct.tp = tp;
+}
+
 
 INTERNAL
 void parse_macro_directive(Directive directive)
 {
         Macro macro = parse_macro();
-
         directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_MACRO;
-        directiveInfo[directive]; // TODO set other members
+        directiveInfo[directive].tMacro = macro;
 }
 
 INTERNAL
@@ -983,7 +977,7 @@ void parse_constant_directive(Directive directive)
         constantInfo[constant].tExpr = expr;
 
         directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_CONSTANT;
-        // TODO
+        directiveInfo[directive].tConstant = constant;
 }
 
 INTERNAL
@@ -1015,7 +1009,8 @@ void parse_enum_directive(Directive directive)
         parse_token_kind(TOKEN_RIGHTBRACE);
 
         directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_ENUM;
-        // TODO
+        // TODO: DirectiveInfo lacks a structure to bind the enum constants
+        // together
 }
 
 INTERNAL
@@ -1106,12 +1101,14 @@ void parse_export_directive(Directive directive)
         PARSE_LOG();
         Symref ref = parse_symref();
         parse_token_kind(TOKEN_SEMICOLON);
-        Export x = exportCnt++;
+        Export export = exportCnt++;
         RESIZE_GLOBAL_BUFFER(exportInfo, exportCnt);
-        exportInfo[x].ref = ref;
+        exportInfo[export].ref = ref;
 
         directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_EXPORT;
-        // TODO
+        directiveInfo[directive].tExport = export;
+        /* TODO: Maybe we want to remove the "Export" data structure and be
+        happy with just DirectiveInfo.tExport where we can store the ref */
 }
 
 void parse_file(File file)
@@ -1311,6 +1308,7 @@ const struct BuiltinDirectiveKindInfo builtinDirectiveKindInfo[] = {
         MAKE( BUILTINDIRECTIVE_EXTERN,   CONSTSTR_EXTERN,   parse_extern_directive ),
         MAKE( BUILTINDIRECTIVE_DATA,     CONSTSTR_DATA,     parse_data_directive ),
         MAKE( BUILTINDIRECTIVE_ARRAY,    CONSTSTR_ARRAY,    parse_array_directive ),
+        MAKE( BUILTINDIRECTIVE_STRUCT,   CONSTSTR_STRUCT,   parse_struct_directive ),
         MAKE( BUILTINDIRECTIVE_PROC,     CONSTSTR_PROC,     parse_proc_directive ),
         MAKE( BUILTINDIRECTIVE_MACRO,    CONSTSTR_MACRO,    parse_macro_directive ),
         MAKE( BUILTINDIRECTIVE_ENUM,     CONSTSTR_ENUM,     parse_enum_directive ),
