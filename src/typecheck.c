@@ -29,7 +29,7 @@ int arg_type_matches_param_type(Type argTp, Type paramTp)
                 paramTp = referenced_type(paramTp);
                 tk = typeInfo[argTp].typeKind;
                 if (tk != typeInfo[paramTp].typeKind)
-                        return 0;
+                        break;
                 if (tk != TYPE_POINTER)
                         break;
                 ptr = 1;
@@ -38,7 +38,7 @@ int arg_type_matches_param_type(Type argTp, Type paramTp)
         }
         if (argTp == paramTp)
                 return 1;
-        if (ptr && tk == TYPE_BASE && paramTp == builtinType[BUILTINTYPE_VOID])
+        if (ptr && paramTp == builtinType[BUILTINTYPE_VOID])
                 return 1;
         return 0;
 }
