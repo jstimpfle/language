@@ -15,5 +15,7 @@ extern get_stdout ^void();
 extern get_stderr ^void();
 
 extern memset  void(^int, int, int);
+extern memcpy  void(^void, ^void, int);
+extern memmove void(^void, ^void, int);
 extern malloc  ^void(int);
 extern fgets   int(^void, int, ^void);

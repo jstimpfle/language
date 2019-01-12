@@ -1,0 +1,28 @@
+macro COPY(a, b) => memmove(&a, &b, #sizeof(a));
+
+struct Foo {
+    data x int;
+    data y int;
+}
+
+proc print_foo(foo ^Foo) void
+{
+    print64(foo^.x);
+    print64(foo^.y);
+}
+
+proc main() int
+{
+    data a Foo;
+    data b Foo;
+    a.x = 13;
+    a.y = 14;
+    b.x = 27;
+    b.y = 28;
+    print_foo(&a);
+    print_foo(&b);
+    COPY(b, a);
+    print_foo(&b);
+    return 0;
+}
+export main;
