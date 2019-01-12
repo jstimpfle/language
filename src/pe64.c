@@ -789,7 +789,7 @@ void write_pe64_object(const char *filepath)
                         break;
                 case SECTION_ZERODATA:
                         ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
-                        ASSERT(symbolInfo[sym].tData.optionaldata == -1);
+                        ASSERT(symbolInfo[sym].tData.optionaldata != -1);
                         isProc = 0;
                         sectionNumber = PESEC_BSS;
                         break;
