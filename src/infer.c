@@ -51,7 +51,7 @@ void infer_struct(Directive directive)
         {
                 structmemberInfo[m].offset = size;
                 int membersize = get_type_size(structmemberInfo[m].memberTp);
-                if (size == 0) {
+                if (membersize == 0) {
                         FATAL("Incomplete type: "
                               "Size of member %s is not yet known!\n",
                               string_buffer(structmemberInfo[m].memberName));
@@ -59,7 +59,7 @@ void infer_struct(Directive directive)
                 size += membersize;
                 DEBUG("Add size %d to struct %d to give %d\n", size, tp, typeInfo[tp].tStruct.size);
         }
-        typeInfo[tp].tStruct.size = 0;
+        typeInfo[tp].tStruct.size = size;
 }
 
 void infer_constants_and_types(void)
