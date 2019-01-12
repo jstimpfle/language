@@ -422,13 +422,23 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
 {
         Expr e1 = exprInfo[x].tSubscript.expr1;
         Expr e2 = exprInfo[x].tSubscript.expr2;
-        compile_expr(e1, NOT_USED_AS_LVALUE);
-        compile_expr(e2, NOT_USED_AS_LVALUE);
+        Type e1tp = exprType[e1];
 
-        if (typeInfo[exprType[e1]].typeKind == TYPE_ARRAY)
-                FATAL("Array subscripting not implemented yet.\n");
-        ASSERT(typeInfo[exprType[e1]].typeKind == TYPE_POINTER);
-        int scale = get_type_size(typeInfo[exprType[e1]].tPointer.tp);
+        int scale;
+        switch (typeInfo[e1tp].typeKind) {
+        case TYPE_ARRAY:
+                compile_expr(e1, USED_AS_LVALUE); /* pointer to array */
+                scale = get_type_size(typeInfo[e1tp].tArray.valueTp);
+                break;
+        case TYPE_POINTER:
+                compile_expr(e1, NOT_USED_AS_LVALUE);
+                scale = get_type_size(typeInfo[e1tp].tPointer.tp);
+                break;
+        default:
+                UNHANDLED_CASE();
+        }
+
+        compile_expr(e2, NOT_USED_AS_LVALUE);
 
         /* offset pointer */
         IrReg scaleReg = irRegCnt++;
