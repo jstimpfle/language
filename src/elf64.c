@@ -626,41 +626,37 @@ void write_elf64_object(const char *outfilepath)
         /* defined symbols */
         for (int i = 0; i < symDefCnt; i++) {
                 int sttKind;  // STT_
-                int shndx;
                 int value = symDefInfo[i].offset;
                 int size = symDefInfo[i].size;
                 Symbol sym = symDefInfo[i].symbol;
-                DEBUG("Defined symbol %s\n", SS(sym));
                 int sectionKind = symDefInfo[i].sectionKind;  // SECTION_
+                int shndx = sectionToElfsection[sectionKind];
                 int visibility = isSymbolExported[sym] ? STB_GLOBAL : STB_LOCAL;
                 switch (sectionKind) {
                 case SECTION_CODE:
                         ASSERT(symbolInfo[sym].symbolKind == SYMBOL_PROC);
                         ASSERT(symbolInfo[sym].tProc.optionalproc != -1);
                         sttKind = STT_FUNC;
-                        shndx = ES_TEXT; // symbol references the .text section
                         break;
                 case SECTION_ZERODATA:
                         ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
-                        ASSERT(symbolInfo[sym].tData.optionaldata == -1);
+                        ASSERT(symbolInfo[sym].tData.optionaldata != -1);
                         sttKind = STT_OBJECT;
-                        shndx = ES_BSS;
                         break;
                 case SECTION_RODATA:
                         ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
                         ASSERT(symbolInfo[sym].tData.optionaldata != -1);
                         sttKind = STT_OBJECT;
-                        shndx = ES_RODATA;
                         break;
                 case SECTION_DATA:
                         ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
                         ASSERT(symbolInfo[sym].tData.optionaldata != -1);
                         sttKind = STT_OBJECT;
-                        shndx = ES_DATA;
                         break;
                 default:
                         UNHANDLED_CASE();
                 }
+                DEBUG("Defined symbol %s in section %s\n", SS(sym), sectionNames[shndx]);
 
                 int x = elfsymCnt++;
                 BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
