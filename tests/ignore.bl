@@ -4,8 +4,8 @@
 typechecking. Code that is disabled with #ignore does not bitrot as easily as
 with C preprocessor conditionals.
 
-Later we should probably add #if CONSTEXPR STMT statements as well. We just do
-not have constant expressions currently.
+TODO: We now have constant expressions, so we could add #if CONSTEXPR STMT
+statements as well.
 
 */
 
