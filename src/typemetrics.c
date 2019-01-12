@@ -15,6 +15,8 @@ int get_type_size(Type tp)
         case TYPE_BASE:    return typeInfo[tp].tBase.size;
         case TYPE_STRUCT:  return typeInfo[tp].tStruct.size;
         case TYPE_POINTER: return 8; //XXX
+        case TYPE_ARRAY: return typeInfo[tp].tArray.length *
+                                get_type_size(typeInfo[tp].tArray.valueTp);
         case TYPE_PROC:
                 /* XXX: this is a hack I put in here to handle normal function
                  * calls. We have the syntax foo(3) where foo could be either

@@ -365,6 +365,7 @@ Expr parse_expr(int minprec)
                 expr = add_unop_expr(opkind, tok, subexpr);
         }
         else if (tokenInfo[tok].tokenKind == TOKEN_HASH) {
+                Token hashtok = tok;
                 consume_token();
                 tok = parse_token_kind(TOKEN_WORD);
                 String string = tokenInfo[tok].tWord.string;
@@ -376,6 +377,7 @@ Expr parse_expr(int minprec)
                         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
                         exprInfo[expr].proc = currentProc;
                         exprInfo[expr].exprKind = EXPR_SIZEOF;
+                        exprInfo[expr].tSizeof.tok = hashtok;
                         exprInfo[expr].tSizeof.expr = subexpr;
                 }
                 else if (string == constStr[CONSTSTR_STRINGIFY]) {
@@ -384,6 +386,7 @@ Expr parse_expr(int minprec)
                         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
                         exprInfo[expr].proc = currentProc;
                         exprInfo[expr].exprKind = EXPR_STRINGIFY;
+                        exprInfo[expr].tStringify.tok = hashtok;
                         exprInfo[expr].tStringify.expr = subexpr;
                 }
                 else {

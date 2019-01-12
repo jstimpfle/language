@@ -104,8 +104,9 @@ void resolve_ref_type(Type t)
                 break;
         case TYPE_ARRAY:
                 resolve_ref_type(typeInfo[t].tArray.valueTp);
-                isComplete = typeInfo[typeInfo[t].tArray.valueTp].isComplete
-                        && typeInfo[t].tArray.length != -1;
+                // TODO: XXX: This doesn't make sense. At this stage the
+                // length is never known.
+                isComplete = typeInfo[typeInfo[t].tArray.valueTp].isComplete;
                 break;
         case TYPE_POINTER:
                 resolve_ref_type(typeInfo[t].tPointer.tp);

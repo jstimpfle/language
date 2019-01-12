@@ -425,6 +425,8 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
         compile_expr(e1, NOT_USED_AS_LVALUE);
         compile_expr(e2, NOT_USED_AS_LVALUE);
 
+        if (typeInfo[exprType[e1]].typeKind == TYPE_ARRAY)
+                FATAL("Array subscripting not implemented yet.\n");
         ASSERT(typeInfo[exprType[e1]].typeKind == TYPE_POINTER);
         int scale = get_type_size(typeInfo[exprType[e1]].tPointer.tp);
 

@@ -223,10 +223,15 @@ Type pointer_type(Type t);
 int type_equal(Type a, Type b);
 
 /* typecheck.c */
-void check_types(void);
+Type check_expr_type(Expr x);
+void check_stmt_types(Stmt stmt);
 
 /* constantfold.c */
-void fold_constants(void);
+String fold_string_expr(Expr x);
+long long fold_integer_expr(Expr x);
+
+/* infer.c */
+void infer_constants_and_types(void);
 
 /* ifacegen.c */
 void generate_interface_file(void);

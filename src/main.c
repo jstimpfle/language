@@ -85,11 +85,8 @@ int main(int argc, const char **argv)
         DEBUG("Expand macros...\n");
         expand_macros();
 
-        DEBUG("Check types...\n");
-        check_types();
-
-        DEBUG("Fold constants...\n");
-        fold_constants();
+        DEBUG("Infer constants and types...\n");
+        infer_constants_and_types();
 
         DEBUG("Print interface file to stdout...\n");
         generate_interface_file();

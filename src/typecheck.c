@@ -9,6 +9,7 @@ int is_lvalue_expression(Expr x)
         int kind = exprInfo[x].exprKind;
         return (kind == EXPR_SYMREF ||
                 kind == EXPR_MEMBER ||
+                kind == EXPR_SUBSCRIPT ||
                 (kind == EXPR_UNOP && exprInfo[x].tUnop.unopKind == UNOP_DEREF));
 }
 
@@ -41,9 +42,6 @@ int arg_type_matches_param_type(Type argTp, Type paramTp)
                 return 1;
         return 0;
 }
-
-INTERNAL
-Type check_expr_type(Expr x);
 
 INTERNAL
 Type check_literal_expr_type(Expr x)
@@ -280,6 +278,9 @@ Type check_subscript_expr_type(Expr x)
         else if (typeInfo[t1].typeKind == TYPE_POINTER) {
                 tp = typeInfo[t1].tPointer.tp;
         }
+        else if (typeInfo[t1].typeKind == TYPE_ARRAY) {
+                tp = typeInfo[t1].tArray.valueTp;
+        }
         else {
                 UNHANDLED_CASE();
         }
@@ -369,7 +370,6 @@ Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
 #undef MAKE
 };
 
-INTERNAL
 Type check_expr_type(Expr x)
 {
         ASSERT(0 <= x && x < exprCnt);
@@ -393,7 +393,6 @@ Type check_expr_type(Expr x)
         return (tp == (Type) -1) ? tp : referenced_type(tp);
 }
 
-INTERNAL
 void check_stmt_types(Stmt a)
 {
         switch (stmtInfo[a].stmtKind) {
@@ -472,55 +471,5 @@ void check_stmt_types(Stmt a)
                 break;
         default:
                 UNHANDLED_CASE();
-        }
-}
-
-void check_types(void)
-{
-        ASSERT(globalBufferAlloc[BUFFER_exprType].cap == 0);
-        RESIZE_GLOBAL_BUFFER(exprType, exprCnt);
-
-        /* XXX: must make sure there are no cycles.  In normal expressions,
-         * there is no need for this.  But since constants are not typed we need
-         * to manually detect and break cycles. We do this by setting the
-         * exprType to -3 when never visited and to -2 when being processed.  As
-         * usual it is -1 when type checking failed and >= 0 if the expression
-         * was successfully resolved to a type */
-        for (Constant constant = 0; constant < constantCnt; constant++)
-                if (constantInfo[constant].constantKind == CONSTANT_EXPRESSION)
-                        exprType[constantInfo[constant].tExpr] = (Type) -3;
-        for (Constant constant = 0; constant < constantCnt; constant++)
-                if (constantInfo[constant].constantKind == CONSTANT_EXPRESSION)
-                        check_expr_type(constantInfo[constant].tExpr);
-
-        for (Proc p = 0; p < procCnt; p++)
-                check_stmt_types(procInfo[p].body);
-
-        for (Type tp = 0; tp < typeCnt; tp++)
-                if (typeInfo[tp].typeKind == TYPE_STRUCT)
-                        typeInfo[tp].tStruct.size = 0;
-
-        for (Structmember m = 0; m < structmemberCnt; m++) {
-                Type tp = structmemberInfo[m].structTp;
-                ASSERT(typeInfo[tp].typeKind == TYPE_STRUCT);
-                if (m == 0 || tp != structmemberInfo[m-1].structTp)
-                        typeInfo[tp].tStruct.size = 0;
-                int offset = typeInfo[tp].tStruct.size;
-                structmemberInfo[m].offset = offset;
-                int size = get_type_size(structmemberInfo[m].memberTp);
-                /* XXX: better handling and better error message needed
-                 *
-                 * We could theoretically allow declarations in any
-                 * order as long as there are no cycles. But would that
-                 * be a good idea too?
-                 */
-                if (size == 0) {
-                        FATAL("Incomplete type: "
-                              "Size of member %s is not yet known!\n",
-                              string_buffer(structmemberInfo[m].memberName));
-                }
-                offset += size;
-                typeInfo[tp].tStruct.size = offset;
-                DEBUG("Add size %d to struct %d to give %d\n", size, tp, typeInfo[tp].tStruct.size);
         }
 }

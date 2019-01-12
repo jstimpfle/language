@@ -293,10 +293,12 @@ struct CallExprInfo {
 };
 
 struct SizeofExprInfo {
+        Token tok;
         Expr expr;
 };
 
 struct StringifyExprInfo {
+        Token tok;
         Expr expr;
 };
 

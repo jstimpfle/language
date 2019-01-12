@@ -1,9 +1,6 @@
 #include "defs.h"
 #include "api.h"
 
-INTERNAL void fold_constant(Constant constant);
-
-INTERNAL
 long long fold_integer_expr(Expr x)
 {
         int exprKind = exprInfo[x].exprKind;
@@ -56,13 +53,25 @@ long long fold_integer_expr(Expr x)
                 if (symbolKind != SYMBOL_CONSTANT)
                         FATAL_ERROR_AT_EXPR(x,
                                 "Reference to contant expected, "
-                                "but found %s\n", symbolKindString[symbolKind]);
+                                "but %s is a %s\n", SS(symbol),
+                                symbolKindString[symbolKind]);
 
                 Constant constant = symbolInfo[symbol].tConstant;
-                fold_constant(constant);
+                if (constantValue[constant].valueKind == -1)
+                        FATAL_ERROR_AT_EXPR(x,
+                                "Value of constant %s not known yet.\n",
+                                SS(symbol));
 
+                // TODO: I believe by now this must be a check, not an ASSERT
                 ASSERT(constantValue[constant].valueKind == VALUE_INTEGER);
                 return constantValue[constant].tInteger;
+        }
+        else if (exprKind == EXPR_SIZEOF) {
+                Expr subexpr = exprInfo[x].tSizeof.expr;
+                // TODO: is this the right way?
+                check_expr_type(subexpr);
+                Type tp = exprType[subexpr];
+                return get_type_size(tp);
         }
         else {
                 FATAL_ERROR_AT_EXPR(x, "Unhandled case: %s\n",
@@ -71,7 +80,6 @@ long long fold_integer_expr(Expr x)
         }
 }
 
-INTERNAL
 String fold_string_expr(Expr x)
 {
         if (exprInfo[x].exprKind == EXPR_LITERAL) {
@@ -81,50 +89,4 @@ String fold_string_expr(Expr x)
         else {
                 UNHANDLED_CASE();
         }
-}
-
-INTERNAL
-void fold_constant(Constant constant)
-{
-        if (constantInfo[constant].constantKind != CONSTANT_EXPRESSION)
-                return;  /* nothing to do */
-
-        if (constantValue[constant].valueKind >= 0)
-                return; /* already folded */
-
-        Expr x = constantInfo[constant].tExpr;
-        Type tp = exprType[x];
-        if (type_equal(tp, builtinType[BUILTINTYPE_INT])) {
-                constantValue[constant].valueKind = VALUE_INTEGER;
-                constantValue[constant].tInteger = fold_integer_expr(x);
-        }
-        else if (type_equal(tp, pointer_type(builtinType[BUILTINTYPE_CHAR]))) {
-                constantValue[constant].valueKind = VALUE_STRING;
-                constantValue[constant].tString = fold_string_expr(x);
-        }
-        else {
-                UNHANDLED_CASE();
-        }
-}
-
-void fold_constants(void)
-{
-        RESIZE_GLOBAL_BUFFER(constantValue, constantCnt);
-
-        /* mark as unprocessed: we need recursion to process unprocessed
-         * constants immediately. Note that cycles should not happen when
-         * recursing since that case should have been caught in the type
-         * checking phase already. */
-        for (Constant constant = 0; constant < constantCnt; constant++)
-                if (constantInfo[constant].constantKind == CONSTANT_EXPRESSION)
-                        constantValue[constant].valueKind = -1;
-
-        /* (TODO: alternatively, we could opt to do much of the constant folding
-         * before type checking. Only constants that are used as parts of types
-         * (thinking off array sizes now) can be resolved only later.
-         * That approach would split everything in two, though.) */
-
-        for (Constant constant = 0; constant < constantCnt; constant++)
-                if (constantInfo[constant].constantKind == CONSTANT_EXPRESSION)
-                        fold_constant(constant);
 }

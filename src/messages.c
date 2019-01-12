@@ -54,6 +54,12 @@ void find_expr_position(Expr x, File *file, int *offset)
                 case EXPR_CALL:
                         x = exprInfo[x].tCall.callee;
                         continue;
+                case EXPR_SIZEOF:
+                        tok = exprInfo[x].tSizeof.tok;
+                        break;
+                case EXPR_STRINGIFY:
+                        tok = exprInfo[x].tStringify.tok;
+                        break;
                 default:
                         UNHANDLED_CASE();
                 }
