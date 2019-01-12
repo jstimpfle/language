@@ -326,11 +326,11 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
                 Constant constant = symbolInfo[sym].tConstant;
                 int valueKind = constantValue[constant].valueKind;
                 if (valueKind == VALUE_INTEGER)
-                        emit_integer_load(constantValue[constant].tInteger, 
+                        emit_integer_load(constantValue[constant].tInteger,
                                           irproc, exprToIrReg[x]);
                 else if (valueKind == VALUE_STRING)
-                        emit_integer_load(constantValue[constant].tString, 
-                                          irproc, exprToIrReg[x]);
+                        emit_string_load(constantValue[constant].tString, 
+                                         irproc, exprToIrReg[x]);
                 else
                         UNHANDLED_CASE();
         }

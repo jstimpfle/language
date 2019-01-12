@@ -93,5 +93,12 @@ int type_equal(Type a, Type b)
         b = referenced_type(b);
         ASSERT(a != -1);
         ASSERT(b != -1);
+        /* TODO: remove this special case as soon as we have pointer type
+         * interning (which means that there should be only one instance for
+         * each pointer-of-type type) */
+        if (typeInfo[a].typeKind == TYPE_POINTER &&
+            typeInfo[b].typeKind == TYPE_POINTER)
+                return type_equal(typeInfo[a].tPointer.tp,
+                                  typeInfo[b].tPointer.tp);
         return a == b;
 }

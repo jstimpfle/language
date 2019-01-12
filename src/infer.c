@@ -10,8 +10,6 @@ void infer_constant(Directive directive)
         Expr expr = constantInfo[constant].tExpr;
         check_expr_type(expr);
         Type tp = exprType[expr];
-        // for now
-        ASSERT(exprType[expr] == builtinType[BUILTINTYPE_INT]);
 
         if (type_equal(tp, builtinType[BUILTINTYPE_INT])) {
                 constantValue[constant].valueKind = VALUE_INTEGER;
