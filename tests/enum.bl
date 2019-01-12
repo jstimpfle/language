@@ -2,6 +2,7 @@ enum {
     FOO_A;
     FOO_B;
     FOO_C;
+    NUM_FOO_KINDS;
 }
 
 proc main() int
@@ -9,6 +10,10 @@ proc main() int
     print64(FOO_A);
     print64(FOO_B);
     print64(FOO_C);
+
+    for i from 0 to NUM_FOO_KINDS do
+        print64(i);
+
     return 0;
 }
 
