@@ -81,7 +81,7 @@ void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
         case LITERAL_INTEGER: {
                 Token tok = exprInfo[x].tLiteral.tok;
                 long long constval = tokenInfo[tok].tInteger.value;
-                emit_string_load(constval, irproc, irreg);
+                emit_integer_load(constval, irproc, irreg);
                 break;
         }
         case LITERAL_STRING: {
