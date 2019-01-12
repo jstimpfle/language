@@ -113,11 +113,35 @@ void compile_unop_expr(Expr x, int usedAsLvalue)
                 else {
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irStmtInfo[y].proc = procToIrProc[exprInfo[x].proc];
+                        irStmtInfo[y].proc = irp;
                         irStmtInfo[y].irStmtKind = IRSTMT_LOAD;
                         irStmtInfo[y].tLoad.srcaddrreg = exprToIrReg[e1];
                         irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
                 }
+                break;
+        }
+        case UNOP_NOT: {
+                compile_expr(e1, NOT_USED_AS_LVALUE);
+                IrReg zeroReg = irRegCnt++;
+                IrStmt loadStmt = irStmtCnt++;
+                IrStmt y = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irRegInfo[zeroReg].proc = irp;
+                irRegInfo[zeroReg].name = -1;
+                irRegInfo[zeroReg].sym = -1;
+                irRegInfo[zeroReg].tp = builtinType[BUILTINTYPE_INT];
+                irStmtInfo[loadStmt].proc = irp;
+                irStmtInfo[loadStmt].irStmtKind = IRSTMT_LOADCONSTANT;
+                irStmtInfo[loadStmt].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
+                irStmtInfo[loadStmt].tLoadConstant.tInteger = 0;
+                irStmtInfo[loadStmt].tLoadConstant.tgtreg = zeroReg;
+                irStmtInfo[y].proc = irp;
+                irStmtInfo[y].irStmtKind = IRSTMT_CMP;
+                irStmtInfo[y].tCmp.irCmpKind = IRCMP_EQ;
+                irStmtInfo[y].tCmp.reg1 = exprToIrReg[e1];
+                irStmtInfo[y].tCmp.reg2 = zeroReg;
+                irStmtInfo[y].tCmp.tgtreg = exprToIrReg[x];
                 break;
         }
 

@@ -140,8 +140,16 @@ Type check_unop_expr_type(Expr x)
                 }
                 break;
         }
+        case UNOP_NOT: {
+                Type tt = check_expr_type(xx);
+                if (tt != (Type) -1) {
+                        int k = typeInfo[tt].typeKind;
+                        if (k == TYPE_BASE || k == TYPE_POINTER)
+                                return builtinType[BUILTINTYPE_INT];
+                }
+                break;
+        }
         case UNOP_INVERTBITS:
-        case UNOP_NOT:
         case UNOP_NEGATIVE:
         case UNOP_POSITIVE:
         case UNOP_PREDECREMENT:
