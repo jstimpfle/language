@@ -16,7 +16,3 @@ emitter).
 
 Need to support loading and moving quantities other than 64-bit integers (IR /
 machine code emitter)
-
-The quick-and-dirty support code uses libc to print for example, but it doesn't
-do proper initialisation and finalisation. Among other things that means that
-buffers aren't flushed.
