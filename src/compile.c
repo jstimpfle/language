@@ -46,31 +46,47 @@ int is_local_variable(Expr e, Data *out)
 }
 
 INTERNAL
+void emit_integer_load(long long constval, IrProc irproc, IrReg irreg)
+{
+        IrStmt y = irStmtCnt++;
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irStmtInfo[y].proc = irproc;
+        irStmtInfo[y].irStmtKind = IRSTMT_LOADCONSTANT;
+        irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
+        irStmtInfo[y].tLoadConstant.tInteger = constval;
+        irStmtInfo[y].tLoadConstant.tgtreg = irreg;
+}
+
+INTERNAL
+void emit_string_load(String constval, IrProc irproc, IrReg irreg)
+{
+        IrStmt y = irStmtCnt++;
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irStmtInfo[y].proc = irproc;
+        irStmtInfo[y].irStmtKind = IRSTMT_LOADCONSTANT;
+        irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_STRING;
+        irStmtInfo[y].tLoadConstant.tString = constval;
+        irStmtInfo[y].tLoadConstant.tgtreg = irreg;
+}
+
+INTERNAL
 void compile_expr(Expr x, int usedAsLvalue);
 
 INTERNAL
 void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
 {
-        IrStmt y = irStmtCnt++;
-        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        IrProc irproc = procToIrProc[exprInfo[x].proc];
+        IrReg irreg = exprToIrReg[x];
         switch (exprInfo[x].tLiteral.literalKind) {
         case LITERAL_INTEGER: {
                 Token tok = exprInfo[x].tLiteral.tok;
                 long long constval = tokenInfo[tok].tInteger.value;
-                irStmtInfo[y].proc = procToIrProc[exprInfo[x].proc];
-                irStmtInfo[y].irStmtKind = IRSTMT_LOADCONSTANT;
-                irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
-                irStmtInfo[y].tLoadConstant.tInteger = constval;
-                irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
+                emit_string_load(constval, irproc, irreg);
                 break;
         }
         case LITERAL_STRING: {
                 String s = exprInfo[x].tLiteral.tString;
-                irStmtInfo[y].proc = procToIrProc[exprInfo[x].proc];
-                irStmtInfo[y].irStmtKind = IRSTMT_LOADCONSTANT;
-                irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_STRING;
-                irStmtInfo[y].tLoadConstant.tString = s;
-                irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
+                emit_string_load(s, irproc, irreg);
                 break;
         }
         default:
@@ -302,15 +318,21 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
 {
         Symref ref = exprInfo[x].tSymref.ref;
         Symbol sym = symrefToSym[ref];
+        IrProc irproc = procToIrProc[exprInfo[x].proc];
         ASSERT(sym >= 0);
         int symbolKind = symbolInfo[sym].symbolKind;
         if (symbolKind == SYMBOL_CONSTANT) {
                 ASSERT(! usedAsLvalue);
-                /*
                 Constant constant = symbolInfo[sym].tConstant;
-                Expr subx = constantInfo[constant].expr;
-                */
-                FATAL("TODO: compile SYMBOL_CONSTANT symref expression. Must be compiled similar to literals. Can NOT be compiled as expression (issue with undefined IrStmt.proc)\n");
+                int valueKind = constantValue[constant].valueKind;
+                if (valueKind == VALUE_INTEGER)
+                        emit_integer_load(constantValue[constant].tInteger, 
+                                          irproc, exprToIrReg[x]);
+                else if (valueKind == VALUE_STRING)
+                        emit_integer_load(constantValue[constant].tString, 
+                                          irproc, exprToIrReg[x]);
+                else
+                        UNHANDLED_CASE();
         }
         else if (symbolKind == SYMBOL_DATA &&
             scopeInfo[symbolInfo[sym].scope].scopeKind == SCOPE_PROC) {
@@ -331,7 +353,7 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
                 else {
                         IrStmt y = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irStmtInfo[y].proc = procToIrProc[exprInfo[x].proc];
+                        irStmtInfo[y].proc = irproc;
                         irStmtInfo[y].irStmtKind = IRSTMT_LOADREGADDR;
                         irStmtInfo[y].tLoadRegAddr.reg = dataToIrReg[data];
                         irStmtInfo[y].tLoadRegAddr.tgtreg = exprToIrReg[x];
@@ -340,14 +362,14 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
         else {
                 IrStmt s0 = irStmtCnt++;
                 RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[s0].proc = procToIrProc[exprInfo[x].proc];
+                irStmtInfo[s0].proc = irproc;
                 irStmtInfo[s0].irStmtKind = IRSTMT_LOADSYMBOLADDR;
                 irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
                 irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
                 if (! usedAsLvalue) {
                         IrStmt s1 = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irStmtInfo[s1].proc = procToIrProc[exprInfo[x].proc];
+                        irStmtInfo[s1].proc = irproc;
                         irStmtInfo[s1].irStmtKind = IRSTMT_LOAD;
                         irStmtInfo[s1].tLoad.srcaddrreg = exprToIrReg[x];
                         irStmtInfo[s1].tLoad.tgtreg = exprToIrReg[x];
