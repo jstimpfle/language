@@ -112,7 +112,7 @@ void _msg(const char *srcfilename, int srcline,
         va_end(ap);
 }
 
-void _msg_at_v(const char *srcfilename, int srcline,
+void _vmsg_at(const char *srcfilename, int srcline,
         const char *lvl, File file, int offset,
         const char *fmt, va_list ap)
 {
@@ -131,7 +131,7 @@ void _msg_at(const char *srcfilename, int srcline,
 {
         va_list ap;
         va_start(ap, fmt);
-        _msg_at_v(srcfilename, srcline, lvl, file, offset, fmt, ap);
+        _vmsg_at(srcfilename, srcline, lvl, file, offset, fmt, ap);
         va_end(ap);
 }
 
@@ -143,7 +143,7 @@ void _msg_at_tok(const char *srcfilename, int srcline,
         int offset = tokenInfo[tok].offset;
         va_list ap;
         va_start(ap, fmt);
-        _msg_at_v(srcfilename, srcline, lvl, file, offset, fmt, ap);
+        _vmsg_at(srcfilename, srcline, lvl, file, offset, fmt, ap);
         va_end(ap);
 }
 
@@ -157,7 +157,7 @@ void _msg_at_expr(const char *srcfilename, int srcline,
 
         find_expr_position(expr, &file, &offset);
         va_start(ap, fmt);
-        _msg_at_v(srcfilename, srcline, lvl, file, offset, fmt, ap);
+        _vmsg_at(srcfilename, srcline, lvl, file, offset, fmt, ap);
         va_end(ap);
 }
 
