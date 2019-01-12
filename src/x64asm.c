@@ -923,7 +923,9 @@ void codegen_x64(void)
                 int size = get_type_size(dataInfo[x].tp);
                 int offset = zerodataSectionCnt;
                 zerodataSectionCnt += size;
-                emit_symbol(dataInfo[x].sym, SECTION_DATA, size, offset);
+                // TODO: initialized data must be allocated in SECTION_DATA /
+                // in the dataSection Buffer.
+                emit_symbol(dataInfo[x].sym, SECTION_ZERODATA, size, offset);
         }
 
         for (IrProc x = 0; x < irProcCnt; x++) {
