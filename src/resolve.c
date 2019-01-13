@@ -18,19 +18,20 @@ Symbol find_first_matching_symbol_in_scope(String name, Scope scope)
 {
         // DEBUG("Try to find symbol %s in scope %d\n", string_buffer(name), scope);
         for (; scope != -1; scope = scopeInfo[scope].parentScope) {
-                Symbol first = scopeInfo[scope].firstSymbol;
-                Symbol last = first + scopeInfo[scope].numSymbols;
+                Symbol lo = scopeInfo[scope].firstSymbol;
+                Symbol hi = lo + scopeInfo[scope].numSymbols;
+                Symbol onePastEnd = hi;
 
-                while (first < last) {
-                        Symbol mid = first + (last - first) / 2;
+                while (lo < hi) {
+                        Symbol mid = lo + (hi - lo) / 2;
                         if (symbolInfo[mid].name < name)
-                                first = mid + 1;
+                                lo = mid + 1;
                         else
-                                last = mid;
+                                hi = mid;
                 }
 
-                if (first < symbolCnt && symbolInfo[first].name == name)
-                        return first;
+                if (lo < onePastEnd && symbolInfo[lo].name == name)
+                        return lo;
         }
         return (Symbol) -1;
 }

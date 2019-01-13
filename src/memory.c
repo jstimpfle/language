@@ -59,10 +59,12 @@ void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
                 *ptr = p;
 
                 if (alloc->cap > 0) {
+                        /*
                         DEBUG("Realloc'ing %d more elements (%d bytes). "
                              "increase to %d elems (%d bytes)\n",
                              alloc->cap, alloc->cap * elsize,
                              cnt, cnt * elsize);
+                             */
                         DBG_totalbytesrealloced += alloc->cap * elsize;
                         DBG_totalbytesalloced -= alloc->cap * elsize;
                 }
