@@ -536,11 +536,6 @@ DATA int directiveKindCnt;
 DATA File currentFile;
 DATA int currentOffset;
 
-DATA int lexbufCnt;
-DATA char *lexbuf;
-DATA int tokenCnt;
-DATA struct TokenInfo *tokenInfo;
-
 DATA Scope globalScope;
 DATA Scope currentScope;
 DATA Scope scopeStack[16];

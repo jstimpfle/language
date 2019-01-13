@@ -1,57 +1,6 @@
 #include "defs.h"
 #include "api.h"
 
-INTERNAL const struct {
-        char c;
-        int k;
-} t1[] = {
-        { '(', TOKEN_LEFTPAREN },
-        { ')', TOKEN_RIGHTPAREN },
-        { '{', TOKEN_LEFTBRACE },
-        { '}', TOKEN_RIGHTBRACE },
-        { '[', TOKEN_LEFTBRACKET },
-        { ']', TOKEN_RIGHTBRACKET },
-        { '.', TOKEN_DOT },
-        { '*', TOKEN_ASTERISK },
-        { '/', TOKEN_SLASH },
-        { ',', TOKEN_COMMA },
-        { ';', TOKEN_SEMICOLON },
-        { ':', TOKEN_COLON },
-        { '&', TOKEN_AMPERSAND },
-        { '|', TOKEN_PIPE },
-        { '^', TOKEN_CARET },
-        { '~', TOKEN_TILDE },
-        { '#', TOKEN_HASH },
-        { '$', TOKEN_DOLLAR },
-        { '\\', TOKEN_BACKSLASH },
-        { '?', TOKEN_QUESTIONMARK },
-        { '@', TOKEN_ATSIGN },
-};
-
-INTERNAL const struct {
-        char c1;
-        char c2;
-        int k1;
-        int k2;
-} t2[] = {
-        { '+', '+', TOKEN_PLUS, TOKEN_DOUBLEPLUS },
-        { '-', '-', TOKEN_MINUS, TOKEN_DOUBLEMINUS },
-        { '!', '=', TOKEN_BANG, TOKEN_NE },
-        { '>', '=', TOKEN_GT, TOKEN_GE },
-        { '<', '=', TOKEN_LT, TOKEN_LE, },
-};
-
-INTERNAL const struct {
-        char c1;
-        char c2;
-        char c3;
-        int k1;
-        int k2;
-        int k3;
-} t3[] = {
-        { '=', '=', '>', TOKEN_ASSIGNEQUALS, TOKEN_EQ, TOKEN_RIGHTARROW },
-};
-
 
 INTERNAL
 int look_char(void)
@@ -191,36 +140,36 @@ stringlit:
         int tokenKind;
 baretoken:
         tokenKind = -1;
-        for (int i = 0; i < LENGTH(t1); i++) {
-                if (c == t1[i].c) {
-                        tokenKind = t1[i].k;
+        for (int i = 0; i < lex1Cnt; i++) {
+                if (c == lex1[i].ch) {
+                        tokenKind = lex1[i].kind;
                         goto goodbaretoken;
                 }
         }
-        for (int i = 0; i < LENGTH(t2); i++) {
-                if (c == t2[i].c1) {
-                        if (look_char() == t2[i].c2) {
+        for (int i = 0; i < lex2Cnt; i++) {
+                if (c == lex2[i].ch1) {
+                        if (look_char() == lex2[i].ch2) {
                                 consume_char();
-                                tokenKind = t2[i].k2;
+                                tokenKind = lex2[i].kind2;
                         }
                         else {
-                                tokenKind = t2[i].k1;
+                                tokenKind = lex2[i].kind1;
                         }
                         goto goodbaretoken;
                 }
         }
-        for (int i = 0; i < LENGTH(t3); i++) {
-                if (c == t3[i].c1) {
-                        if (look_char() == t3[i].c2) {
+        for (int i = 0; i < lex3Cnt; i++) {
+                if (c == lex3[i].ch1) {
+                        if (look_char() == lex3[i].ch2) {
                                 consume_char();
-                                tokenKind = t3[i].k2;
+                                tokenKind = lex3[i].kind2;
                         }
-                        else if (look_char() == t3[i].c3) {
+                        else if (look_char() == lex3[i].ch3) {
                                 consume_char();
-                                tokenKind = t3[i].k3;
+                                tokenKind = lex3[i].kind3;
                         }
                         else {
-                                tokenKind = t3[i].k1;
+                                tokenKind = lex3[i].kind1;
                         }
                         goto goodbaretoken;
                 }

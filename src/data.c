@@ -350,10 +350,49 @@ const struct BasetypeToBeInitialized basetypesToBeInitialized[] = {
         { "char",   1,  &builtinType[BUILTINTYPE_CHAR] },
 };
 
+const struct Lex1 lex1[] = {
+        { '(', TOKEN_LEFTPAREN },
+        { ')', TOKEN_RIGHTPAREN },
+        { '{', TOKEN_LEFTBRACE },
+        { '}', TOKEN_RIGHTBRACE },
+        { '[', TOKEN_LEFTBRACKET },
+        { ']', TOKEN_RIGHTBRACKET },
+        { '.', TOKEN_DOT },
+        { '*', TOKEN_ASTERISK },
+        { '/', TOKEN_SLASH },
+        { ',', TOKEN_COMMA },
+        { ';', TOKEN_SEMICOLON },
+        { ':', TOKEN_COLON },
+        { '&', TOKEN_AMPERSAND },
+        { '|', TOKEN_PIPE },
+        { '^', TOKEN_CARET },
+        { '~', TOKEN_TILDE },
+        { '#', TOKEN_HASH },
+        { '$', TOKEN_DOLLAR },
+        { '\\', TOKEN_BACKSLASH },
+        { '?', TOKEN_QUESTIONMARK },
+        { '@', TOKEN_ATSIGN },
+};
+
+const struct Lex2 lex2[] = {
+        { '+', '+', TOKEN_PLUS, TOKEN_DOUBLEPLUS },
+        { '-', '-', TOKEN_MINUS, TOKEN_DOUBLEMINUS },
+        { '!', '=', TOKEN_BANG, TOKEN_NE },
+        { '>', '=', TOKEN_GT, TOKEN_GE },
+        { '<', '=', TOKEN_LT, TOKEN_LE, },
+};
+
+const struct Lex3 lex3[] = {
+        { '=', '=', '>', TOKEN_ASSIGNEQUALS, TOKEN_EQ, TOKEN_RIGHTARROW },
+};
+
 const int toktypeToPrefixUnopCnt = LENGTH(toktypeToPrefixUnop);
 const int toktypeToPostfixUnopCnt = LENGTH(toktypeToPostfixUnop);
 const int toktypeToBinopCnt = LENGTH(toktypeToBinop);
 const int basetypesToBeInitializedCnt = LENGTH(basetypesToBeInitialized);
+const int lex1Cnt = LENGTH(lex1);
+const int lex2Cnt = LENGTH(lex2);
+const int lex3Cnt = LENGTH(lex3);
 
 const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS] = {
 #define MAKE_GLOBAL_BUFFER(cnt, b) [BUFFER_##b] = { (void **) &b, sizeof *b, #b, &cnt }

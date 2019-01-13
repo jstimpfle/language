@@ -57,6 +57,27 @@ enum TokenKind {
         NUM_TOKEN_KINDS,
 };
 
+struct Lex1 {
+        char ch;
+        char kind;
+};
+
+struct Lex2 {
+        char ch1;
+        char ch2;
+        char kind1;
+        char kind2;
+};
+
+struct Lex3 {
+        char ch1;
+        char ch2;
+        char ch3;
+        char kind1;
+        char kind2;
+        char kind3;
+};
+
 /**
  * \struct{TokenInfo}, \struct{WordTokenInfo}, \struct{IntegerTokenInfo},
  * \struct{StringTokenInfo}: TODO
@@ -85,7 +106,26 @@ struct TokenInfo {
         };
 };
 
-/**
+/*
+ * Constant data
  */
 
 extern const char *const tokenKindString[NUM_TOKEN_KINDS];
+
+extern const struct Lex1 lex1[];
+extern const struct Lex2 lex2[];
+extern const struct Lex3 lex3[];
+
+extern const int lex1Cnt;
+extern const int lex2Cnt;
+extern const int lex3Cnt;
+
+/*
+ * Dynamic data
+ */
+
+DATA int lexbufCnt;
+DATA int tokenCnt;
+
+DATA char *lexbuf;
+DATA struct TokenInfo *tokenInfo;
