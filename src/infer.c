@@ -64,28 +64,18 @@ void infer_struct(Directive directive)
 
 void infer_constants_and_types(void)
 {
+        ASSERT(globalBufferAlloc[BUFFER_constantValue].cap == 0);
+        ASSERT(globalBufferAlloc[BUFFER_exprType].cap == 0);
         RESIZE_GLOBAL_BUFFER(constantValue, constantCnt);
+        RESIZE_GLOBAL_BUFFER(exprType, exprCnt);
 
-        /* mark as unprocessed: we need recursion to process unprocessed
-         * constants immediately. Note that cycles should not happen when
-         * recursing since that case should have been caught in the type
-         * checking phase already. */
+        /* mark as unprocessed. We will infer constants and types in order of
+         * definition. If an earlier defined constant depends on a later default
+         * constant, we will detect this dependency problem by looking if that
+         * constant is already processed. */
         for (Constant constant = 0; constant < constantCnt; constant++)
                 if (constantInfo[constant].constantKind == CONSTANT_EXPRESSION)
                         constantValue[constant].valueKind = -1;
-
-        ASSERT(globalBufferAlloc[BUFFER_exprType].cap == 0);
-        RESIZE_GLOBAL_BUFFER(exprType, exprCnt);
-
-        /* XXX: must make sure there are no cycles.  In normal expressions,
-         * there is no need for this.  But since constants are not typed we need
-         * to manually detect and break cycles. We do this by setting the
-         * exprType to -3 when never visited and to -2 when being processed.  As
-         * usual it is -1 when type checking failed and >= 0 if the expression
-         * was successfully resolved to a type */
-        for (Constant constant = 0; constant < constantCnt; constant++)
-                if (constantInfo[constant].constantKind == CONSTANT_EXPRESSION)
-                        exprType[constantInfo[constant].tExpr] = (Type) -3;
 
         for (Type tp = 0; tp < typeCnt; tp++)
                 if (typeInfo[tp].typeKind == TYPE_STRUCT)
