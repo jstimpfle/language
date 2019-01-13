@@ -942,12 +942,12 @@ void codegen_x64(void)
         for (Data x = 0; x < dataCnt; x++) {
                 if (scopeInfo[dataInfo[x].scope].scopeKind != SCOPE_GLOBAL)
                         continue;
-                int size = get_type_size(dataInfo[x].tp);
                 int offset = zerodataSectionCnt;
+                int size = get_type_size(dataInfo[x].tp);
                 zerodataSectionCnt += size;
                 // TODO: initialized data must be allocated in SECTION_DATA /
                 // in the dataSection Buffer.
-                emit_symbol(dataInfo[x].sym, SECTION_ZERODATA, size, offset);
+                emit_symbol(dataInfo[x].sym, SECTION_ZERODATA, offset, size);
         }
 
         for (IrProc x = 0; x < irProcCnt; x++) {
