@@ -93,3 +93,28 @@ String intern_cstring(const char *str)
 {
         return intern_string((const void *)str, cstr_length(str));
 }
+
+const char *string_buffer(String s)
+{
+        return &strbuf[stringInfo[s].pos];
+}
+
+int string_length(String s)
+{
+        return stringInfo[s+1].pos - stringInfo[s].pos - 1;
+}
+
+const char *SS(Symbol sym)
+{
+        return string_buffer(symbolInfo[sym].name);
+}
+
+const char *SRS(Symref ref)
+{
+        return string_buffer(symrefInfo[ref].name);
+}
+
+const char *TS(Token tok)
+{
+        return string_buffer(tokenInfo[tok].tWord.string);
+}

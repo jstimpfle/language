@@ -169,30 +169,11 @@ void _resize_global_buffer_dbg(int buf, int nelems, int clear,
  * str.c
  */
 
-static inline const char *string_buffer(String s)
-{
-        return &strbuf[stringInfo[s].pos];
-}
-
-static inline int string_length(String s)
-{
-        return stringInfo[s+1].pos - stringInfo[s].pos - 1;
-}
-
-static inline const char *SS(Symbol sym)
-{
-        return string_buffer(symbolInfo[sym].name);
-}
-
-static inline const char *SRS(Symref ref)
-{
-        return string_buffer(symrefInfo[ref].name);
-}
-
-static inline const char *TS(Token tok)
-{
-        return string_buffer(tokenInfo[tok].tWord.string);
-}
+const char *string_buffer(String s);
+int string_length(String s);
+const char *SS(Symbol sym);
+const char *SRS(Symref ref);
+const char *TS(Token tok);
 
 String intern_string(const void *buf, int len);
 String intern_cstring(const char *str);
