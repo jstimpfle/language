@@ -975,6 +975,18 @@ void write_pe64_object(const char *filepath)
 
         /* !! No optional header. This is an .obj file. */
 
+        /*
+         * XXX: FIXUP:
+         *
+         * ok... PECOFF has it totally wrong -.-
+         * It seems like a needless special case for BSS. We set the correct
+         * values (as seen by PECOFF) only shortly before committing to disk,
+         * so that the rest of our logic isn't affected by the weirdness.
+         */
+        sh[PESEC_BSS  ].PES_SizeOfRawData = sh[PESEC_BSS].PES_VirtualSize;
+        sh[PESEC_BSS  ].PES_VirtualSize = 0;
+        sh[PESEC_BSS  ].PES_PointerToRawData = 0;
+
         /* Write Section Header Table */
         for (int i = 0; i < NUM_PESEC_KINDS; i++)
                 write_PE_SectionHeader(f, &sh[i]);
