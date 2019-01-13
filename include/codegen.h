@@ -2,27 +2,6 @@
 #error This file must be included only from api.h !
 #endif
 
-/**
- * \data{rodataSection}, \data{rodataSectionCnt}: This is the read-only data
- * section (.rodata in ELF).
- *
- * \data{zerodataSectionCnt}: this is the size of zero-initialized data in
- * bytes (.bss in ELF). There's no further data associated with it, except from
- * the symbols that point into that virtual region (symDefInfo)
- *
- * \data{codeSection}, \data{codeSectionCnt}: This is the program code data
- * section (.text in ELF).
- */
-
-DATA int rodataSectionCnt;
-DATA int zerodataSectionCnt;
-DATA int dataSectionCnt;
-DATA int codeSectionCnt;
-DATA unsigned char *rodataSection;
-DATA unsigned char *dataSection;
-DATA unsigned char *codeSection;
-
-
 /*
  * Relocation stuff
  */
@@ -80,3 +59,23 @@ DATA struct GotoInfo *gotoInfo;
 DATA struct RelocInfo *relocInfo;
 DATA int *irstmtToCodepos;
 DATA int *irprocToCodepos;
+
+/**
+ * \data{rodataSection}, \data{rodataSectionCnt}: This is the read-only data
+ * section (.rodata in ELF).
+ *
+ * \data{zerodataSectionCnt}: this is the size of zero-initialized data in
+ * bytes (.bss in ELF). There's no further data associated with it, except from
+ * the symbols that point into that virtual region (symDefInfo)
+ *
+ * \data{codeSection}, \data{codeSectionCnt}: This is the program code data
+ * section (.text in ELF).
+ */
+
+DATA int rodataSectionCnt;
+DATA int zerodataSectionCnt;
+DATA int dataSectionCnt;
+DATA int codeSectionCnt;
+DATA unsigned char *rodataSection;
+DATA unsigned char *dataSection;
+DATA unsigned char *codeSection;

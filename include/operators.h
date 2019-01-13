@@ -87,15 +87,16 @@ struct BinopInfo {
         char *str;
 };
 
-extern const struct ToktypeToPrefixUnop toktypeToPrefixUnop[];
-extern const struct ToktypeToPostfixUnop toktypeToPostfixUnop[];
-extern const struct ToktypeToBinop toktypeToBinop[];
 extern const char *const unopKindString[NUM_UNOP_KINDS];
 extern const char *const binopKindString[NUM_BINOP_KINDS];
 extern const char *const unopString[NUM_UNOP_KINDS];
 extern const char *const binopString[NUM_BINOP_KINDS];
 extern const int unopIsPrefix[NUM_UNOP_KINDS];
 extern const int binopPrec[NUM_BINOP_KINDS];
+
+extern const struct ToktypeToPrefixUnop toktypeToPrefixUnop[];
+extern const struct ToktypeToPostfixUnop toktypeToPostfixUnop[];
+extern const struct ToktypeToBinop toktypeToBinop[];
 
 extern const int toktypeToPrefixUnopCnt;
 extern const int toktypeToPostfixUnopCnt;

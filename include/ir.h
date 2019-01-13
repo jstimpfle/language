@@ -95,14 +95,6 @@ enum IrCmpKind {
         NUM_IRCMP_KINDS,
 };
 
-extern const char *const irStmtString[NUM_IRSTMT_KINDS];
-extern const char *const irOp1String[NUM_IROP1_KINDS];
-extern const char *const irOp2String[NUM_IROP2_KINDS];
-extern const char *const irCmpString[NUM_IRCMP_KINDS];
-
-/**
- */
-
 enum IrLoadConstantKind {
         IRCONSTANT_INTEGER,
         IRCONSTANT_STRING,
@@ -272,7 +264,14 @@ struct IrOrigin {
 
 
 /*
- *
+ */
+
+extern const char *const irStmtString[NUM_IRSTMT_KINDS];
+extern const char *const irOp1String[NUM_IROP1_KINDS];
+extern const char *const irOp2String[NUM_IROP2_KINDS];
+extern const char *const irCmpString[NUM_IRCMP_KINDS];
+
+/*
  */
 
 DATA IrProc *procToIrProc;

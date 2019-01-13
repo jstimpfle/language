@@ -21,6 +21,10 @@ typedef int Structmember;
  * user-defined, or built-in ones). Lexical references (by name) to other types
  * are implemented as types of kind TYPE_REFERENCE, and these types contain
  * symbol references, which must resolve to SYMBOL_TYPE symbols.
+ *
+ * \enum{BuiltintypeKind}. We have a few builtin types as internal dependencies.
+ * These get initialized early in the life of the process. The resulting types
+ * are stored in a lookup table, see \ref{builtinType}.
  */
 
 enum TypeKind {
@@ -33,13 +37,6 @@ enum TypeKind {
         TYPE_REFERENCE, // reference another type by name
         NUM_TYPE_KINDS,
 };
-
-
-/**
- * \enum{BuiltintypeKind}. We have a few builtin types as internal dependencies.
- * These get initialized early in the life of the process. The resulting types
- * are stored in a lookup table, see \ref{builtinType}.
- */
 
 enum BuiltinTypeKind {
         BUILTINTYPE_VOID,
@@ -139,10 +136,15 @@ struct BasetypeToBeInitialized {
         Type *builtinTypePtr;
 };
 
+/*
+ */
+
+extern const char *const typeKindString[NUM_TYPE_KINDS];
 extern const struct BasetypeToBeInitialized basetypesToBeInitialized[];
 extern const int basetypesToBeInitializedCnt;
 
-extern const char *const typeKindString[NUM_TYPE_KINDS];
+/*
+ */
 
 DATA Type builtinType[NUM_BUILTINTYPE_KINDS];  // initialized early
 

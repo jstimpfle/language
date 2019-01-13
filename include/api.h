@@ -10,6 +10,9 @@
 #define DATA extern
 #endif
 
+
+#define INTERNAL static
+
 /*
  *
  */
@@ -25,13 +28,6 @@ typedef int Type; // needed in syntax. TODO think about dependencies
 #include <codegen.h>
 #include <x64.h>
 #include <cmdline.h>
-
-
-/* setup.c */
-void setup_program(void);
-
-/* teardown.c */
-void teardown_program(void);
 
 
 /*
@@ -177,6 +173,12 @@ const char *TS(Token tok);
 
 String intern_string(const void *buf, int len);
 String intern_cstring(const char *str);
+
+/* setup.c */
+void setup_program(void);
+
+/* teardown.c */
+void teardown_program(void);
 
 /* lex.c */
 Token lex_token(void);

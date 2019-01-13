@@ -2,7 +2,6 @@
 #error This file must be included only from api.h !
 #endif
 
-
 /* Options selected at process invocation */
 DATA int doDebug;
 DATA int doPrettyPrintAst;
