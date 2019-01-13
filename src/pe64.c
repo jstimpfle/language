@@ -579,7 +579,139 @@ architectures the information may be required for other purposes.
    interpretation depends on the number found as the storage class).
  */
 
-/* (#define's still missing) */
+#define IMAGE_SYM_CLASS_END_OF_FUNCTION -1  /* (0xFF) A special symbol that
+                                               represents the end of function,
+                                               for debugging purposes. */
+#define IMAGE_SYM_CLASS_NULL             0  /* No assigned storage class. */
+#define IMAGE_SYM_CLASS_AUTOMATIC        1  /* The automatic (stack) variable.
+                                               The Value field specifies the
+                                               stack frame offset. */
+#define IMAGE_SYM_CLASS_EXTERNAL         2  /* A value that Microsoft tools use
+                                               for external symbols. The Value
+                                               field indicates the size if the
+                                               section number is
+                                               IMAGE_SYM_UNDEFINED (0). If the
+                                               section number is not zero, then
+                                               the Value field specifies the
+                                               offset within the section. */
+#define IMAGE_SYM_CLASS_STATIC           3  /* The offset of the symbol within
+                                               the section. If the Value field
+                                               is zero, then the symbol
+                                               represents a section name. */
+#define IMAGE_SYM_CLASS_REGISTER         4  /* A register variable. The Value
+                                               field specifies the register
+                                               number. */
+#define IMAGE_SYM_CLASS_EXTERNAL_DEF     5  /* A symbol that is defined
+                                               externally. */
+#define IMAGE_SYM_CLASS_LABEL            6  /* A code label that is defined
+                                               within the module. The Value
+                                               field specifies the offset of the
+                                               symbol within the section. */
+#define IMAGE_SYM_CLASS_UNDEFINED_LABEL  7  /* A reference to a code label that
+                                               is not defined. */
+#define IMAGE_SYM_CLASS_MEMBER_OF_STRUCT 8  /* The structure member. The Value
+                                               field specifies the n th member.
+                                               */
+#define IMAGE_SYM_CLASS_ARGUMENT         9  /* A formal argument (parameter) of
+                                               a function. The Value field
+                                               specifies the n th argument. */
+#define IMAGE_SYM_CLASS_STRUCT_TAG      10  /* The structure tag-name entry. */
+#define IMAGE_SYM_CLASS_MEMBER_OF_UNION 11  /* A union member. The Value field
+                                               specifies the n th member. */
+#define IMAGE_SYM_CLASS_UNION_TAG       12  /* The Union tag-name entry. */
+#define IMAGE_SYM_CLASS_TYPE_DEFINITION 13  /* A Typedef entry. */
+#define IMAGE_SYM_CLASS_UNDEFINED_STATIC 14  /* A static data declaration. */
+#define IMAGE_SYM_CLASS_ENUM_TAG         15  /* An enumerated type tagname
+                                                entry. */
+#define IMAGE_SYM_CLASS_MEMBER_OF_ENUM   16  /* A member of an enumeration. The
+                                                Value field specifies the n th
+                                                member. */
+#define IMAGE_SYM_CLASS_REGISTER_PARAM   17  /* A register parameter. */
+#define IMAGE_SYM_CLASS_BIT_FIELD        18  /* A bit-field reference. The Value
+                                                field specifies the n th bit in
+                                                the bit field. */
+#define IMAGE_SYM_CLASS_BLOCK           100  /* A .bb (beginning of block) or
+                                                .eb (end of block) record. The
+                                                Value field is the relocatable
+                                                address of the code location. */
+#define IMAGE_SYM_CLASS_FUNCTION   101  /* A value that Microsoft tools use for
+                                           symbol records that define the extent
+                                           of a function: begin function (.bf ),
+                                           end function ( .ef ), and lines in
+                                           function ( .lf ). For .lf records,
+                                           the Value field gives the number of
+                                           source lines in the function. For .ef
+                                           records, the Value field gives the
+                                           size of the function code. */
+#define IMAGE_SYM_CLASS_END_OF_STRUCT   102  /* An end-of-structure entry. */
+#define IMAGE_SYM_CLASS_FILE            103  /* A value that Microsoft tools, as
+                                                well as traditional COFF format,
+                                                use for the source-file symbol
+                                                record. The symbol is followed
+                                                by auxiliary records that name
+                                                the file. */
+#define IMAGE_SYM_CLASS_SECTION         104  /* A definition of a section
+                                                (Microsoft tools use STATIC
+                                                storage class instead).  */
+#define IMAGE_SYM_CLASS_WEAK_EXTERNAL   105 /* A weak external. For more
+                                               information, see
+                                               Auxiliary Format 3: Weak
+                                               Externals.  */
+#define IMAGE_SYM_CLASS_CLR_TOKEN       107  /* A CLR token symbol. The name is
+                                                an ASCII string that consists of
+                                                the hexadecimal value of the
+                                                token. For more information, see
+                                                CLR Token Definition (Object
+                                                Only). */
+
+/*
+ * COMDAT Sections (Object only)
+ */
+#define IMAGE_COMDAT_SELECT_NODUPLICATES 1  /* If this symbol is already
+                                               defined, the linker issues a
+                                               "multiply defined symbol" error.
+                                               */
+#define IMAGE_COMDAT_SELECT_ANY          2  /* Any section that defines the same
+                                               COMDAT symbol can be linked; the
+                                               rest are removed. */
+#define IMAGE_COMDAT_SELECT_SAME_SIZE    3  /* The linker chooses an arbitrary
+                                               section among the definitions for
+                                               this symbol. If all definitions
+                                               are not the same size, a
+                                               "multiply defined symbol" error
+                                               is issued. */
+#define IMAGE_COMDAT_SELECT_EXACT_MATCH  4  /* The linker chooses an arbitrary
+                                               section among the definitions for
+                                               this symbol. If all definitions
+                                               do not match exactly, a "multiply
+                                               defined symbol" error is issued.
+                                               */
+#define IMAGE_COMDAT_SELECT_ASSOCIATIVE  5  /* The section is linked if a
+                                               certain other COMDAT section is
+                                               linked. This other section is
+                                               indicated by the Number field of
+                                               the auxiliary symbol record for
+                                               the section definition. This
+                                               setting is useful for definitions
+                                               that have components in multiple
+                                               sections (for example, code in
+                                               one and data in another), but
+                                               where all must be linked or
+                                               discarded as a set. The other
+                                               section with which this section
+                                               is associated must be a COMDAT
+                                               section; it cannot be another
+                                               associative COMDAT section (that
+                                               is, the other section cannot have
+                                               IMAGE_COMDAT_SELECT_ASSOCIATIVE
+                                               set). */
+#define IMAGE_COMDAT_SELECT_LARGEST      6  /* The linker chooses the largest
+                                               definition from among all of the
+                                               definitions for this symbol. If
+                                               multiple definitions have this
+                                               size, the choice between them is
+                                               arbitrary. */
+
 
 INTERNAL
 void write_PED_BYTE(FILE *f, PED_BYTE x)
@@ -700,6 +832,15 @@ enum {
 };
 
 
+const char *const pesecName[NUM_PESEC_KINDS] = {
+#define MAKE(x, y) [x] = y
+        MAKE( PESEC_DATA,  ".data" ),
+        MAKE( PESEC_RDATA, ".rdata" ),
+        MAKE( PESEC_BSS,   ".bss" ),
+        MAKE( PESEC_TEXT,  ".text" ),
+#undef MAKE
+};
+
 int pe64symCnt;
 int pe64relocCnt;
 
@@ -751,6 +892,47 @@ void set_PE_Symbol_Name(struct PE_Symbol *stab, const char *name)
          * representation are occupied by the length field indicating the size
          * of the string table */
         stab->PESy_Name.offset = pe64_add_to_strtab(name, len) + 4;
+}
+
+INTERNAL
+void write_freak_show_section_symbol(FILE *f, int pesec, int sectionSize)
+{
+        struct PE_Symbol pesym = {0};
+        set_PE_Symbol_Name(&pesym, pesecName[pesec]);
+        pesym.PESy_Value = 0;  // XXX:??? or sectionSize???
+        pesym.PESy_SectionNumber = pesec + 1;
+        pesym.PESy_Type = 0x00;
+        pesym.PESy_StorageClass = IMAGE_SYM_CLASS_STATIC;
+        pesym.PESy_NumberOfAuxSymbols = 1;
+
+        write_PE_Symbol(f, &pesym);
+
+        /*
+         * now the extra special freak goo
+         */
+
+        write_PED_DWORD(f, sectionSize);   /* The size of section data; the same
+                                              as SizeOfRawData in the section
+                                              header. */
+        write_PED_WORD(f, 0 /*XXX*/); /* The number of relocation entries for this
+                                   section */
+        write_PED_WORD(f, 0);   /* The number of line-number entries for this
+                                   section */
+        write_PED_DWORD(f, 0);  /* The checksum for communal data. It is
+                                   applicable if the IMAGE_SCN_LINK_COMDAT
+                                   flag is set in the section header. For more
+                                   information see... */
+        write_PED_WORD(f, 0);  /* One-based index into the section
+                                          table for the associated section.
+                                          This is used when the COMDAT selection
+                                          setting is 5. */
+        write_PED_BYTE(f, 0);   /* The COMDAT selection number. This is
+                                   applicable if the section is a COMDAT section
+                                   */
+        /* 3 more unused bytes */
+        write_PED_BYTE(f, 0);
+        write_PED_BYTE(f, 0);
+        write_PED_BYTE(f, 0);
 }
 
 void write_pe64_object(const char *filepath)
@@ -809,7 +991,7 @@ void write_pe64_object(const char *filepath)
                 pe64symTab[x].PESy_Value = value;  // XXX
                 pe64symTab[x].PESy_Type = isProc ? 0x20 : 0x00;
                 // TODO: only export symbols that have an export statement
-                pe64symTab[x].PESy_StorageClass = 0x02; //IMAGE_SYM_CLASS_EXTERNAL
+                pe64symTab[x].PESy_StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
                 pe64symTab[x].PESy_SectionNumber = sectionNumber + 1;  // 1-based
                 pe64symTab[x].PESy_NumberOfAuxSymbols = 0;
 
@@ -840,8 +1022,8 @@ void write_pe64_object(const char *filepath)
                 set_PE_Symbol_Name(&pe64symTab[x], SS(sym));
                 pe64symTab[x].PESy_Value = 0;  // see IMAGE_SYM_UNDEFINED
                 pe64symTab[x].PESy_Type = isProc ? 0x20 : 0x00;
-                pe64symTab[x].PESy_StorageClass = 0x02; //IMAGE_SYM_CLASS_EXTERNAL
-                pe64symTab[x].PESy_SectionNumber = 0;  // IMAGE_SYM_UNDEFINED
+                pe64symTab[x].PESy_StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
+                pe64symTab[x].PESy_SectionNumber = IMAGE_SYM_UNDEFINED;
                 pe64symTab[x].PESy_NumberOfAuxSymbols = 0;
 
                 symbolToPe64sym[sym] = x;
@@ -883,8 +1065,7 @@ void write_pe64_object(const char *filepath)
                         pe64symTab[x].PESy_Value =
                                 pe64symTab[other].PESy_Value + addend;
                         pe64symTab[x].PESy_Type = 0x00;  // ???
-                        // TODO: only export symbols that have an export statement
-                        pe64symTab[x].PESy_StorageClass = 0x03; //IMAGE_SYM_CLASS_STATIC
+                        pe64symTab[x].PESy_StorageClass = IMAGE_SYM_CLASS_STATIC;
                         pe64symTab[x].PESy_SectionNumber =
                                 pe64symTab[other].PESy_SectionNumber;
                         pe64symTab[x].PESy_NumberOfAuxSymbols = 0;
@@ -901,6 +1082,29 @@ void write_pe64_object(const char *filepath)
 
         struct PE_SectionHeader sh[NUM_PESEC_KINDS];
         CLEAR(sh);
+
+        for (int i = 0; i < NUM_PESEC_KINDS; i++)
+                set_PE_Section_Name(&sh[i], pesecName[i]);
+
+        sh[PESEC_DATA].PES_Characteristics =
+                                        IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                        IMAGE_SCN_MEM_READ |
+                                        IMAGE_SCN_MEM_WRITE |
+                                        IMAGE_SCN_ALIGN_16BYTES;
+        sh[PESEC_RDATA].PES_Characteristics =
+                                        IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                        IMAGE_SCN_MEM_READ |
+                                        IMAGE_SCN_ALIGN_16BYTES;
+        sh[PESEC_BSS].PES_Characteristics =
+                                        IMAGE_SCN_CNT_UNINITIALIZED_DATA |
+                                        IMAGE_SCN_MEM_READ |
+                                        IMAGE_SCN_MEM_WRITE |
+                                        IMAGE_SCN_ALIGN_16BYTES;
+        sh[PESEC_TEXT].PES_Characteristics =
+                                        IMAGE_SCN_CNT_CODE |
+                                        IMAGE_SCN_MEM_EXECUTE |
+                                        IMAGE_SCN_MEM_READ |
+                                        IMAGE_SCN_ALIGN_16BYTES;
 
         sh[PESEC_DATA ].PES_VirtualSize = dataSectionCnt;
         sh[PESEC_RDATA].PES_VirtualSize = rodataSectionCnt;
@@ -921,32 +1125,11 @@ void write_pe64_object(const char *filepath)
         sh[PESEC_BSS  ].PES_PointerToRawData = AFTER(PESEC_RDATA);
         sh[PESEC_TEXT ].PES_PointerToRawData = AFTER(PESEC_BSS);
 
-        sh[PESEC_DATA].PES_Characteristics =
-                                        IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                        IMAGE_SCN_MEM_READ |
-                                        IMAGE_SCN_MEM_WRITE;
-        sh[PESEC_RDATA].PES_Characteristics =
-                                        IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                        IMAGE_SCN_MEM_READ;
-        sh[PESEC_BSS].PES_Characteristics =
-                                        IMAGE_SCN_CNT_UNINITIALIZED_DATA |
-                                        IMAGE_SCN_MEM_READ |
-                                        IMAGE_SCN_MEM_WRITE;
-        sh[PESEC_TEXT].PES_Characteristics =
-                                        IMAGE_SCN_CNT_CODE |
-                                        IMAGE_SCN_MEM_EXECUTE |
-                                        IMAGE_SCN_MEM_READ;
-
         /* XXX: PE wants to have the relocation sorted by section. Currently we
          * only have relocations for the .text section, but that will change.
          */
         sh[PESEC_TEXT ].PES_PointerToRelocations = AFTER(PESEC_TEXT);
         sh[PESEC_TEXT ].PES_NumberOfRelocations = pe64relocCnt;
-
-        set_PE_Section_Name(&sh[PESEC_DATA], ".data");
-        set_PE_Section_Name(&sh[PESEC_RDATA], ".rdata");
-        set_PE_Section_Name(&sh[PESEC_BSS], ".bss");
-        set_PE_Section_Name(&sh[PESEC_TEXT], ".text");
 
         struct PE_FileHeader fh;
         CLEAR(fh);
@@ -957,7 +1140,9 @@ void write_pe64_object(const char *filepath)
         fh.PEH_PointerToSymbolTable = AFTER(PESEC_TEXT)
                 + pe64relocCnt * IMAGE_SIZEONDISK_OF_Reloc; // ACHTUNG
 #undef AFTER
-        fh.PEH_NumberOfSymbols = pe64symCnt;
+        /* Note: we have normal symbols + (2 * NUM_PESEC_KINDS) freak show
+         * symbols. See below */
+        fh.PEH_NumberOfSymbols = pe64symCnt + 2*NUM_PESEC_KINDS;
         fh.PEH_SizeOfOptionalHeader = 0;
         fh.PEH_Characteristics = IMAGE_FILE_LINE_NUMS_STRIPPED |
                                  IMAGE_FILE_LOCAL_SYMS_STRIPPED |
@@ -986,10 +1171,17 @@ void write_pe64_object(const char *filepath)
         sh[PESEC_BSS  ].PES_SizeOfRawData = sh[PESEC_BSS].PES_VirtualSize;
         sh[PESEC_BSS  ].PES_VirtualSize = 0;
         sh[PESEC_BSS  ].PES_PointerToRawData = 0;
-
-        /* Write Section Header Table */
+        /*
+         * Write Section Header Table
+         */
         for (int i = 0; i < NUM_PESEC_KINDS; i++)
                 write_PE_SectionHeader(f, &sh[i]);
+        /*
+         * XXX: Revert this stupidity again because we have more logic depending
+         * on it.
+         */
+        sh[PESEC_BSS  ].PES_VirtualSize = sh[PESEC_BSS].PES_SizeOfRawData;
+        sh[PESEC_BSS  ].PES_SizeOfRawData = 0;
 
         /* Write section data */
         fwrite(dataSection, dataSectionCnt, 1, f);
@@ -1003,6 +1195,13 @@ void write_pe64_object(const char *filepath)
         /* Write symbol table */
         for (int i = 0; i < pe64symCnt; i++)
                 write_PE_Symbol(f, &pe64symTab[i]);
+
+        /* We need to emit symbols for each section, too. Each section symbol
+         * is followed up by one auxiliary record that has the same size as
+         * symbol definitions but a different frankenstein format. Who the hell
+         * invented this crap? */
+        for (int i = 0; i < NUM_PESEC_KINDS; i++)
+                write_freak_show_section_symbol(f, i, sh[i].PES_VirtualSize);
 
         /* Write string table */
         write_PED_DWORD(f, 4 + pe64strCnt);
