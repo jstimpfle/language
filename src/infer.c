@@ -64,9 +64,8 @@ void infer_struct(Directive directive)
 
 void infer_constants_and_types(void)
 {
-        ASSERT(globalBufferAlloc[BUFFER_constantValue].cap == 0);
+        ASSERT(globalBufferAlloc[BUFFER_constantValue].cap >= constantCnt);
         ASSERT(globalBufferAlloc[BUFFER_exprType].cap == 0);
-        RESIZE_GLOBAL_BUFFER(constantValue, constantCnt);
         RESIZE_GLOBAL_BUFFER(exprType, exprCnt);
 
         /* mark as unprocessed. We will infer constants and types in order of

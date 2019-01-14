@@ -968,6 +968,9 @@ void parse_constant_directive(Directive directive)
         RESIZE_GLOBAL_BUFFER(scopeInfo, scopeCnt);
         RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
         RESIZE_GLOBAL_BUFFER(constantInfo, constantCnt);
+        /* Currently parse_enum_directive() has to resize the constantValue
+        buffer along with constantInfo. For consistency we do that here, too. */
+        RESIZE_GLOBAL_BUFFER(constantValue, constantCnt);
         symbolInfo[symbol].name = name;
         symbolInfo[symbol].scope = currentScope;
         symbolInfo[symbol].symbolKind = SYMBOL_CONSTANT;
