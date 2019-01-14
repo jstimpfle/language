@@ -41,6 +41,8 @@ void infer_struct(Directive directive)
 {
         Type tp = directiveInfo[directive].tStruct.tp;
         ASSERT(0 <= tp && tp < typeCnt);
+        ASSERT(typeInfo[tp].typeKind == TYPE_STRUCT);
+        DEBUG("Infer struct %s\n", SS(typeInfo[tp].tStruct.name));
 
         int size = 0;
         Structmember first = typeInfo[tp].tStruct.firstStructmember;
@@ -56,7 +58,7 @@ void infer_struct(Directive directive)
                               string_buffer(structmemberInfo[m].memberName));
                 }
                 size += membersize;
-                DEBUG("Add size %d to struct %d to give %d\n", size, tp, typeInfo[tp].tStruct.size);
+                DEBUG("Add size %d to struct %d to give %d\n", membersize, tp, size);
         }
         typeInfo[tp].tStruct.size = size;
 }
@@ -66,6 +68,10 @@ void infer_constants_and_types(void)
         ASSERT(globalBufferAlloc[BUFFER_constantValue].cap >= constantCnt);
         ASSERT(globalBufferAlloc[BUFFER_exprType].cap == 0);
         RESIZE_GLOBAL_BUFFER(exprType, exprCnt);
+
+        /* Mark as not-yet-typechecked */
+        for (Expr x = 0; x < exprCnt; x++)
+                exprType[x] = (Type) -1;
 
         /* mark as unprocessed. We will infer constants and types in order of
          * definition. If an earlier defined constant depends on a later default
@@ -97,6 +103,7 @@ void infer_constants_and_types(void)
                 }
         }
 
+        DEBUG("Infer types of all procedure bodies..\n");
         for (Proc p = 0; p < procCnt; p++)
                 check_stmt_types(procInfo[p].body);
 }

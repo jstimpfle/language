@@ -69,47 +69,41 @@ Type check_symref_expr_type(Expr x)
                 return (Type) -1;
         }
         switch (symbolInfo[sym].symbolKind) {
-                case SYMBOL_TYPE:
-                        // Maybe something like the "type" type?
-                        // Or fatal() ?
-                        UNHANDLED_CASE();
-                        break;
-                case SYMBOL_DATA:
-                        return symbolInfo[sym].tData.tp;
-                case SYMBOL_PROC:
-                        return symbolInfo[sym].tProc.tp;
-                case SYMBOL_MACRO:
-                        FATAL("TODO: We cannot check the type of a (call to a) macro. We need to implement some kind of cloning/instancing of the macro expression subtree first, and then replace the EXPR_CALL invocation of the macro by that new subtree.\n");
-                case SYMBOL_CONSTANT: {
-                        /* XXX: see note for Constants in check_types() */
-                        Constant constant = symbolInfo[sym].tConstant;
-                        ASSERT(constant != (Constant) -1);
-                        int constantKind = constantInfo[constant].constantKind;
-                        if (constantKind == CONSTANT_INTEGER)
-                                return builtinType[BUILTINTYPE_INT];
-                        else if (constantKind == CONSTANT_EXPRESSION) {
-                                Expr expr = constantInfo[constant].tExpr;
-                                if (exprType[expr] == (Type) -2) {
-                                        /* already being processed: cycle in
-                                         * constant.  We might want to factor
-                                         * out the cycle detection because the
-                                         * code is a little complex by now */
-                                        // XXX: better report the error at the
-                                        // *constant*, not at the expr
-                                        FATAL_ERROR_AT_EXPR(expr,
-                                                "Cycle detected while resolving type of constant %s. Cannot continue\n", SS(sym));
-
-                                }
-                                exprType[expr] = (Type) -2;
-                                check_expr_type(expr);
-                                return exprType[expr];
+        case SYMBOL_TYPE:
+                // Maybe something like the "type" type?
+                // Or fatal() ?
+                UNHANDLED_CASE();
+                break;
+        case SYMBOL_DATA:
+                return symbolInfo[sym].tData.tp;
+        case SYMBOL_PROC:
+                return symbolInfo[sym].tProc.tp;
+        case SYMBOL_MACRO:
+                FATAL("TODO: We cannot check the type of a (call to a) macro. We need to implement some kind of cloning/instancing of the macro expression subtree first, and then replace the EXPR_CALL invocation of the macro by that new subtree.\n");
+        case SYMBOL_CONSTANT: {
+                Constant constant = symbolInfo[sym].tConstant;
+                ASSERT(constant != (Constant) -1);
+                int constantKind = constantInfo[constant].constantKind;
+                if (constantKind == CONSTANT_INTEGER)
+                        return builtinType[BUILTINTYPE_INT];
+                else if (constantKind == CONSTANT_EXPRESSION) {
+                        Expr expr = constantInfo[constant].tExpr;
+                        if (exprType[expr] == -1) {
+                                LOG_TYPE_ERROR_EXPR(expr,
+                                        "Type of constant %s not yet known. "
+                                        "Try changing the order of "
+                                        "declarations\n",
+                                        SS(constantInfo[constant].symbol));
+                                return (Type) -1;
                         }
-                        else {
-                                UNHANDLED_CASE();
-                        }
+                        return exprType[expr];
                 }
-                default:
+                else {
                         UNHANDLED_CASE();
+                }
+        }
+        default:
+                UNHANDLED_CASE();
         }
 }
 
@@ -310,7 +304,6 @@ Type check_call_expr_type(Expr x)
                 return (Type) -1;
         }
 
-        check_expr_type(exprInfo[x].tCall.callee);
         int first = exprInfo[x].tCall.firstArgIdx;
         int nargs = exprInfo[x].tCall.nargs;
         for (int i = 0; i < nargs; i++) {
@@ -398,28 +391,39 @@ Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
 Type check_expr_type(Expr x)
 {
         ASSERT(0 <= x && x < exprCnt);
-        Type tp = -1;
+        DEBUG("Check type of %s expression=%d...\n",
+              exprKindString[exprInfo[x].exprKind], x);
+
+        /* Catch redundant type checks. They indicate a structural problem */
+        if (exprType[x] != (Type) -1) {
+                print_type(exprType[x]);
+                MSG_AT_EXPR(lvl_info, x,
+                            "type of %s expression=%d is %d\n",
+                            exprKindString[exprInfo[x].exprKind],
+                            x, exprType[x]);
+                ASSERT(0);
+        }
 
         int kind = exprInfo[x].exprKind;
         ASSERT(0 <= kind && kind < NUM_EXPR_KINDS);
+        ASSERT( exprKindToTypecheckFunc [kind] );
 
-        if (! exprKindToTypecheckFunc [kind])
-                UNHANDLED_CASE();
-        tp = exprKindToTypecheckFunc [kind] (x);
-
+        Type tp = exprKindToTypecheckFunc [kind] (x);
         if (tp == -1) {
                 LOG_TYPE_ERROR_EXPR(
                         x, "Type check of %s expression failed\n",
                         exprKindString[exprInfo[x].exprKind]);
-                FATAL("Type errors detected\n");
+                FATAL_ERROR_AT_EXPR(x, "Type errors detected\n");
         }
+        DEBUG("type of expr=%d successfully checked as %d\n", x, tp);
 
         exprType[x] = tp;
-        return (tp == (Type) -1) ? tp : referenced_type(tp);
+        return referenced_type(tp);
 }
 
 void check_stmt_types(Stmt a)
 {
+        DEBUG("Check types of statement %d\n", a);
         switch (stmtInfo[a].stmtKind) {
         case STMT_IF: {
                 check_expr_type(stmtInfo[a].tIf.condExpr);
