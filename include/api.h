@@ -101,17 +101,17 @@ void _msg_at_expr(const char *srcfilename, int srcline,
                        "%s()\n", __func__); \
 } while (0)
 
-#define FATAL(...) do { \
+#define FATAL_ERROR(...) do { \
         MSG(lvl_fatal, __VA_ARGS__); \
         exit_program(1); \
 } while (0)
 
-#define FATAL_PARSE_ERROR_AT(...) do { \
+#define FATAL_ERROR_AT(...) do { \
         MSG_AT(lvl_fatal, __VA_ARGS__); \
         exit_program(1); \
 } while (0)
 
-#define FATAL_PARSE_ERROR_AT_TOK(...) do { \
+#define FATAL_ERROR_AT_TOK(...) do { \
         MSG_AT_TOK(lvl_fatal, __VA_ARGS__); \
         exit_program(1); \
 } while (0)
@@ -120,6 +120,18 @@ void _msg_at_expr(const char *srcfilename, int srcline,
         MSG_AT_EXPR(lvl_fatal, __VA_ARGS__); \
         exit_program(1); \
 } while (0)
+
+#define FATAL_LEX_ERROR(...) \
+        FATAL_ERROR_AT(currentFile, currentOffset, __VA_ARGS__)
+
+#define FATAL_PARSE_ERROR(...) \
+        FATAL_ERROR_AT_TOK((tokenCnt-1), __VA_ARGS__)
+
+#define FATAL_PARSE_ERROR_AT_TOK(...) \
+        FATAL_ERROR_AT_TOK(__VA_ARGS__)
+
+#define FATAL(...) \
+        FATAL_ERROR(__VA_ARGS__)
 
 #define ASSERT(x) do { \
         if (!(x)) { \

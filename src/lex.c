@@ -1,7 +1,6 @@
 #include "defs.h"
 #include "api.h"
 
-
 INTERNAL
 int look_char(void)
 {
@@ -9,8 +8,7 @@ int look_char(void)
                 return -1;
         int c = fileInfo[currentFile].buf[currentOffset];
         if (c < 32 && c != '\n')
-                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-                                     "Invalid byte %d\n", c);
+                FATAL_LEX_ERROR("Invalid byte %d\n", c);
         return c;
 }
 
@@ -44,8 +42,8 @@ lookcommentend:
         for (;;) {
                 c = look_char();
                 if (c == -1) {
-                        FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-                "EOF encountered while looking for the end of a C comment\n");
+                        FATAL_LEX_ERROR("EOF encountered while looking for "
+                                        "the end of a C comment\n");
                 }
                 consume_char();
                 if (c == '*' && look_char() == '/') {
@@ -108,16 +106,17 @@ stringlit:
         for (;;) {
                 c = look_char();
                 if (c == -1)
-                        FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-        "EOF encountered while looking for end of string literal\n");
+                        FATAL_LEX_ERROR("EOF encountered while looking for "
+                                        "the end of the string literal\n");
                 consume_char();
                 if (c == '"')
                         break;
                 if (c == '\\') {
                         c = look_char();
                         if (c == -1)
-                                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-        "EOF encountered while looking for end of escape sequence\n");
+                                FATAL_LEX_ERROR(
+                                        "EOF encountered while looking for "
+                                        "the end of the escape sequence\n");
                         consume_char();
                         if (c == 'n')
                                 c = '\n';
@@ -125,8 +124,9 @@ stringlit:
                                 /* (c = '\\') */
                         }
                         else {
-                                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-        "escape sequence not supported: '\\<0x%x>'\n", c);
+                                FATAL_LEX_ERROR(
+                                        "escape sequence not supported: "
+                                        "'\\<0x%x>'\n", c);
                         }
                 }
                 int idx = lexbufCnt++;
@@ -174,8 +174,7 @@ baretoken:
                         goto goodbaretoken;
                 }
         }
-        FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-                             "Failed to lex token\n");
+        FATAL_LEX_ERROR("Failed to lex token\n");
 goodbaretoken:
         tokenInfo[x].tokenKind = tokenKind;
         return x;

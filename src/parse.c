@@ -69,8 +69,7 @@ INTERNAL
 void push_scope(Scope scope)
 {
         if (scopeStackCnt >= LENGTH(scopeStack))
-                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
-                                     "Maximum scope nesting depth reached\n");
+                FATAL_PARSE_ERROR("Maximum scope nesting depth reached\n");
         scopeStack[scopeStackCnt++] = scope;
         currentScope = scope;
 }
@@ -124,7 +123,7 @@ Token parse_token_kind(int tkind)
 {
         Token tok = look_next_token();
         if (tok == -1)
-                FATAL_PARSE_ERROR_AT(currentFile, currentOffset,
+                FATAL_PARSE_ERROR_AT_TOK(tok,
                                 "Unexpected end of file. Expected %s token\n",
                                 tokenKindString[tkind]);
         if (tokenInfo[tok].tokenKind != tkind)
@@ -225,8 +224,7 @@ void parse_struct_member(Type structTp)
 {
         Token tok = parse_token_kind(TOKEN_WORD);
         if (tokenInfo[tok].tWord.string != constStr[CONSTSTR_DATA])
-                FATAL_PARSE_ERROR_AT_TOK(tok,
-                        "struct data member expected\n");
+                FATAL_PARSE_ERROR_AT_TOK(tok, "struct data member expected\n");
         String memberName = parse_name();
         Type memberTp = parse_type(0);
         parse_token_kind(TOKEN_SEMICOLON);
