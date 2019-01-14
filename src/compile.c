@@ -527,39 +527,27 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
 INTERNAL
 void compile_sizeof_or_lengthof_expr(Expr x, int usedAsLvalue)
 {
+        ASSERT(! usedAsLvalue);
         ASSERT(exprInfo[x].exprKind == EXPR_SIZEOF ||
                exprInfo[x].exprKind == EXPR_LENGTHOF);
-        /* Expression cannot be an lvalue. This condition should have been
-         * caught during type checking. */
-        ASSERT(! usedAsLvalue);
-
         long long value = fold_integer_expr(x);
         IrProc irp = procToIrProc[exprInfo[x].proc];
         IrReg  irreg = exprToIrReg[x];
-
         emit_integer_load(value, irp, irreg);
 }
 
 INTERNAL
 void compile_stringify_expr(Expr x, int usedAsLvalue)
 {
-        (void) usedAsLvalue;
+        ASSERT(! usedAsLvalue);
         Expr y = exprInfo[x].tSizeof.expr;
-        if (exprInfo[y].exprKind != EXPR_SYMREF) {
-                FATAL("Currently, only symbol reference (simple names) can be #stringify'd\n");
-        }
+        if (exprInfo[y].exprKind != EXPR_SYMREF)
+                FATAL("Currently, only variable names can be #stringify'd\n");
         Symref ref = exprInfo[y].tSymref.ref;
-        String s = symrefInfo[ref].name;
-        /* This is a copy-paste of the code for LITERAL_STRING */
-        {
-                IrStmt y = irStmtCnt++;
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[y].proc = procToIrProc[exprInfo[x].proc];
-                irStmtInfo[y].irStmtKind = IRSTMT_LOADCONSTANT;
-                irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_STRING;
-                irStmtInfo[y].tLoadConstant.tString = s;
-                irStmtInfo[y].tLoadConstant.tgtreg = exprToIrReg[x];
-        }
+        String constval = symrefInfo[ref].name;
+        IrProc irproc = procToIrProc[exprInfo[x].proc];
+        IrReg irreg = exprToIrReg[x];
+        emit_string_load(constval, irproc, irreg);
 }
 
 INTERNAL
