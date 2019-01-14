@@ -124,10 +124,3 @@ void _abort(void)
 {
         abort();
 }
-
-void NORETURN _abort_on_failed_assertion(const char * assertion,
-                 const char * file, unsigned int line, const char * function)
-{
-        _fatal(file, line, "In %s(): failed assertion %s\n",
-               function, assertion);
-}

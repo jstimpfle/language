@@ -206,6 +206,7 @@ extern const char lvl_info[];
 extern const char lvl_warn[];
 extern const char lvl_error[];
 extern const char lvl_fatal[];
+extern const char lvl_internalerror[];
 
 extern const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS];
 DATA struct Alloc globalBufferAlloc[NUM_BUFFERS];

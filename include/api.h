@@ -60,20 +60,8 @@ void outc(char c);
 void outs(const char *s);
 void outf(const char *fmt, ...);
 void NORETURN _abort(void);
-void NORETURN _abort_on_failed_assertion(const char * assertion,
-                 const char * file, unsigned int line, const char * function);
 
-#define MSG(lvl, fmt, ...) _msg(__FILE__, __LINE__, (lvl), (fmt), ##__VA_ARGS__)
 #define ABORT() _abort()
-#define DEBUG(...) do { \
-        if (doDebug) \
-                _msg(__FILE__, __LINE__, "DEBUG", __VA_ARGS__); \
-} while (0)
-
-#define ASSERT(x) do { \
-        if (!(x)) \
-                _abort_on_failed_assertion(#x, __FILE__, __LINE__, __func__); \
-} while (0)
 
 
 /*
@@ -97,11 +85,15 @@ void _msg_at_expr(const char *srcfilename, int srcline,
         const char *lvl, Expr expr,
         const char *fmt, ...);
 
-void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
-
+#define MSG(...) _msg(__FILE__, __LINE__, __VA_ARGS__)
 #define MSG_AT(...) _msg_at(__FILE__, __LINE__, __VA_ARGS__)
 #define MSG_AT_TOK(...) _msg_at_tok(__FILE__, __LINE__, __VA_ARGS__)
 #define MSG_AT_EXPR(...) _msg_at_expr(__FILE__, __LINE__, __VA_ARGS__)
+
+#define DEBUG(...) do { \
+        if (doDebug) \
+                MSG(lvl_debug, __VA_ARGS__); \
+} while (0)
 
 #define PARSE_LOG() do { \
         if (doDebug) \
@@ -109,23 +101,41 @@ void NORETURN _fatal(const char *filename, int line, const char *fmt, ...);
                        "%s()\n", __func__); \
 } while (0)
 
+#define FATAL(...) do { \
+        MSG(lvl_fatal, __VA_ARGS__); \
+        exit_program(1); \
+} while (0)
+
 #define FATAL_PARSE_ERROR_AT(...) do { \
         MSG_AT(lvl_fatal, __VA_ARGS__); \
-        ABORT(); \
+        exit_program(1); \
 } while (0)
 
 #define FATAL_PARSE_ERROR_AT_TOK(...) do { \
         MSG_AT_TOK(lvl_fatal, __VA_ARGS__); \
-        ABORT(); \
+        exit_program(1); \
 } while (0)
 
 #define FATAL_ERROR_AT_EXPR(...) do { \
         MSG_AT_EXPR(lvl_fatal, __VA_ARGS__); \
-        ABORT(); \
+        exit_program(1); \
 } while (0)
 
-#define FATAL(fmt, ...) _fatal(__FILE__, __LINE__, (fmt), ##__VA_ARGS__)
-#define UNHANDLED_CASE() FATAL("Unhandled case!\n");
+#define ASSERT(x) do { \
+        if (!(x)) { \
+                MSG(lvl_internalerror, "Assertion failed: %s\n", #x); \
+                ABORT(); \
+        } \
+} while (0)
+
+#define ASSERT_FMT(x, ...) do { \
+        if (!(x)) { \
+                MSG(lvl_internalerror, ##__VA_ARGS__); \
+                ABORT(); \
+        } \
+} while (0)
+
+#define UNHANDLED_CASE() ASSERT_FMT(0, "Unhandled case!\n")
 
 
 /* memory.c */

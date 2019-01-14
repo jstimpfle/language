@@ -7,6 +7,7 @@ const char lvl_info[] = "INFO";
 const char lvl_warn[] = "WARN";
 const char lvl_error[] = "ERROR";
 const char lvl_fatal[] = "FATAL";
+const char lvl_internalerror[] = "INTERNALERROR";
 
 const char *const tokenKindString[NUM_TOKEN_KINDS] = {
 #define MAKE(x) [x] = #x
