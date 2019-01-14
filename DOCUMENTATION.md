@@ -17,16 +17,21 @@ Stages
     resolve.c              04. Link references by name to definitions. Expand
                                type expressions.
     macroexpand.c          05. Expand macro calls
-    typecheck.c            06. Check types of all expressions
-    constantfold.c         07. Compute all constant values
-    ifacegen.c             08. (Optional) Write interface definition describing
+    infer.c                06. Check types and evaluate constants. This is a
+                               complicated stage since constants can depend on
+                               types (for example #sizeof, #lengthof), and
+                               types can depend on constants (array lengths).
+                               This stage calls into typecheck.c and
+                               constantfold.c
+    ifacegen.c             07. (Optional) Write interface definition describing
                                the things compiled here
-    compile.c              09. Translate syntactic structures to IR
-    irprint.c              10. Print the IR (Intermediate representation)
-    x64asm.c               11. Generate x86-64 code from IR
-    elf64.c                12. (Optional) Write x86-64 code to an ELF file
-    pe64.c                 13. (Optional) Write x86-64 code to a PECOFF file
-    teardown.c             14. Shutdown the compiler, free all used memory
+    compile.c              08. Translate syntactic structures to IR
+                               (Intermediate Representation)
+    irprint.c              09. (Optional) Print the IR
+    x64asm.c               10. Generate x86-64 code from IR
+    elf64.c                11. (Optional) Write x86-64 code to an ELF file
+    pe64.c                 12. (Optional) Write x86-64 code to a PECOFF file
+    teardown.c             13. Shutdown the compiler, free all used memory
 ```
 
 Supporting implementation
@@ -41,4 +46,6 @@ Supporting implementation
     messages.c          formatting of user-visible messages
     str.c               string interning
     typemetrics.c       a few operations and tests on types
+    typecheck.c         type checking
+    constantfold.c      computation of constant values
 ```
