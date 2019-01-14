@@ -27,6 +27,8 @@ void infer_constant(Directive directive)
 INTERNAL
 void infer_array(Directive directive)
 {
+        /* XXX: Should we require that typechecking determines the length
+         * immediately? */
         Data data = directiveInfo[directive].tArray.data;
         DEBUG("Infer array %s\n", SS(dataInfo[data].sym));
         Expr lengthExpr = directiveInfo[directive].tArray.lengthExpr;

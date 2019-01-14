@@ -523,22 +523,21 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
         }
 }
 
+
 INTERNAL
-void compile_sizeof_expr(Expr x, int usedAsLvalue)
+void compile_sizeof_or_lengthof_expr(Expr x, int usedAsLvalue)
 {
+        ASSERT(exprInfo[x].exprKind == EXPR_SIZEOF ||
+               exprInfo[x].exprKind == EXPR_LENGTHOF);
         /* Expression cannot be an lvalue. This condition should have been
          * caught during type checking. */
-        ASSERT(! usedAsLvalue);  // caught during type checking
+        ASSERT(! usedAsLvalue);
 
-        Expr y = exprInfo[x].tSizeof.expr;
-        Type tp = exprType[y];
-        IrStmt irs = irStmtCnt++;
-        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-        irStmtInfo[irs].proc = procToIrProc[exprInfo[x].proc];
-        irStmtInfo[irs].irStmtKind = IRSTMT_LOADCONSTANT;
-        irStmtInfo[irs].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
-        irStmtInfo[irs].tLoadConstant.tInteger = get_type_size(tp);
-        irStmtInfo[irs].tLoadConstant.tgtreg = exprToIrReg[x];
+        long long value = fold_integer_expr(x);
+        IrProc irp = procToIrProc[exprInfo[x].proc];
+        IrReg  irreg = exprToIrReg[x];
+
+        emit_integer_load(value, irp, irreg);
 }
 
 INTERNAL
@@ -573,7 +572,8 @@ void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x, int usedAsLvalue) = 
         MAKE( EXPR_SUBSCRIPT,  compile_subscript_expr ),
         MAKE( EXPR_SYMREF,     compile_symref_expr    ),
         MAKE( EXPR_CALL,       compile_call_expr      ),
-        MAKE( EXPR_SIZEOF,     compile_sizeof_expr    ),
+        MAKE( EXPR_SIZEOF,     compile_sizeof_or_lengthof_expr ),
+        MAKE( EXPR_LENGTHOF,   compile_sizeof_or_lengthof_expr ),
         MAKE( EXPR_STRINGIFY,  compile_stringify_expr ),
 #undef MAKE
 };

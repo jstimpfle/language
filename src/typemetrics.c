@@ -8,15 +8,30 @@ Type referenced_type(Type t)
         return t;
 }
 
-int get_type_size(Type tp)
+long long get_array_length(Type tp)
+{
+        ASSERT(typeInfo[tp].typeKind == TYPE_ARRAY);
+        long long length = typeInfo[tp].tArray.length;
+        if (length == -1)
+                // XXX bad error handling path. Not enough information for the user
+                FATAL("Length of array is not yet known\n");
+        return length;
+}
+
+long long get_array_element_size(Type tp)
+{
+        ASSERT(typeInfo[tp].typeKind == TYPE_ARRAY);
+        return get_type_size(typeInfo[tp].tArray.valueTp);
+}
+
+long long get_type_size(Type tp)
 {
         tp = referenced_type(tp);
         switch (typeInfo[tp].typeKind) {
         case TYPE_BASE:    return typeInfo[tp].tBase.size;
         case TYPE_STRUCT:  return typeInfo[tp].tStruct.size;
         case TYPE_POINTER: return 8; //XXX
-        case TYPE_ARRAY: return typeInfo[tp].tArray.length *
-                                get_type_size(typeInfo[tp].tArray.valueTp);
+        case TYPE_ARRAY: return get_array_length(tp) * get_array_element_size(tp);
         case TYPE_PROC:
                 /* XXX: this is a hack I put in here to handle normal function
                  * calls. We have the syntax foo(3) where foo could be either

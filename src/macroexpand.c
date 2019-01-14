@@ -163,10 +163,13 @@ isnotamacro:
                                 callArgInfo[first + i].argExpr = argExpr;
                         }
                         break;
+                }
                 case EXPR_SIZEOF:
                         CAREFUL_EXPAND(exprInfo[y].tSizeof.expr);
                         break;
-                }
+                case EXPR_LENGTHOF:
+                        CAREFUL_EXPAND(exprInfo[y].tLengthof.expr);
+                        break;
                 case EXPR_STRINGIFY:
                         CAREFUL_EXPAND(exprInfo[y].tStringify.expr);
                         break;
@@ -242,6 +245,7 @@ void expand_stmt_exprs(Stmt a)
                 break;
         }
         default:
+                FATAL("unhandled: %d stmt\n", stmtInfo[a].stmtKind);
                 UNHANDLED_CASE();
         }
 }

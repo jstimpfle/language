@@ -68,10 +68,19 @@ long long fold_integer_expr(Expr x)
         }
         else if (exprKind == EXPR_SIZEOF) {
                 Expr subexpr = exprInfo[x].tSizeof.expr;
-                // TODO: is this the right way?
+                // TODO: is this the right way? Do we still need to check?
                 check_expr_type(subexpr);
                 Type tp = exprType[subexpr];
+                ASSERT(tp != (Type) -1);  // XXX not sure
                 return get_type_size(tp);
+        }
+        else if (exprKind == EXPR_LENGTHOF) {
+                Expr subexpr = exprInfo[x].tSizeof.expr;
+                // TODO: is this the right way? Do we still need to check?
+                check_expr_type(subexpr);
+                Type tp = exprType[subexpr];
+                ASSERT(tp != (Type) -1);  // XXX not sure
+                return get_array_length(tp);
         }
         else {
                 FATAL_ERROR_AT_EXPR(x, "Unhandled case: %s\n",

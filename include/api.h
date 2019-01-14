@@ -222,7 +222,9 @@ void expand_macros(void);
 
 /* typemetrics.c */
 Type referenced_type(Type tp);//XXX try to get rid of this
-int get_type_size(Type tp);
+long long get_type_size(Type tp);
+long long get_array_length(Type tp);
+long long get_array_element_size(Type tp);
 void print_type(Type tp);
 Type pointer_type(Type t);
 int type_equal(Type a, Type b);

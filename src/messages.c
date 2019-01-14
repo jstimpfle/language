@@ -57,6 +57,9 @@ void find_expr_position(Expr x, File *file, int *offset)
                 case EXPR_SIZEOF:
                         tok = exprInfo[x].tSizeof.tok;
                         break;
+                case EXPR_LENGTHOF:
+                        tok = exprInfo[x].tLengthof.tok;
+                        break;
                 case EXPR_STRINGIFY:
                         tok = exprInfo[x].tStringify.tok;
                         break;

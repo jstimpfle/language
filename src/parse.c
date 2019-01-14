@@ -378,6 +378,17 @@ Expr parse_expr(int minprec)
                         exprInfo[expr].tSizeof.tok = hashtok;
                         exprInfo[expr].tSizeof.expr = subexpr;
                 }
+                else if (string == constStr[CONSTSTR_LENGTHOF]) {
+                        parse_token_kind(TOKEN_LEFTPAREN);
+                        Expr subexpr = parse_expr(0);
+                        parse_token_kind(TOKEN_RIGHTPAREN);
+                        expr = exprCnt++;
+                        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                        exprInfo[expr].proc = currentProc;
+                        exprInfo[expr].exprKind = EXPR_LENGTHOF;
+                        exprInfo[expr].tLengthof.tok = hashtok;
+                        exprInfo[expr].tLengthof.expr = subexpr;
+                }
                 else if (string == constStr[CONSTSTR_STRINGIFY]) {
                         Expr subexpr = parse_expr(5); // TODO: very high precedence level
                         expr = exprCnt++;
@@ -537,7 +548,7 @@ INTERNAL
 Stmt parse_array_stmt(void)
 {
         PARSE_LOG();
-        /* TODO */
+        FATAL("Not implemented!\n");
         return (Stmt) -1;
 }
 
