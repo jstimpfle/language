@@ -361,8 +361,14 @@ Type check_lengthof_expr_type(Expr x)
 {
         Expr y = exprInfo[x].tLengthof.expr;
         check_expr_type(y);
-        if (exprType[y] == (Type) -1)
+        Type tp = exprType[y];
+        if (tp == (Type) -1)
                 return (Type) -1;
+        if (typeInfo[tp].typeKind != TYPE_ARRAY) {
+                LOG_TYPE_ERROR_EXPR(x, "#lengthof expression can only "
+                                    "be applied to static arrays\n");
+                return (Type) -1;
+        }
         return builtinType[BUILTINTYPE_INT];
 }
 

@@ -3,6 +3,7 @@
 
 long long fold_integer_expr(Expr x)
 {
+        DEBUG("fold integer expression\n");
         int exprKind = exprInfo[x].exprKind;
         if (exprKind == EXPR_LITERAL) {
                 Token tok = exprInfo[x].tLiteral.tok;
@@ -72,7 +73,12 @@ long long fold_integer_expr(Expr x)
                 check_expr_type(subexpr);
                 Type tp = exprType[subexpr];
                 ASSERT(tp != (Type) -1);  // XXX not sure
-                return get_type_size(tp);
+                long long size = get_type_size(tp);
+                if (size == -1)
+                        FATAL_ERROR_AT_EXPR(x,
+                                "The size of this type is not yet known. "
+                                "Try changing the order of declarations.\n");
+                return size;
         }
         else if (exprKind == EXPR_LENGTHOF) {
                 Expr subexpr = exprInfo[x].tSizeof.expr;
@@ -80,7 +86,15 @@ long long fold_integer_expr(Expr x)
                 check_expr_type(subexpr);
                 Type tp = exprType[subexpr];
                 ASSERT(tp != (Type) -1);  // XXX not sure
-                return get_array_length(tp);
+                /* I think this should have been caught during an earlier type
+                   check. */
+                ASSERT(typeInfo[tp].typeKind == TYPE_ARRAY);
+                long long length = typeInfo[tp].tArray.length;
+                if (length == -1)
+                        FATAL_ERROR_AT_EXPR(x,
+                                "The array length is not yet known. "
+                                "Try changing the order of declarations.\n");
+                return length;
         }
         else {
                 FATAL_ERROR_AT_EXPR(x, "Unhandled case: %s\n",

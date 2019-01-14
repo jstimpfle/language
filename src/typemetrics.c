@@ -8,30 +8,35 @@ Type referenced_type(Type t)
         return t;
 }
 
-long long get_array_length(Type tp)
-{
-        ASSERT(typeInfo[tp].typeKind == TYPE_ARRAY);
-        long long length = typeInfo[tp].tArray.length;
-        if (length == -1)
-                // XXX bad error handling path. Not enough information for the user
-                FATAL("Length of array is not yet known\n");
-        return length;
-}
-
-long long get_array_element_size(Type tp)
-{
-        ASSERT(typeInfo[tp].typeKind == TYPE_ARRAY);
-        return get_type_size(typeInfo[tp].tArray.valueTp);
-}
-
 long long get_type_size(Type tp)
 {
         tp = referenced_type(tp);
         switch (typeInfo[tp].typeKind) {
-        case TYPE_BASE:    return typeInfo[tp].tBase.size;
-        case TYPE_STRUCT:  return typeInfo[tp].tStruct.size;
-        case TYPE_POINTER: return 8; //XXX
-        case TYPE_ARRAY: return get_array_length(tp) * get_array_element_size(tp);
+        case TYPE_BASE:
+                return typeInfo[tp].tBase.size;
+        case TYPE_STRUCT:  {
+                /* NOTE: this could -1, which is at the time of writing our way
+                 * to mark the struct as "incomplete type". */
+                return typeInfo[tp].tStruct.size;
+        }
+        case TYPE_POINTER:
+                /* XXX: This is an x64-specific value. When we add other
+                 * architectures we need to get this information from somewhere
+                 * else. */
+                return 8;
+        case TYPE_ARRAY: {
+                Type valueTp = typeInfo[tp].tArray.valueTp;
+                long long length = typeInfo[tp].tArray.length;
+                long long elementSize = get_type_size(valueTp);
+                if (length == -1)
+                        return -1;
+                ASSERT(length >= 0);
+                if (elementSize <= 0) {
+                        ASSERT_FMT(0, "Could this ever happen?");
+                        return -1;
+                }
+                return length * elementSize;
+        }
         case TYPE_PROC:
                 /* XXX: this is a hack I put in here to handle normal function
                  * calls. We have the syntax foo(3) where foo could be either

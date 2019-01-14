@@ -27,14 +27,11 @@ void infer_constant(Directive directive)
 INTERNAL
 void infer_array(Directive directive)
 {
-        /* XXX: Should we require that typechecking determines the length
-         * immediately? */
         Data data = directiveInfo[directive].tArray.data;
-        DEBUG("Infer array %s\n", SS(dataInfo[data].sym));
         Expr lengthExpr = directiveInfo[directive].tArray.lengthExpr;
+        DEBUG("Infer array %s\n", SS(dataInfo[data].sym));
         Type tp = dataInfo[data].tp;
         ASSERT(typeInfo[tp].typeKind == TYPE_ARRAY);
-        //typeInfo[tp].tArray.valueTp = check_expr_type(
         typeInfo[tp].tArray.length = fold_integer_expr(lengthExpr);
         DEBUG("Array length is %d\n", (int) typeInfo[tp].tArray.length);
 }
@@ -78,10 +75,11 @@ void infer_constants_and_types(void)
                 if (constantInfo[constant].constantKind == CONSTANT_EXPRESSION)
                         constantValue[constant].valueKind = -1;
 
+        /* Mark as "incomplete" type. TODO: Should we simply have an
+         * "isComplete" buffer? */
         for (Type tp = 0; tp < typeCnt; tp++)
                 if (typeInfo[tp].typeKind == TYPE_STRUCT)
-                        typeInfo[tp].tStruct.size = 0;
-
+                        typeInfo[tp].tStruct.size = -1;
 
         for (int i = 0; i < directiveCnt; i++) {
                 switch (directiveInfo[i].directiveKind) {
