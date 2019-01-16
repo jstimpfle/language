@@ -3,89 +3,19 @@ Features and Design decisions made in blunt
 
 This document was started kind of late, and by now I've probably forgotten half
 of the conscious design decisions I've made, or at least forgotten the
-reasoning behind them. Nevertheless I think it is important to talk about
-concrete features, and why they are in blunt or why they aren't.
-
-Two big old inspirational languages for the design of blunt were C and recently
-Pascal (in the form of Delphi). C is undeniably the more practical language.
-Actually I think Delphi is a failure as a language. I had to use
-Delphi at work in 2018 and it's a pile of crap that has accreted the worst of
-the hyped language features from the last 30 years (especially the 90's
-object-oriented craze is represented as incoherent non-orthogonal features).
-I also don't have many nice words to say about Pascal's rigidity and
-impractical minimalism. Nevertheless, Pascal teaches some important lessons of
-simplicity in language design and compiler implementation, and even in Delphi
-that still shines through (not only in incredibly faster compilation times). I
-definitely want to have some of the spirit from Pascal in blunt, and forgo some
-of the hackish things in C.
-
-No preprocessor
----------------
-
-Blunt does not require the use of a lexical preprocessor. Like in C, there is
-no technical distinction between a module interface and an implementation file.
-Both contain regular Blunt source code. But in blunt, the implementation does
-not explicitly import the interface. Interfaces are made known to the
-implementation simply by compiling them together in a single job (i.e. list
-both files on the command line).
-
-Since there is no preprocessor and no #include statement, the compilation is
-not sensitive to where the interface was included and what state the
-preprocessor was in at that point. This little restriction allows us to use a
-single parse/compilation of the interface file to compile many implementation
-files. This brings huge speed-ups compared to C, where huge include files are
-often a big issue.
-
-No import statements
---------------------
-
-Blunt takes the idea of giving all dependencies on the compile command-line to
-the extreme: Unlike almost all other languages, it does not even have import
-statements! Personally I think they are a lot of boilerplate, and it's never
-clear who should decide what interface file is actually imported: The build
-system (by configuring the import paths in a certain way) or the implementation
-(with carefully crafted hierarchical paths in the import statement).
-
-For blunt I've decided that it's not the implementation's job to decide how
-it's plumbed in a larger project. A blunt implementation file simply uses the
-artifacts that it depends on (constants, data, functions, macros...). The
-plumbing is left for an external build system.
-
-In the future, restricted forms of static asserts will probably be added, and
-implementations can use those to check that a plumbed interface is actually the
-one it expects. For example, by requiring a global constant to be defined to a
-certain value or range of values. We could actually consider adding to blunt an
-import statement that would be nothing more than a glorified static assert
-(with more sensible syntax and error messages).
-
-No namespaces
---------------
-
-Similarly, I think namespaces are not helpful. They mainly make it possible to
-use short names without never really declaring them, which is confusing to the
-programmer. In general, we should strive to use one and only one name,
-throughout the project, for any given thing. And conversely, a given name
-should ideally always reference the same thing throughout the project
-(function-local variables are an exception here, of course).
-
-This is basic sanity. I have no understanding how namespaces got so popular.
-They allow the programmer to write bad code, and are not very helpful
-otherwise. (Okay -- they are compile time functions from (namespace,name) to
-implementation. Which can be used e.g. for static polymorphism like in C++
-templates. But that's not 90% of their use in practice. And I have no intention
-to support clever tricks like that).
-
+reasoning behind them. I'll try to recollect as many as possible because I
+think it is important to talk about concrete features and why they are in
+blunt or why they aren't.
 
 True compiler constants
 -----------------------
 
-Blunt has a "constant" directive (like pascal) that supports limited constant
-folding, so we don't need a preprocessor to give names to compile-time
-constants.
+Blunt has a `constant` directive that supports limited constant folding, which
+can be used to give names to compile-time constants.
 
 ```
-constant FOO = 0;
-constant BAR = 1;
+constant FOO = 3;
+constant BAR = 5;
 constant FOOBAR = FOO + BAR;
 ```
 
@@ -93,8 +23,26 @@ Constants are not explicitly typed currently. The idea is that they should be
 "like expressions". I still need to work on the story for that, though. Maybe
 it makes sense to add some form of explicit typing to constants.
 
-Blunt also has an "enum" directive, but it's more restricted than C enums in
-that values always start at 0, incrementing by 1.
+The above constant declarations can be expressed as the following C code:
+
+```
+/* C code */
+enum {
+    FOO = 3,
+    BAR = 5,
+    FOOBAR = FOO + BAR;
+};
+```
+
+I believe there isn't any fundamental difference between declaring an integer
+constant in blunt and declaring one in a C enum block. But enums are restricted
+to integers, while constants can be extended to strings, floats, or maybe even
+user-defined types. C only has enums (and preprocessor constants), so constants
+are a little improvement there.
+
+Blunt has an `enum` directive, too. But it's more restricted than C enums in
+that one cannot assign explicit values to the enum constants. Blunt counts up
+strictly in 1-increments, starting at 0 for the first value.
 
 ```
 enum {
@@ -104,41 +52,39 @@ enum {
 }
 ```
 
-Not allowing whacky things like this:
-
-```
-enum {
-    FOO;       /*  0 */
-    BAR = 42;  /* 42 */
-    BAZ;       /* 43 */
-}
-```
-
-(or similar), enables certain future extensions. If you really need something
-like this, just use constants.
+There is no technical difference between constants declared with constant
+directives and constants declared with enum directives. There is no "enum
+type". The only difference is syntactic. The restricted form (compared with
+constant directives) might allow for certain future extensions. I'm primarily
+thinking of generating string arrays that contain the names of the enum
+constants. But if you really need to go wild, just use constants.
 
 Expression macros
 -----------------
 
-Since we don't rely on a preprocessor, we need something else to avoid
-boilerplate in a quick and dirty fashion. Regular functions cannot help in all
-cases since they are executed only at runtime. In blunt I want to see how far
-we get with simple expression macros. These macros are somewhat similar to C,
-but the expansions are done at the syntactical level instead of the lexical.
-In other words, blunt macros must expand to valid blunt expressions.
+Since we don't rely on a preprocessor, we need something else to help avoid
+repetitive syntax. In blunt I want to see how far we get with simple expression
+macros. These macros are somewhat similar to C's macros, but the expansions are
+done at the syntactical level instead of the lexical level. In other words,
+blunt macros must expand to valid blunt expressions.
 
 ```
-macro PRINTVALUE(x) => _print_value(#stringify x, x);
+macro ALLOC(x, n) => _alloc(&x, n, #sizeof(x^));
 
-proc _print_value(varname ^char, x int) void
+proc _alloc(r ^^void, nelems int, elemsize int) void
 {
-    printf("%s %d\n", varname, x);
+    data ptr ^void = calloc(nelems, elemsize);
+    if (!ptr)
+        FATAL("OOM!\n");
+    r^ = ptr;
 }
 
 proc test() void
 {
-    data foo int = 42;
-    PRINTVALUE(foo);  /* prints "foo 42", _not_ "x 42" !! */
+    data p ^int;
+    ALLOC(p, 42);
+    p[41] = 3;
+    return 0;
 }
 ```
 
@@ -166,13 +112,98 @@ compiler.
 ```
 array arr [3]int;
 
-proc printsizes() int
+proc printsizes() void
 {
     printf("%d\n", #lengthof(arr));   /* prints 3 */
     printf("%d\n", #sizeof(arr[0]));  /* prints 8 */
     printf("%d\n", #sizeof(arr));     /* prints 24 */
 }
 ```
+
+Maybe it is, for arrays of explicit size, that the best practice is to simply
+declare a constant first and then use that as the array length. 
+
+```
+constant ARRLEN = 3;
+array arr [ARRLEN]int;
+
+proc printsizes() void
+{
+    printf("%d\n", ARRLEN);   /* prints 3 */
+}
+```
+
+But I'm not entirely sold. And there is no way around some kind of #lengthof()
+calculation for arrays with implicit size (note, implicitly sized arrays aren't
+implemented yet).
+
+```
+array arr []int = { 53, 22, 107, 38 };
+
+proc printsizes() void
+{
+    printf("%d\n", #lengthof(arr));   /* prints 4 */
+}
+```
+
+No preprocessor
+---------------
+
+Blunt does not require the use of a lexical preprocessor. Like in C, there is
+no technical distinction between a module interface and an implementation file.
+Both contain regular Blunt source code. But in blunt, the implementation does
+not explicitly import the interface. Interfaces are made known to the
+implementation simply by compiling them together in a single job (i.e. list
+both files on the command line).
+
+Since there is no preprocessor and no #include statement, the compilation is
+not sensitive to where the interface was included and what state the
+preprocessor was in at that point. This little restriction allows us to use a
+single parse/compilation of the interface file to compile many implementation
+files. This brings huge speed-ups compared to C, where huge include files are
+often a big issue.
+
+No import statements
+--------------------
+
+Blunt takes the idea of giving all dependencies on the compile command-line to
+the extreme: Unlike almost all other languages, it does not even have import
+statements! The justification is that I think import statements are a lot of
+boilerplate, and it's not clear who actually controls what interface file is
+actually imported: The build system (by configuring the import paths in a
+certain way) or the implementation (with carefully crafted hierarchical paths
+in the import statement).
+
+For blunt I've decided that it's not the implementation's job to decide how
+it's plumbed in a larger project. A blunt implementation file simply uses the
+artifacts that it depends on (constants, data, functions, macros...). The
+plumbing is left for an external build system.
+
+In the future, restricted forms of static asserts will probably be added, and
+implementations can use those to check that a plumbed interface is actually the
+one it expects by inventing an arbitrary protocol. For example, requiring the
+interface to define a global constant to a certain value or range of values.
+
+In fact I might consider adding to blunt an import statement that would be
+nothing more than a glorified static assert (with more sensible syntax and
+error messages).
+
+No namespaces
+--------------
+
+Similarly, I think namespaces are not helpful. They mainly make it possible to
+use short names without never really declaring them, which is confusing to the
+programmer. In general, we should strive to use one and only one name,
+throughout the project, for any given thing. And conversely, a given name
+should ideally reference the same thing throughout the project (function-local
+variables are an exception here, of course).
+
+This is basic sanity. I have no understanding how namespaces got so popular.
+They allow the programmer to write bad code, and are not very helpful
+otherwise. (Okay -- a namespace is a compile time function from name to
+implementation. Which can be used e.g. for static polymorphism like in C++
+templates. But that's not 90% of their use in practice. And I have no intention
+to support clever tricks like that).
 
 Processing global directives in order
 -------------------------------------
@@ -192,7 +223,7 @@ struct B {
 }
 ```
 
-since allowing that would essentially make A and B infinitely large.  When
+since allowing that would essentially make A and B infinitely large. When
 detecting a cyclic dependency like that, the question is where is the
 programmer's mistake? Is A mistakenly including B? Or is B mistakenly including
 A? Where should the cycle be broken? In my opinion the compiler should not do
@@ -247,19 +278,19 @@ struct B {
 }
 ```
 
-The problem with allowing declarations in any order is this: While the program
-might still be meaningful (no cycles), a simple mistake can create a cycle and
-lead to bad error messages. I don't want to go there.
+The problem with allowing declarations even for "sensible" programs is that a
+simple mistake could introduce a cycle and cause a hard to debug error. I don't
+want to go there.
 
 Note: This decision does not apply to the earlier symbol resolution phase.
-Symbol resolution is not restricted to earlier definitions. I don't want to
-require function and struct prototyping like C requires to allow lexical cycles
-that are technically possible (pointer indirection, linker fixups...). The
-following would be allowed:
+Resolution of symbol references is not restricted to definitions that come
+before the reference. I don't want to require function and struct prototyping
+like C requires to allow lexical cycles that are technically possible (pointer
+indirection, linker fixups...). The following would be allowed:
 
 ```
-data x ^int = &amp;y;
-data y ^int = &amp;x;
+data x ^int = &y;
+data y ^int = &x;
 
 struct B {
     data A ^x;
