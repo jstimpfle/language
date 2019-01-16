@@ -68,6 +68,10 @@ void print_type(Type tp)
         case TYPE_STRUCT:
                 outs(string_buffer(typeInfo[tp].tStruct.name));
                 break;
+        case TYPE_ARRAY:
+                outf("[%d]", typeInfo[tp].tArray.length);
+                print_type(typeInfo[tp].tArray.valueTp);
+                break;
         case TYPE_POINTER:
                 outs("^");
                 print_type(typeInfo[tp].tPointer.tp);
