@@ -146,6 +146,79 @@ proc printsizes() void
 }
 ```
 
+First class static arrays and no array decay
+--------------------------------------------
+
+In C, there isn't really a first-class type for static arrays. Whenever you
+name a static array, that expression is equivalent to taking a pointer to its
+first element. This is called array decay.
+
+```
+char line[64];
+
+int main(void)
+{
+    fgets(line, sizeof line, stdout);  /* note: `sizeof line` is 64, but the
+                                          first argument is just a pointer */
+    return 0;
+}
+```
+
+I think this is a little weird, so I'm experimenting with first class static
+array types. For example, `[3]^int` is the type of arrays containing three
+integer pointers.  And `^[3]int` is a pointer type to an array of three
+integers.
+
+Since blunt has first class static array types, it forgoes array decay.  In
+Blunt you need to explicitly take the address of the array to get a pointer to
+the first element.
+
+```
+array line [64]char;
+
+int main(void)
+{
+    fgets(&line[0], #sizeof(line), stdout);
+    /* (first argument can be shortened to `&line`. See below) */
+    return 0;
+}
+```
+
+Having first class array types makes a difference for function interfaces:
+The following is valid C code, since `int[N]` is equivalent to `*int`.
+
+```
+void ptrfunc(int *x);
+void arrayfunc(int x[3]);
+
+int x;
+int xs[3];
+
+void test(void)
+{
+    ptrfunc(&xs);   /* allowed */
+    arrayfunc(&x);  /* likely a bug, allowed by the compiler */
+}
+```
+
+In blunt, while `^[N]T` arguments (for any array size N and element type T) are
+compatible with `^T` function parameters, the converse is not true. I think it
+is worthwhile to be strict here.
+
+```
+extern proc ptrfunc   void(x ^int);
+extern proc arrayfunc void(x ^[3]int);
+
+data int x;
+array xs [3]int;
+
+proc test2(void) void;
+{
+    ptrfunc(&xs);   /* allowed */
+    arrayfunc(&x);  /* likely a bug, NOT allowed by the compiler */
+}
+```
+
 No preprocessor
 ---------------
 
