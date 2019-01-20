@@ -25,6 +25,15 @@ typedef int Structmember;
  * \enum{BuiltintypeKind}. We have a few builtin types as internal dependencies.
  * These get initialized early in the life of the process. The resulting types
  * are stored in a lookup table, see \ref{builtinType}.
+ *
+ * \enum{ResolveState}: Types that have references to other types, either
+ * directly (if kind == TYPE_REFERENCE) or indirectly (by being a compound of
+ * other types that have references), undergo a separate processing phase which
+ * we call "type resolution" here. Type resolution happens after parsing and
+ * symbol resolution. Each type starts in state RESOLVE_NOTVISITED. When it is
+ * first visited the state changes to RESOLVE_PROCESSING. From there, at some
+ * point the final state is reached, which can be either of RESOLVE_RESOLVED or
+ * RESOLVE_ERROR.
  */
 
 enum TypeKind {
@@ -43,6 +52,13 @@ enum BuiltinTypeKind {
         BUILTINTYPE_INT,
         BUILTINTYPE_CHAR,
         NUM_BUILTINTYPE_KINDS,
+};
+
+enum ResolveState {
+        RESOLVE_NOTVISITED,
+        RESOLVE_PROCESSING,
+        RESOLVE_RESOLVED,
+        RESOLVE_ERROR,
 };
 
 /**
@@ -107,6 +123,7 @@ struct ReftypeInfo {
 };
 
 struct TypeInfo {
+        int resolveState;  // RESOLVE_??
         int typeKind;  // TYPE_?
         union {
                 struct BasetypeInfo tBase;
@@ -117,12 +134,6 @@ struct TypeInfo {
                 struct ProctypeInfo tProc;
                 struct ReftypeInfo tRef;
         };
-        /* Types can have references to other types, either directly (if
-         * kind == tRef) or indirectly (by being a compound of other types that
-         * have references). These references can fail to resolve, in which
-         * case the type is considered incomplete.
-         */
-        int isComplete;
 };
 
 /**

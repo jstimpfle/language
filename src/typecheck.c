@@ -123,13 +123,11 @@ Type check_unop_expr_type(Expr x)
         switch (op) {
         case UNOP_ADDRESSOF: {
                 Type tt = check_expr_type(xx);
-                if (!is_lvalue_expression(xx)) {
-                        LOG_TYPE_ERROR_EXPR(xx,
-                                "Cannot take the address of this expression\n");
-                }
-                else {
-                        if (tt != (Type) -1)
+                if (tt != (Type) -1) {
+                        if (is_lvalue_expression(xx))
                                 return pointer_type(tt);
+                        LOG_TYPE_ERROR_EXPR(xx,
+                            "Cannot take the address of this expression\n");
                 }
                 break;
         }
@@ -186,7 +184,7 @@ Type check_binop_expr_type(Expr x)
 
         Type t1 = check_expr_type(x1);
         Type t2 = check_expr_type(x2);
-        if (t1 != -1 && t2 != -1) {
+        if (t1 != (Type) -1 && t2 != (Type) -1) {
                 int k1 = typeInfo[t1].typeKind;
                 int k2 = typeInfo[t2].typeKind;
                 switch (op) {
@@ -249,7 +247,7 @@ Type check_member_expr_type(Expr x)
                                 break;
                         }
                 }
-                if (tp == -1) {
+                if (tp == (Type) -1) {
                         LOG_TYPE_ERROR_EXPR(x,
                                 "struct %s has no member called %s\n",
                                 string_buffer(typeInfo[t1].tStruct.name),
@@ -266,12 +264,12 @@ Type check_subscript_expr_type(Expr x)
         Expr x2 = exprInfo[x].tSubscript.expr2;
         Type t1 = check_expr_type(x1);
         Type t2 = check_expr_type(x2);
-        Type tp = -1;
-        if (t1 == -1 || !typeInfo[t1].isComplete)
+        Type tp = (Type) -1;
+        if (t1 == (Type) -1)
                 LOG_TYPE_ERROR_EXPR(x,
                         "Cannot typecheck subscript expression: "
                         "invalid or incomplete array type\n");
-        else if (t2 == -1 || !typeInfo[t2].isComplete)
+        else if (t2 == (Type) -1)
                 LOG_TYPE_ERROR_EXPR(x,
                         "Cannot typecheck subscript expression: "
                         "invalid or incomplete index type\n");
@@ -302,7 +300,7 @@ Type check_call_expr_type(Expr x)
 {
         Expr calleeExpr = exprInfo[x].tCall.callee;
         Type calleeTp = check_expr_type(calleeExpr);
-        if (calleeTp == -1) {
+        if (calleeTp == (Type) -1) {
                 LOG_TYPE_ERROR_EXPR(x, "Type of callee is unknown\n");
                 return (Type) -1;
         }
@@ -315,7 +313,9 @@ Type check_call_expr_type(Expr x)
         int first = exprInfo[x].tCall.firstArgIdx;
         int nargs = exprInfo[x].tCall.nargs;
         for (int i = 0; i < nargs; i++) {
-                check_expr_type(callArgInfo[first + i].argExpr);
+                Type argTp = check_expr_type(callArgInfo[first + i].argExpr);
+                if (argTp == (Type) -1)
+                        return (Type) -1;
         }
 
         /* XXX: string_buffer() does not return a stable address currently.

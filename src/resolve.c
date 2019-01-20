@@ -70,70 +70,70 @@ INTERNAL
 void resolve_ref_type(Type t)
 {
         ASSERT(0 <= t && t < typeCnt);
-        if (typeInfo[t].isComplete >= 0) {
-                /* already processed */
+        if (typeInfo[t].resolveState == RESOLVE_PROCESSING) {
+                MSG(lvl_error, "Type #%d: cyclic type reference\n", t);
+                typeInfo[t].resolveState = RESOLVE_ERROR;
                 return;
         }
-        if (typeInfo[t].isComplete == -1) {
-                MSG(lvl_warn, "Type #%d: cyclic type reference\n", t);
-                typeInfo[t].isComplete = 0;
-                return;
+        if (typeInfo[t].resolveState != RESOLVE_NOTVISITED) {
+                return; /* already processed */
         }
-        ASSERT(typeInfo[t].isComplete == -2);
-        typeInfo[t].isComplete = -1;
 
-        const int UNASSIGNED = -42;
-        int isComplete = UNASSIGNED;
+        typeInfo[t].resolveState = RESOLVE_PROCESSING;
 
+        enum { UNASSIGNED = -42 };
+        int resolveState = UNASSIGNED;
         switch (typeInfo[t].typeKind) {
         case TYPE_BASE:
-                isComplete = 1;
+                resolveState = RESOLVE_RESOLVED;
                 break;
         case TYPE_STRUCT:
-                isComplete = 1;
+                resolveState = RESOLVE_RESOLVED;
                 for (Structmember m = typeInfo[t].tStruct.firstStructmember;
                      m < structmemberCnt && structmemberInfo[m].structTp == t;
                      m++) {
                         Type mt = structmemberInfo[m].memberTp;
                         resolve_ref_type(mt);
-                        isComplete = isComplete & typeInfo[mt].isComplete;
+                        if (typeInfo[mt].resolveState != RESOLVE_RESOLVED)
+                                resolveState = RESOLVE_ERROR;
                 }
                 break;
         case TYPE_ENTITY:
                 resolve_ref_type(typeInfo[t].tEntity.tp);
-                isComplete = typeInfo[typeInfo[t].tEntity.tp].isComplete;
+                resolveState = typeInfo[typeInfo[t].tEntity.tp].resolveState;
                 break;
         case TYPE_ARRAY:
                 resolve_ref_type(typeInfo[t].tArray.valueTp);
                 // TODO: XXX: This doesn't make sense. At this stage the
                 // length is never known.
-                isComplete = typeInfo[typeInfo[t].tArray.valueTp].isComplete;
+                resolveState = typeInfo[typeInfo[t].tArray.valueTp].resolveState;
                 break;
         case TYPE_POINTER:
                 resolve_ref_type(typeInfo[t].tPointer.tp);
-                isComplete = typeInfo[typeInfo[t].tPointer.tp].isComplete;
+                resolveState = typeInfo[typeInfo[t].tPointer.tp].resolveState;
                 break;
         case TYPE_PROC: {
                 Type rettp = typeInfo[t].tProc.rettp;
                 resolve_ref_type(rettp);
-                isComplete = isComplete && typeInfo[rettp].isComplete;
+                resolveState = typeInfo[rettp].resolveState;
                 for (Param i = firstProctypeParam[t];
                      i < paramCnt && paramInfo[i].proctp == t;
                      i++) {
                         Type pt = paramInfo[i].tp;
                         resolve_ref_type(pt);
-                        isComplete = isComplete && typeInfo[pt].isComplete;
+                        if (typeInfo[pt].resolveState != RESOLVE_RESOLVED)
+                                resolveState = RESOLVE_ERROR;
                 }
                 break;
         }
         case TYPE_REFERENCE: {
-                isComplete = 0;
+                resolveState = RESOLVE_ERROR;
                 Symbol sym = symrefToSym[typeInfo[t].tRef.ref];
                 if (sym != -1 && symbolInfo[sym].symbolKind == SYMBOL_TYPE) {
                         Type symtp = symbolInfo[sym].tType;
                         if (symtp != -1) {
                                 resolve_ref_type(symtp);
-                                isComplete = typeInfo[symtp].isComplete;
+                                resolveState = typeInfo[symtp].resolveState;
                         }
                         typeInfo[t].tRef.resolvedTp = symtp;
                 }
@@ -142,8 +142,9 @@ void resolve_ref_type(Type t)
         default:
                 UNHANDLED_CASE();
         }
-        ASSERT(isComplete == 0 || isComplete == 1);
-        typeInfo[t].isComplete = isComplete;
+        ASSERT(resolveState == RESOLVE_RESOLVED ||
+               resolveState == RESOLVE_ERROR);
+        typeInfo[t].resolveState = resolveState;
 }
 
 void resolve_type_references(void)
@@ -156,18 +157,24 @@ void resolve_type_references(void)
                 ASSERT(typeInfo[tp].typeKind == TYPE_STRUCT);
                 typeInfo[tp].tStruct.firstStructmember = m;
         }
-        /* isComplete -2 means "TO DO" */
-        /* isComplete -1 means "currently resolving" */
         for (Type t = 0; t < typeCnt; t++)
-                typeInfo[t].isComplete = -2;
+                typeInfo[t].resolveState = RESOLVE_NOTVISITED;
         for (Type t = 0; t < typeCnt; t++)
                 if (typeInfo[t].typeKind == TYPE_REFERENCE)
                         typeInfo[t].tRef.resolvedTp = -1;
         for (Type t = 0; t < typeCnt; t++)
-                if (typeInfo[t].isComplete == -2)
+                if (typeInfo[t].resolveState == RESOLVE_NOTVISITED)
                         resolve_ref_type(t);
+        int bad = 0;
         for (Type t = 0; t < typeCnt; t++) {
-                ASSERT(typeInfo[t].isComplete == 1 ||
-                       typeInfo[t].isComplete == 0);
+                ASSERT(typeInfo[t].resolveState == RESOLVE_RESOLVED ||
+                       typeInfo[t].resolveState == RESOLVE_ERROR);
+                if (typeInfo[t].resolveState != RESOLVE_RESOLVED) {
+                        outs("unresolved type: ");
+                        print_type(t); outs("\n");
+                        bad = 1;
+                }
         }
+        if (bad)
+                FATAL("Errors detected during type resolution!\n");
 }

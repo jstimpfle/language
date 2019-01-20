@@ -101,18 +101,16 @@ Type pointer_type(Type t)
         // TODO: cache pointer-to version of this type
         Type r = typeCnt++;
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+        typeInfo[r].resolveState = typeInfo[t].resolveState; //XXX?
         typeInfo[r].typeKind = TYPE_POINTER;
         typeInfo[r].tPointer.tp = t;
-        typeInfo[r].isComplete = typeInfo[t].isComplete; //XXX?
         return r;
 }
 
 int type_equal(Type a, Type b)
 {
-        if (!typeInfo[a].isComplete)
-                return 0;
-        if (!typeInfo[b].isComplete)
-                return 0;
+        ASSERT(typeInfo[a].resolveState == RESOLVE_RESOLVED);
+        ASSERT(typeInfo[b].resolveState == RESOLVE_RESOLVED);
         a = referenced_type(a);
         b = referenced_type(b);
         ASSERT(a != -1);
