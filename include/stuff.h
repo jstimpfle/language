@@ -131,6 +131,7 @@ struct StringToBeInterned {
         MAKE_GLOBAL_BUFFER(  callArgCnt,         callArgInfo          ),  \
         MAKE_GLOBAL_BUFFER(  childStmtCnt,       childStmtInfo        ),  \
         MAKE_GLOBAL_BUFFER(  codeSectionCnt,     codeSection          ),  \
+        MAKE_GLOBAL_BUFFER(  compoundExprLinkCnt, compoundExprLink    ),  \
         MAKE_GLOBAL_BUFFER(  constantCnt,        constantInfo         ),  \
         MAKE_GLOBAL_BUFFER(  constantCnt,        constantValue        ),  \
         MAKE_GLOBAL_BUFFER(  dataCnt,            dataInfo             ),  \

@@ -164,6 +164,22 @@ isnotamacro:
                         }
                         break;
                 }
+                case EXPR_COMPOUND: {
+                        int first = exprInfo[x].tCompound.firstChildLink;
+                        int numChilds = exprInfo[x].tCompound.numChilds;
+                        /* XXX here we don't allocate new compoundExprLinks
+                         * but simply overwrite the old one. Should we create
+                         * new ones? */
+                        exprInfo[y].tCompound.firstChildLink = first;
+                        exprInfo[y].tCompound.numChilds = numChilds;
+                        for (int i = 0; i < numChilds; i++) {
+                                Expr childExpr = compoundExprLink[first + i].childExpr;
+                                Expr newChild = expand_expr(childExpr);
+                                compoundExprLink[first + i].parentExpr = y;
+                                compoundExprLink[first + i].childExpr = newChild;
+                        }
+                        break;
+                }
                 case EXPR_SIZEOF:
                         CAREFUL_EXPAND(exprInfo[y].tSizeof.expr);
                         break;

@@ -101,6 +101,7 @@ const char *const exprKindString[NUM_EXPR_KINDS] = {
         MAKE( EXPR_MEMBER ),
         MAKE( EXPR_SUBSCRIPT ),
         MAKE( EXPR_CALL ),
+        MAKE( EXPR_COMPOUND ),
         MAKE( EXPR_SIZEOF ),
         MAKE( EXPR_LENGTHOF ),
         MAKE( EXPR_STRINGIFY ),

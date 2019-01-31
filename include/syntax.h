@@ -220,6 +220,7 @@ enum ExprKind {
         EXPR_MEMBER,
         EXPR_SUBSCRIPT,
         EXPR_CALL,
+        EXPR_COMPOUND,
         EXPR_SIZEOF,
         EXPR_LENGTHOF,
         EXPR_STRINGIFY,
@@ -293,6 +294,12 @@ struct CallExprInfo {
         int nargs;
 };
 
+struct CompoundExprInfo {
+        Token initialToken;  // first token in expression. As of writing this, that's a left-brace.
+        int firstChildLink;
+        int numChilds;
+};
+
 struct SizeofExprInfo {
         Token tok;
         Expr expr;
@@ -319,10 +326,16 @@ struct ExprInfo {
                 struct MemberExprInfo tMember;
                 struct SubscriptExprInfo tSubscript;
                 struct CallExprInfo tCall;
+                struct CompoundExprInfo tCompound;
                 struct SizeofExprInfo tSizeof;
                 struct LengthofExprInfo tLengthof;
                 struct StringifyExprInfo tStringify;
         };
+};
+
+struct CompoundExprLink {
+        Expr parentExpr;
+        Expr childExpr;
 };
 
 /**
@@ -551,6 +564,7 @@ DATA Proc currentProc;
 
 DATA int exprCnt;
 DATA int callArgCnt;
+DATA int compoundExprLinkCnt;
 DATA int stmtCnt;
 DATA int childStmtCnt;
 
@@ -564,6 +578,7 @@ DATA int directiveCnt;
 
 DATA struct ExprInfo *exprInfo;
 DATA struct CallArgInfo *callArgInfo;
+DATA struct CompoundExprLink *compoundExprLink;
 DATA struct StmtInfo *stmtInfo;
 DATA struct ChildStmtInfo *childStmtInfo;
 

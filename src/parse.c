@@ -430,6 +430,28 @@ Expr parse_expr(int minprec)
                 exprInfo[expr].tLiteral.literalKind = LITERAL_STRING;
                 exprInfo[expr].tLiteral.tString = string;
         }
+        else if (tokenInfo[tok].tokenKind == TOKEN_LEFTBRACE) {
+                consume_token();
+                expr = exprCnt++;
+                RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                exprInfo[expr].proc = currentProc;
+                exprInfo[expr].exprKind = EXPR_COMPOUND;
+                exprInfo[expr].tCompound.initialToken = tok;
+                exprInfo[expr].tCompound.firstChildLink = -1;
+                exprInfo[expr].tCompound.numChilds = 0;
+                for (;;) {
+                        Expr child = parse_expr(0);
+                        int cpe = compoundExprLinkCnt++;
+                        RESIZE_GLOBAL_BUFFER(compoundExprLink,
+                                             compoundExprLinkCnt);
+                        compoundExprLink[cpe].parentExpr = expr;
+                        compoundExprLink[cpe].childExpr = child;
+                        if (look_token_kind(TOKEN_COMMA) == (Token) -1)
+                                break;
+                        consume_token();
+                }
+                parse_token_kind(TOKEN_RIGHTBRACE);
+        }
         else if (tokenInfo[tok].tokenKind == TOKEN_LEFTPAREN) {
                 consume_token();
                 expr = parse_expr(0);
@@ -1204,7 +1226,17 @@ int compare_CallArgInfo(const void *a, const void *b)
         const struct CallArgInfo *y = b;
         if (x->callExpr != y->callExpr)
                 return x->callExpr - y->callExpr;
-        return COMPARE_ADDRESS(x, y);
+        return x->argExpr - y->argExpr;
+}
+
+INTERNAL
+int compare_CompoundExprLink(const void *a, const void *b)
+{
+        const struct CompoundExprLink *x = a;
+        const struct CompoundExprLink *y = a;
+        if (x->parentExpr != y->parentExpr)
+                return x->parentExpr - y->parentExpr;
+        return x->childExpr - y->childExpr;
 }
 
 /*
@@ -1282,6 +1314,8 @@ void fixup_parsed_data(void)
                    compare_ChildStmtInfo);
         sort_array(callArgInfo, callArgCnt, sizeof *callArgInfo,
                    compare_CallArgInfo);
+        sort_array(compoundExprLink, compoundExprLinkCnt,
+                   sizeof *compoundExprLink, compare_CompoundExprLink);
 
         for (int i = childStmtCnt; i --> 0;) {
                 Stmt parent = childStmtInfo[i].parent;
@@ -1295,6 +1329,13 @@ void fixup_parsed_data(void)
                 ASSERT(exprInfo[callee].exprKind == EXPR_CALL);
                 exprInfo[callee].tCall.nargs++;
                 exprInfo[callee].tCall.firstArgIdx = i;
+        }
+
+        for (int i = compoundExprLinkCnt; i --> 0;) {
+                Expr parentExpr = compoundExprLink[i].parentExpr;
+                ASSERT(exprInfo[parentExpr].exprKind == EXPR_COMPOUND);
+                exprInfo[parentExpr].tCompound.numChilds++;
+                exprInfo[parentExpr].tCompound.firstChildLink = i;
         }
 
         for (Scope scope = 0; scope < scopeCnt; scope++) {

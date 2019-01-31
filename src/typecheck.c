@@ -348,6 +348,12 @@ Type check_call_expr_type(Expr x)
 }
 
 INTERNAL
+Type check_compound_expr_type(Expr x)
+{
+        return (Type) -1;  // TODO: return "compound type"?
+}
+
+INTERNAL
 Type check_sizeof_expr_type(Expr x)
 {
         Expr y = exprInfo[x].tSizeof.expr;
@@ -390,6 +396,7 @@ Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
         MAKE(  EXPR_MEMBER,     check_member_expr_type     ),
         MAKE(  EXPR_SUBSCRIPT,  check_subscript_expr_type  ),
         MAKE(  EXPR_CALL,       check_call_expr_type       ),
+        MAKE(  EXPR_COMPOUND,   check_compound_expr_type   ),
         MAKE(  EXPR_SIZEOF,     check_sizeof_expr_type     ),
         MAKE(  EXPR_LENGTHOF,   check_lengthof_expr_type   ),
         MAKE(  EXPR_STRINGIFY,  check_stringify_expr_type  ),
