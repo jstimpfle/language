@@ -439,7 +439,7 @@ Expr parse_expr(int minprec)
                 exprInfo[expr].tCompound.initialToken = tok;
                 exprInfo[expr].tCompound.firstCompoundExprLink = -1;
                 exprInfo[expr].tCompound.numChilds = 0;
-                for (;;) {
+                while (look_token_kind(TOKEN_RIGHTBRACE) == (Token) -1) {
                         Expr child = parse_expr(0);
                         int cpe = compoundExprLinkCnt++;
                         RESIZE_GLOBAL_BUFFER(compoundExprLink,
