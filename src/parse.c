@@ -1349,12 +1349,15 @@ void fixup_parsed_data(void)
         }
 
         for (Type t = 0; t < typeCnt; t++) {
-                if (typeInfo[t].typeKind == TYPE_STRUCT)
+                if (typeInfo[t].typeKind == TYPE_STRUCT) {
                         typeInfo[t].tStruct.firstStructmember = -1;
+                        typeInfo[t].tStruct.numMembers = 0;
+                }
         }
         for (Structmember m = structmemberCnt; m --> 0;) {
                 Type t = structmemberInfo[m].structTp;
                 typeInfo[t].tStruct.firstStructmember = m;
+                typeInfo[t].tStruct.numMembers ++;
         }
 }
 

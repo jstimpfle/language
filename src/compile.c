@@ -16,13 +16,11 @@ int find_struct_offset(Type tp, String memberName)
         if (typeInfo[tp].typeKind == TYPE_REFERENCE) //XXX
                 tp = typeInfo[tp].tRef.resolvedTp;
         ASSERT(typeInfo[tp].typeKind == TYPE_STRUCT);
-        for (Structmember m = typeInfo[tp].tStruct.firstStructmember;
-             m < structmemberCnt && structmemberInfo[m].structTp == tp;
-             m++) {
-                if (structmemberInfo[m].memberName == memberName) {
+        Structmember firstMember = typeInfo[tp].tStruct.firstStructmember;
+        int numMembers = typeInfo[tp].tStruct.numMembers;
+        for (Structmember m = firstMember; m < firstMember + numMembers; m++)
+                if (structmemberInfo[m].memberName == memberName)
                         return structmemberInfo[m].offset;
-                }
-        }
         UNREACHABLE();
 }
 

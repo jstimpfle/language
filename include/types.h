@@ -76,6 +76,7 @@ struct StructtypeInfo {
          * alignment etc) so this probably shouldn't be here */
         int size;
         Structmember firstStructmember;  // speed-up
+        int numMembers;
 };
 
 struct StructmemberInfo {

@@ -89,8 +89,11 @@ void resolve_ref_type(Type t)
                 break;
         case TYPE_STRUCT:
                 resolveState = RESOLVE_RESOLVED;
-                for (Structmember m = typeInfo[t].tStruct.firstStructmember;
-                     m < structmemberCnt && structmemberInfo[m].structTp == t;
+
+                Structmember firstMember = typeInfo[t].tStruct.firstStructmember;
+                int numMembers = typeInfo[t].tStruct.numMembers;
+                for (Structmember m = firstMember;
+                     m < firstMember + numMembers;
                      m++) {
                         Type mt = structmemberInfo[m].memberTp;
                         resolve_ref_type(mt);

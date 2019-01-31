@@ -45,11 +45,9 @@ void infer_struct(Directive directive)
         DEBUG("Infer struct %s\n", string_buffer((typeInfo[tp].tStruct.name)));
 
         int size = 0;
-        Structmember first = typeInfo[tp].tStruct.firstStructmember;
-        for (Structmember m = first;
-             m < structmemberCnt && structmemberInfo[m].structTp == tp;
-             m++)
-        {
+        Structmember firstMember = typeInfo[tp].tStruct.firstStructmember;
+        int numMembers = typeInfo[tp].tStruct.numMembers;
+        for (Structmember m = firstMember; m < firstMember + numMembers; m++) {
                 structmemberInfo[m].offset = size;
                 int membersize = get_type_size(structmemberInfo[m].memberTp);
                 if (membersize == 0) {

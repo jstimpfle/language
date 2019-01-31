@@ -81,13 +81,16 @@ Type typecheck_struct_expr(Type dstTp, Expr expr)
         int firstLink = exprInfo[expr].tCompound.firstCompoundExprLink;
         int numChilds = exprInfo[expr].tCompound.numChilds;
         int firstMember = typeInfo[dstTp].tStruct.firstStructmember;
+        int numMembers = typeInfo[dstTp].tStruct.numMembers;
+        if (numChilds > numMembers) {
+                LOG_TYPE_ERROR_EXPR(expr,
+                        "Too many sub-expressions in complex "
+                        "initializer expression\n");
+                return (Type) -1;
+        }
         for (int i = 0; i < numChilds; i++) {
-                if (firstMember + i >= structmemberCnt ||
-                    structmemberInfo[firstMember + i].structTp != dstTp) {
-                        LOG_TYPE_ERROR_EXPR(expr,
-                                "Too many sub-expressions in complex initializer expression\n");
-                        return (Type) -1;
-                }
+                ASSERT(firstMember + i < structmemberCnt);
+                ASSERT(structmemberInfo[firstMember + i].structTp == dstTp);
                 Type memberTp = referenced_type(
                         structmemberInfo[firstMember + i].memberTp);
                 Expr parentExpr = compoundExprLink[firstLink + i].parentExpr;
