@@ -442,6 +442,12 @@ void compile_call_expr(Expr x, UNUSED int usedAsLvalue)
 }
 
 INTERNAL
+void compile_compound_expr(Expr x, int usedAsLvalue)
+{
+        FATAL("Not implemented yet\n");
+}
+
+INTERNAL
 void compile_subscript_expr(Expr x, int usedAsLvalue)
 {
         Expr e1 = exprInfo[x].tSubscript.expr1;
@@ -560,6 +566,7 @@ void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x, int usedAsLvalue) = 
         MAKE( EXPR_SUBSCRIPT,  compile_subscript_expr ),
         MAKE( EXPR_SYMREF,     compile_symref_expr    ),
         MAKE( EXPR_CALL,       compile_call_expr      ),
+        MAKE( EXPR_COMPOUND,   compile_compound_expr  ),
         MAKE( EXPR_SIZEOF,     compile_sizeof_or_lengthof_expr ),
         MAKE( EXPR_LENGTHOF,   compile_sizeof_or_lengthof_expr ),
         MAKE( EXPR_STRINGIFY,  compile_stringify_expr ),

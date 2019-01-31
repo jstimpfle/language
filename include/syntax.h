@@ -296,7 +296,7 @@ struct CallExprInfo {
 
 struct CompoundExprInfo {
         Token initialToken;  // first token in expression. As of writing this, that's a left-brace.
-        int firstChildLink;
+        int firstCompoundExprLink;
         int numChilds;
 };
 

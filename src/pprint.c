@@ -151,7 +151,7 @@ void pp_expr(Expr expr)
                         break;
                 }
                 case EXPR_COMPOUND: {
-                        int first = exprInfo[expr].tCompound.firstChildLink;
+                        int first = exprInfo[expr].tCompound.firstCompoundExprLink;
                         int numChilds = exprInfo[expr].tCompound.numChilds;
                         outs("{");
                         for (int i = 0; i < numChilds; i++) {

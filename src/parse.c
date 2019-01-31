@@ -437,7 +437,7 @@ Expr parse_expr(int minprec)
                 exprInfo[expr].proc = currentProc;
                 exprInfo[expr].exprKind = EXPR_COMPOUND;
                 exprInfo[expr].tCompound.initialToken = tok;
-                exprInfo[expr].tCompound.firstChildLink = -1;
+                exprInfo[expr].tCompound.firstCompoundExprLink = -1;
                 exprInfo[expr].tCompound.numChilds = 0;
                 for (;;) {
                         Expr child = parse_expr(0);
@@ -1335,7 +1335,7 @@ void fixup_parsed_data(void)
                 Expr parentExpr = compoundExprLink[i].parentExpr;
                 ASSERT(exprInfo[parentExpr].exprKind == EXPR_COMPOUND);
                 exprInfo[parentExpr].tCompound.numChilds++;
-                exprInfo[parentExpr].tCompound.firstChildLink = i;
+                exprInfo[parentExpr].tCompound.firstCompoundExprLink = i;
         }
 
         for (Scope scope = 0; scope < scopeCnt; scope++) {

@@ -51,25 +51,62 @@ int arg_type_matches_param_type(Type argTp, Type paramTp)
         return 0;
 }
 
-/* returns whether assignment is valid */
+INTERNAL Type typecheck_assign(Type dstTp, Expr expr);
+
 INTERNAL
-int typecheck_assign(Type dstTp, Expr expr)
+Type typecheck_array_expr(Type dstTp, Expr expr)
+{
+        if (exprInfo[expr].exprKind != EXPR_COMPOUND)
+                return (Type) -1;
+        int firstLink = exprInfo[expr].tCompound.firstCompoundExprLink;
+        int numChilds = exprInfo[expr].tCompound.numChilds;
+        Type valueTp = typeInfo[dstTp].tArray.valueTp;
+        for (int i = 0; i < numChilds; i++) {
+                Expr childExpr = compoundExprLink[firstLink + i].childExpr;
+                typecheck_assign(valueTp, childExpr);
+        }
+}
+
+INTERNAL
+Type typecheck_struct_expr(Type dstTp, Expr expr)
+{
+        if (exprInfo[expr].exprKind != EXPR_COMPOUND)
+                return (Type) -1;
+        int firstLink = exprInfo[expr].tCompound.firstCompoundExprLink;
+        int numChilds = exprInfo[expr].tCompound.numChilds;
+        int firstMember = typeInfo[dstTp].tStruct.firstStructmember;
+        for (int i = 0; i < numChilds; i++) {
+                if (firstMember + i >= structmemberCnt ||
+                    structmemberInfo[firstMember + i].structTp != dstTp) {
+                        LOG_TYPE_ERROR_EXPR(expr,
+                                "Too many sub-expressions in complex initializer expression\n");
+                        return (Type) -1;
+                }
+                Type memberTp = structmemberInfo[firstMember + i].memberTp;
+                Expr childExpr = compoundExprLink[firstLink + i].childExpr;
+                typecheck_assign(memberTp, childExpr);
+        }
+        return dstTp;  //XXX ??
+}
+
+/* typecheck_assign() and arg_type_matches_paramtp() probably
+ * have basically the same goal. We should unify them */
+INTERNAL
+Type typecheck_assign(Type dstTp, Expr expr)
 {
         dstTp = referenced_type(dstTp);
         Type exprTp = exprType[expr];
-        int isCompound = exprTp == builtinType[BUILTINTYPE_COMPOUND];
         if (typeInfo[dstTp].typeKind == TYPE_ARRAY)
-                return isCompound;
+                return typecheck_array_expr(dstTp, expr);
         if (typeInfo[dstTp].typeKind == TYPE_STRUCT)
-                return isCompound;
-        if (isCompound)
-                return 0;
-        if (dstTp != exprTp) {
-                LOG_TYPE_ERROR_EXPR(exprTp,
-                                    "Type check failed: cannot assign\n");
-                return 0;
-        }
-        return 1;
+                return typecheck_struct_expr(dstTp, expr);
+        if (exprInfo[expr].exprKind == EXPR_COMPOUND)
+                /* dstTp is neither array nor struct */
+                return (Type) -1;
+        Type tp = check_expr_type(expr);
+        if (tp != dstTp)
+                return (Type) -1; // XXX
+        return tp;
 }
 
 INTERNAL
@@ -199,10 +236,7 @@ Type check_binop_expr_type(Expr x)
         Expr x2 = exprInfo[x].tBinop.expr2;
         if (op == BINOP_ASSIGN) {
                 Type t1 = check_expr_type(x1);
-                Type t2 = check_expr_type(x2);
-                if (! typecheck_assign(t1, x2))
-                        return (Type) -1;
-                return t2;
+                return typecheck_assign(t1, x2);
         }
 
         Type t1 = check_expr_type(x1);
@@ -528,10 +562,9 @@ void check_stmt_types(Stmt a)
                 Type dataTp = dataInfo[data].tp;
                 Expr expr = stmtInfo[a].tData.optionalInitializerExpr;
                 if (expr != (Expr) -1) {
-                        /*Type tp =*/ check_expr_type(expr);
-                        if (! typecheck_assign(dataTp, expr)) {
-                                FATAL("Type check of data definition failed\n"); //XXX
-                        }
+                        Type tp = typecheck_assign(dataTp, expr);
+                        if (tp == (Type) -1)  // XXX what to do?
+                                FATAL("Typecheck failed\n");
                 }
                 break;
         }

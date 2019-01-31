@@ -165,12 +165,12 @@ isnotamacro:
                         break;
                 }
                 case EXPR_COMPOUND: {
-                        int first = exprInfo[x].tCompound.firstChildLink;
+                        int first = exprInfo[x].tCompound.firstCompoundExprLink;
                         int numChilds = exprInfo[x].tCompound.numChilds;
                         /* XXX here we don't allocate new compoundExprLinks
                          * but simply overwrite the old one. Should we create
                          * new ones? */
-                        exprInfo[y].tCompound.firstChildLink = first;
+                        exprInfo[y].tCompound.firstCompoundExprLink = first;
                         exprInfo[y].tCompound.numChilds = numChilds;
                         for (int i = 0; i < numChilds; i++) {
                                 Expr childExpr = compoundExprLink[first + i].childExpr;
