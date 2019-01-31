@@ -104,10 +104,11 @@ Type typecheck_struct_expr(Type dstTp, Expr expr)
                         return (Type) -1;
                 }
         }
+        // TODO: handling of numChilds < numMembers ?
         return dstTp;  //XXX ??
 }
 
-/* typecheck_assign() and arg_type_matches_paramtp() probably
+/* typecheck_assign() and arg_type_matches_param_type() probably
  * have basically the same goal. We should unify them */
 INTERNAL
 Type typecheck_assign(Type dstTp, Expr expr)
@@ -122,8 +123,8 @@ Type typecheck_assign(Type dstTp, Expr expr)
                 /* dstTp is neither array nor struct */
                 return (Type) -1;
         Type tp = check_expr_type(expr);
-        if (tp != dstTp)
-                return (Type) -1; // XXX
+        if (! arg_type_matches_param_type(tp, dstTp)) // XXX
+                return (Type) -1;
         return tp;
 }
 
@@ -581,8 +582,10 @@ void check_stmt_types(Stmt a)
                 Expr expr = stmtInfo[a].tData.optionalInitializerExpr;
                 if (expr != (Expr) -1) {
                         Type tp = typecheck_assign(dataTp, expr);
-                        if (tp == (Type) -1)  // XXX what to do?
-                                FATAL("Typecheck failed\n");
+                        if (tp == (Type) -1) { // XXX what to do?
+                                LOG_TYPE_ERROR_EXPR(expr, "Typecheck failed\n");
+                                exprType[expr] = (Type) -1; // XXX
+                        }
                 }
                 break;
         }
