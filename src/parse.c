@@ -427,6 +427,7 @@ Expr parse_expr(int minprec)
                 RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
                 exprInfo[expr].proc = currentProc;
                 exprInfo[expr].exprKind = EXPR_LITERAL;
+                exprInfo[expr].tLiteral.tok = tok;
                 exprInfo[expr].tLiteral.literalKind = LITERAL_STRING;
                 exprInfo[expr].tLiteral.tString = string;
         }
