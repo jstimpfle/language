@@ -1233,7 +1233,7 @@ INTERNAL
 int compare_CompoundExprLink(const void *a, const void *b)
 {
         const struct CompoundExprLink *x = a;
-        const struct CompoundExprLink *y = a;
+        const struct CompoundExprLink *y = b;
         if (x->parentExpr != y->parentExpr)
                 return x->parentExpr - y->parentExpr;
         return x->childExpr - y->childExpr;

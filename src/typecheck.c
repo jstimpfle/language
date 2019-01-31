@@ -51,6 +51,27 @@ int arg_type_matches_param_type(Type argTp, Type paramTp)
         return 0;
 }
 
+/* returns whether assignment is valid */
+INTERNAL
+int typecheck_assign(Type dstTp, Expr expr)
+{
+        dstTp = referenced_type(dstTp);
+        Type exprTp = exprType[expr];
+        int isCompound = exprTp == builtinType[BUILTINTYPE_COMPOUND];
+        if (typeInfo[dstTp].typeKind == TYPE_ARRAY)
+                return isCompound;
+        if (typeInfo[dstTp].typeKind == TYPE_STRUCT)
+                return isCompound;
+        if (isCompound)
+                return 0;
+        if (dstTp != exprTp) {
+                LOG_TYPE_ERROR_EXPR(exprTp,
+                                    "Type check failed: cannot assign\n");
+                return 0;
+        }
+        return 1;
+}
+
 INTERNAL
 Type check_literal_expr_type(Expr x)
 {
@@ -177,8 +198,10 @@ Type check_binop_expr_type(Expr x)
         Expr x1 = exprInfo[x].tBinop.expr1;
         Expr x2 = exprInfo[x].tBinop.expr2;
         if (op == BINOP_ASSIGN) {
-                /*Type t1 =*/ check_expr_type(x1);
+                Type t1 = check_expr_type(x1);
                 Type t2 = check_expr_type(x2);
+                if (! typecheck_assign(t1, x2))
+                        return (Type) -1;
                 return t2;
         }
 
@@ -350,7 +373,7 @@ Type check_call_expr_type(Expr x)
 INTERNAL
 Type check_compound_expr_type(Expr x)
 {
-        return (Type) -1;  // TODO: return "compound type"?
+        return builtinType[BUILTINTYPE_COMPOUND];
 }
 
 INTERNAL
@@ -501,9 +524,15 @@ void check_stmt_types(Stmt a)
                 break;
         }
         case STMT_DATA: {
+                Data data = stmtInfo[a].tData.data;
+                Type dataTp = dataInfo[data].tp;
                 Expr expr = stmtInfo[a].tData.optionalInitializerExpr;
-                if (expr != (Expr) -1)
-                        check_expr_type(expr);
+                if (expr != (Expr) -1) {
+                        /*Type tp =*/ check_expr_type(expr);
+                        if (! typecheck_assign(dataTp, expr)) {
+                                FATAL("Type check of data definition failed\n"); //XXX
+                        }
+                }
                 break;
         }
         case STMT_ARRAY:

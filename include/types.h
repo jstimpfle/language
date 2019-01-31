@@ -48,7 +48,8 @@ enum TypeKind {
 };
 
 enum BuiltinTypeKind {
-        BUILTINTYPE_VOID,
+        BUILTINTYPE_VOID,  // cannot be materialized
+        BUILTINTYPE_COMPOUND,  // ditto
         BUILTINTYPE_INT,
         BUILTINTYPE_CHAR,
         NUM_BUILTINTYPE_KINDS,

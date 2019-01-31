@@ -150,6 +150,19 @@ void pp_expr(Expr expr)
                         outs(")");
                         break;
                 }
+                case EXPR_COMPOUND: {
+                        int first = exprInfo[expr].tCompound.firstChildLink;
+                        int numChilds = exprInfo[expr].tCompound.numChilds;
+                        outs("{");
+                        for (int i = 0; i < numChilds; i++) {
+                                if (i > 0)
+                                        outs(",");
+                                outs(" ");
+                                pp_expr(compoundExprLink[first + i].childExpr);
+                        }
+                        outs(" }");
+                        break;
+                }
                 default:
                         UNHANDLED_CASE();
         }

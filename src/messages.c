@@ -67,6 +67,7 @@ void find_expr_position(Expr x, File *file, int *offset)
                         tok = exprInfo[x].tStringify.tok;
                         break;
                 default:
+                        MSG("expr kind error: %s\n", exprKindString[exprInfo[x].exprKind]);
                         UNHANDLED_CASE();
                 }
                 break;
