@@ -42,7 +42,7 @@ void infer_struct(Directive directive)
         Type tp = directiveInfo[directive].tStruct.tp;
         ASSERT(0 <= tp && tp < typeCnt);
         ASSERT(typeInfo[tp].typeKind == TYPE_STRUCT);
-        DEBUG("Infer struct %s\n", SS(typeInfo[tp].tStruct.name));
+        DEBUG("Infer struct %s\n", string_buffer((typeInfo[tp].tStruct.name)));
 
         int size = 0;
         Structmember first = typeInfo[tp].tStruct.firstStructmember;
