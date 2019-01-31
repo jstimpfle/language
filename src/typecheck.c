@@ -60,11 +60,17 @@ Type typecheck_array_expr(Type dstTp, Expr expr)
                 return (Type) -1;
         int firstLink = exprInfo[expr].tCompound.firstCompoundExprLink;
         int numChilds = exprInfo[expr].tCompound.numChilds;
-        Type valueTp = typeInfo[dstTp].tArray.valueTp;
+        Type valueTp = referenced_type(typeInfo[dstTp].tArray.valueTp);
         for (int i = 0; i < numChilds; i++) {
                 Expr childExpr = compoundExprLink[firstLink + i].childExpr;
-                typecheck_assign(valueTp, childExpr);
+                Type tp = typecheck_assign(valueTp, childExpr);
+                if (tp == (Type) -1) {
+                        LOG_TYPE_ERROR_EXPR(childExpr,
+                                "Wrong type in struct initializer\n");
+                        return (Type) -1;
+                }
         }
+        return dstTp;
 }
 
 INTERNAL
@@ -82,9 +88,18 @@ Type typecheck_struct_expr(Type dstTp, Expr expr)
                                 "Too many sub-expressions in complex initializer expression\n");
                         return (Type) -1;
                 }
-                Type memberTp = structmemberInfo[firstMember + i].memberTp;
+                Type memberTp = referenced_type(
+                        structmemberInfo[firstMember + i].memberTp);
+                Expr parentExpr = compoundExprLink[firstLink + i].parentExpr;
                 Expr childExpr = compoundExprLink[firstLink + i].childExpr;
-                typecheck_assign(memberTp, childExpr);
+                ASSERT(parentExpr == expr);
+                Type tp = typecheck_assign(memberTp, childExpr);
+                if (tp == (Type) -1) {
+                        LOG_TYPE_ERROR_EXPR(childExpr,
+                                "Wrong type in struct initializer!\n");
+                        /* TODO: show type mismatch */
+                        return (Type) -1;
+                }
         }
         return dstTp;  //XXX ??
 }
