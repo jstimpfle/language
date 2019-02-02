@@ -1,0 +1,77 @@
+/* Longest common subsequence */
+
+proc solve_lcs(s1 ^char, s2 ^char, l1 int, l2 int) void
+{
+        data N int = (l1+1) * (l2+1);
+        data longest ^int = malloc(N * #sizeof(longest^));
+        data ri ^int = malloc(N * #sizeof(ri^));
+        data rj ^int = malloc(N * #sizeof(rj^));
+
+        macro L(i,j) => longest[i*(l2+1)+j];
+        macro I(i,j) => ri[i*(l2+1)+j];
+        macro J(i,j) => rj[i*(l2+1)+j];
+
+        for i from 0 to l1+1 do {
+                L(i,0) = 0;
+        }
+        for j from 0 to l2+1 do {
+                L(0,j) = 0;
+        }
+
+        for i from 1 to l1+1 do {
+                for j from 1 to l2+1 do {
+                        L(i,j) = L(i-1,j);
+                        I(i,j) = I(i-1,j);
+                        J(i,j) = J(i-1,j);
+                        if (L(i,j) < L(i,j-1)) {
+                                L(i,j) = L(i,j-1);
+                                I(i,j) = I(i,j-1);
+                                J(i,j) = J(i,j-1);
+                        }
+                        if ((s1[i-1]&255)==(s2[j-1]&255)) {
+                                if (L(i,j) < L(i-1,j-1) + 1) {
+                                        L(i,j) = L(i-1,j-1) + 1;
+                                        I(i,j) = i-1;
+                                        J(i,j) = j-1;
+                                }
+                        }
+                }
+        }
+
+        /* TODO: char access */
+        data result ^char = malloc(L(l1,l2) + 1);
+
+        data n int;
+        data i int = l1;
+        data j int = l2;
+        for (n = L(l1,l2); n > 0; n--) {
+                data ii int = I(i,j);
+                data jj int = J(i,j);
+                i = ii;
+                j = jj;
+                memcpy(&result[n-1], &s1[i], 1);
+        }
+
+        prints(result);
+        prints("\n");
+}
+
+proc slen(s ^char) int
+{
+        data i int = 0;
+        while (s[i])
+                i++;
+        return i;
+}
+
+proc main(argc int, argv ^^char) void
+{
+        if (argc != 3) {
+                prints("Usage: lcs <s1> <s2>\n");
+                return 1;
+        }
+        solve_lcs(argv[1], argv[2], slen(argv[1]), slen(argv[2]));
+        return 0;
+}
+
+export main;
