@@ -143,6 +143,18 @@ void compile_unop_expr(Expr x, int usedAsLvalue)
                 break;
         }
 
+        case UNOP_BITWISENOT: {
+                compile_expr(e1, NOT_USED_AS_LVALUE);
+                IrStmt invertStmt = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irStmtInfo[invertStmt].proc = irp;
+                irStmtInfo[invertStmt].irStmtKind = IRSTMT_OP1;
+                irStmtInfo[invertStmt].tOp1.irOp1Kind = IROP1_BITWISENOT;
+                irStmtInfo[invertStmt].tOp1.reg = exprToIrReg[e1];
+                irStmtInfo[invertStmt].tOp1.tgtreg = exprToIrReg[x];
+                break;
+        }
+
         {
                 int opkind;
                 IrReg incReg;

@@ -13,7 +13,7 @@
  */
 
 enum UnopKind {
-        UNOP_INVERTBITS,
+        UNOP_BITWISENOT,
         UNOP_NOT,
         UNOP_ADDRESSOF,
         UNOP_DEREF,

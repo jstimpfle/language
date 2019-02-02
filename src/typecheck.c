@@ -229,7 +229,7 @@ Type check_unop_expr_type(Expr x)
                 }
                 break;
         }
-        case UNOP_INVERTBITS:
+        case UNOP_BITWISENOT:
         case UNOP_NEGATIVE:
         case UNOP_POSITIVE:
         case UNOP_PREDECREMENT:

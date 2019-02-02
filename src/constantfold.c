@@ -18,7 +18,7 @@ long long fold_integer_expr(Expr x)
                 else if (unopKind == UNOP_NEGATIVE) {
                         return - fold_integer_expr(expr);
                 }
-                else if (unopKind == UNOP_INVERTBITS ||
+                else if (unopKind == UNOP_BITWISENOT ||
                          unopKind == UNOP_NOT) {
                         UNHANDLED_CASE();
                 }

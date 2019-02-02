@@ -441,6 +441,15 @@ void emit_dec_64_reg(int r1)
         emit(make_modrm_byte(0x03, 0x01, r1 & 7));
 }
 
+INTERNAL
+void emit_bitwisenot_64_reg(int r1)
+{
+        int R = (r1 & ~7) ? REX_R : 0;
+        emit(REX_BASE|REX_W|R);
+        emit(0xF7);
+        emit(make_modrm_byte(0x03, 0x02, r1 & 7));
+}
+
 void emit_setcc(int x64CmpKind, int r)
 {
         int B = (r & ~7) ? REX_B : 0;
@@ -734,6 +743,7 @@ void x64asm_op1_irstmt(IrStmt irs)
         switch (irStmtInfo[irs].tOp1.irOp1Kind) {
         case IROP1_INC: emit_inc_64_reg(X64_RAX); break;
         case IROP1_DEC: emit_dec_64_reg(X64_RAX); break;
+        case IROP1_BITWISENOT: emit_bitwisenot_64_reg(X64_RAX); break;
         default: UNHANDLED_CASE();
         }
         emit_mov_64_reg_stack(X64_RAX, tgtloc);

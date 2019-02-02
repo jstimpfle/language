@@ -60,7 +60,7 @@ const char *const literalKindString[NUM_LITERAL_KINDS] = {
 
 const char *const unopKindString[NUM_UNOP_KINDS] = {
 #define MAKE(x) [x] = #x
-        MAKE( UNOP_INVERTBITS ),
+        MAKE( UNOP_BITWISENOT ),
         MAKE( UNOP_NOT ),
         MAKE( UNOP_ADDRESSOF ),
         MAKE( UNOP_DEREF ),
@@ -188,7 +188,7 @@ const char* const irStmtString[NUM_IRSTMT_KINDS] = {
 
 const char *const unopString[NUM_UNOP_KINDS] = {
 #define MAKE(x, y) [x] = y
-        MAKE( UNOP_INVERTBITS,    "~"  ),
+        MAKE( UNOP_BITWISENOT,    "~"  ),
         MAKE( UNOP_NOT,           "!"  ),
         MAKE( UNOP_ADDRESSOF,     "&"  ),
         MAKE( UNOP_DEREF,         "^"  ),
@@ -251,7 +251,7 @@ const char *const irCmpString[NUM_IRCMP_KINDS] = {
 
 const int unopIsPrefix[NUM_UNOP_KINDS] = {
 #define MAKE(x, y) [x] = y
-        MAKE( UNOP_INVERTBITS,     1 ),
+        MAKE( UNOP_BITWISENOT,     1 ),
         MAKE( UNOP_NOT,            1 ),
         MAKE( UNOP_ADDRESSOF,      1 ),
         MAKE( UNOP_DEREF,          1 ),
@@ -284,7 +284,7 @@ const int binopPrec[NUM_BINOP_KINDS] = {
 };
 
 const struct ToktypeToPrefixUnop toktypeToPrefixUnop[] = {
-        { TOKEN_TILDE,       UNOP_INVERTBITS },
+        { TOKEN_TILDE,       UNOP_BITWISENOT },
         { TOKEN_BANG,        UNOP_NOT },
         { TOKEN_AMPERSAND,   UNOP_ADDRESSOF },
         { TOKEN_MINUS,       UNOP_NEGATIVE },

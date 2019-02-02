@@ -74,6 +74,7 @@ enum IrOp1Kind {
         IROP1_DEC,
         IROP1_NEG,
         IROP1_BITNEG,
+        IROP1_BITWISENOT,
         NUM_IROP1_KINDS,
 };
 
