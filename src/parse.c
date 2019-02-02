@@ -920,9 +920,18 @@ INTERNAL
 void parse_data_directive(Directive directive)
 {
         Data data = parse_data();
+        Expr expr;
+        if (look_token_kind(TOKEN_ASSIGNEQUALS) != (Token) -1) {
+                consume_token();
+                expr = parse_expr(0);
+        }
+        else {
+                expr = (Expr) -1;
+        }
         parse_token_kind(TOKEN_SEMICOLON);
         directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_DATA;
-        directiveInfo[directive].tData = data;
+        directiveInfo[directive].tData.data = data;
+        directiveInfo[directive].tData.optionalInitializerExpr = expr;
 }
 
 INTERNAL

@@ -511,6 +511,11 @@ struct ExternDirectiveInfo {
         Symbol symbol;
 };
 
+struct DataDirectiveInfo {
+        Data data;
+        Expr optionalInitializerExpr;
+};
+
 struct ArrayDirectiveInfo {
         Data data;
         Expr lengthExpr;
@@ -524,7 +529,7 @@ struct DirectiveInfo {
         int directiveKind;
         union {
                 struct ExternDirectiveInfo tExtern;
-                Data tData;
+                struct DataDirectiveInfo tData;
                 struct ArrayDirectiveInfo tArray;
                 struct StructDirectiveInfo tStruct;
                 Proc tProc;

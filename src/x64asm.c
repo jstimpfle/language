@@ -181,61 +181,60 @@ void emit_symbol(Symbol sym, int section, int offset, int size)
 }
 
 INTERNAL
-void emit_rodata(const void *buf, int size)
+void emit_bytes(int sectionKind, const void *buf, int size)
 {
-        int pos = rodataSectionCnt;
-        rodataSectionCnt += size;
-        RESIZE_GLOBAL_BUFFER(rodataSection, rodataSectionCnt);
-        copy_mem(rodataSection + pos, buf, size);
-}
-
-INTERNAL UNUSEDFUNC
-void emit_data(const void *buf, int size)
-{
-        int pos = dataSectionCnt;
-        dataSectionCnt += size;
-        RESIZE_GLOBAL_BUFFER(dataSection, dataSectionCnt);
-        copy_mem(dataSection + pos, buf, size);
+        if (sectionKind == SECTION_CODE) {
+                int pos = codeSectionCnt;
+                codeSectionCnt += size;
+                RESIZE_GLOBAL_BUFFER(codeSection, codeSectionCnt);
+                copy_mem(codeSection + pos, buf, size);
+        }
+        else if (sectionKind == SECTION_DATA) {
+                int pos = dataSectionCnt;
+                dataSectionCnt += size;
+                RESIZE_GLOBAL_BUFFER(dataSection, dataSectionCnt);
+                copy_mem(dataSection + pos, buf, size);
+        }
+        else if (sectionKind == SECTION_RODATA) {
+                int pos = rodataSectionCnt;
+                rodataSectionCnt += size;
+                RESIZE_GLOBAL_BUFFER(rodataSection, rodataSectionCnt);
+                copy_mem(rodataSection + pos, buf, size);
+        }
+        else {
+                UNHANDLED_CASE();
+        }
 }
 
 INTERNAL
-void emit_bytes(const void *buf, int size)
-{
-        int pos = codeSectionCnt;
-        codeSectionCnt += size;
-        RESIZE_GLOBAL_BUFFER(codeSection, codeSectionCnt);
-        copy_mem(codeSection + pos, buf, size);
-}
-
-INTERNAL
-void emit(uint8_t c)
+void emit8(int sectionKind, uint8_t c)
 {
         uint8_t b = c;
-        emit_bytes(&b, 1);
+        emit_bytes(sectionKind, &b, 1);
 }
 
 #define BYTE(x, n) ((unsigned long long) (x) >> (8*(n)))
-void emit16(uint32_t c)
+void emit16(int sectionKind, uint32_t c)
 {
         unsigned char bs[] = { BYTE(c, 0), BYTE(c, 1) };
-        emit_bytes(bs, LENGTH(bs));
+        emit_bytes(sectionKind, bs, LENGTH(bs));
 }
 
-void emit32(uint32_t c)
+void emit32(int sectionKind, uint32_t c)
 {
         unsigned char bs[] = {
                 BYTE(c, 0), BYTE(c, 1), BYTE(c, 2), BYTE(c, 3)
         };
-        emit_bytes(bs, LENGTH(bs));
+        emit_bytes(sectionKind, bs, LENGTH(bs));
 }
 
-void emit64(uint64_t c)
+void emit64(int sectionKind, uint64_t c)
 {
         unsigned char bs[] = {
                 BYTE(c, 0), BYTE(c, 1), BYTE(c, 2), BYTE(c, 3),
                 BYTE(c, 4), BYTE(c, 5), BYTE(c, 6), BYTE(c, 7),
         };
-        emit_bytes(bs, LENGTH(bs));
+        emit_bytes(sectionKind, bs, LENGTH(bs));
 }
 
 void emit_section_relative_relocation(int sectionKind, int sectionPos,
@@ -324,15 +323,15 @@ void emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
         }
 
         int modrm = make_modrm_byte(mod, r1, r2);
-        emit(modrm);
+        emit8(SECTION_CODE, modrm);
 
         if (havesib)
-                emit(sib);
+                emit8(SECTION_CODE, sib);
 
         if (mod == 0x01)
-                emit(d);
+                emit8(SECTION_CODE, d);
         else if (mod == 0x02) {
-                emit32(d);
+                emit32(SECTION_CODE, d);
         }
 }
 
@@ -341,8 +340,8 @@ void emit_add_64_reg_indirect(int r1, int r2, long d)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|R|B);
-        emit(0x01);
+        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
+        emit8(SECTION_CODE, 0x01);
         emit_modrmreg_and_displacement_bytes(r1, r2, d);
 }
 
@@ -351,8 +350,8 @@ void emit_add_64_indirect_reg(int r1, int r2, long d)
 {
         int R = (r2 & ~7) ? REX_R : 0;
         int B = (r1 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|R|B);
-        emit(0x01 | 0x02);
+        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
+        emit8(SECTION_CODE, 0x01 | 0x02);
         emit_modrmreg_and_displacement_bytes(r2, r1, d);
 }
 
@@ -361,9 +360,9 @@ void emit_add_64_reg_reg(int r1, int r2)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|R|B);
-        emit(0x01);
-        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
+        emit8(SECTION_CODE, 0x01);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, r1 & 7, r2 & 7));
 }
 
 INTERNAL
@@ -372,16 +371,16 @@ void emit_add_imm32_reg(Imm32 imm, int reg)
 #if 0  /* disable optimization: seems to operate only on r32 registers */
         if (reg == X64_RAX) {
                 /* optimization */
-                emit(0x05);
-                emit32(imm);
+                emit8(SECTION_CODE, 0x05);
+                emit32(SECTION_CODE, imm);
                 return;
         }
 #endif
         int B = (reg & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|B);
-        emit(0x81);
-        emit(make_modrm_byte(0x03, 0x00, reg & 7));
-        emit32(imm);
+        emit8(SECTION_CODE, REX_BASE|REX_W|B);
+        emit8(SECTION_CODE, 0x81);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, 0x00, reg & 7));
+        emit32(SECTION_CODE, imm);
 }
 
 INTERNAL
@@ -389,9 +388,9 @@ void emit_sub_64_reg_reg(int r1, int r2)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|R|B);
-        emit(0x2B);
-        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
+        emit8(SECTION_CODE, 0x2B);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, r1 & 7, r2 & 7));
 }
 
 INTERNAL
@@ -399,9 +398,9 @@ void emit_bitand_64_reg_reg(int r1, int r2)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|R|B);
-        emit(0x23);
-        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
+        emit8(SECTION_CODE, 0x23);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, r1 & 7, r2 & 7));
 }
 
 INTERNAL
@@ -409,9 +408,9 @@ void emit_bitor_64_reg_reg(int r1, int r2)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|R|B);
-        emit(0x0B);
-        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
+        emit8(SECTION_CODE, 0x0B);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, r1 & 7, r2 & 7));
 }
 
 INTERNAL
@@ -419,9 +418,9 @@ void emit_bitxor_64_reg_reg(int r1, int r2)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|R|B);
-        emit(0x33);
-        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
+        emit8(SECTION_CODE, 0x33);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, r1 & 7, r2 & 7));
 }
 
 /* Multiply RAX with given register. Result is in RDX:RAX */
@@ -429,18 +428,18 @@ INTERNAL
 void emit_mul_64(int r)
 {
         int B = (r & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|B);
-        emit(0xF7);
-        emit(make_modrm_byte(0x03, 0x04, r & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|B);
+        emit8(SECTION_CODE, 0xF7);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, 0x04, r & 7));
 }
 
 INTERNAL
 void emit_div_64(int r)
 {
         int B = (r & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|B);
-        emit(0xF7);
-        emit(make_modrm_byte(0x03, 0x06, r & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|B);
+        emit8(SECTION_CODE, 0xF7);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, 0x06, r & 7));
 }
 
 INTERNAL
@@ -448,53 +447,53 @@ void emit_cmp_64_reg_reg(int r1, int r2)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|R|B);
-        emit(0x3B);
-        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
+        emit8(SECTION_CODE, 0x3B);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, r1 & 7, r2 & 7));
 }
 
 INTERNAL
 void emit_inc_64_reg(int r1)
 {
         int R = (r1 & ~7) ? REX_R : 0;
-        emit(REX_BASE|REX_W|R);
-        emit(0xFF);
-        emit(make_modrm_byte(0x03, 0x00, r1 & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|R);
+        emit8(SECTION_CODE, 0xFF);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, 0x00, r1 & 7));
 }
 
 INTERNAL
 void emit_dec_64_reg(int r1)
 {
         int R = (r1 & ~7) ? REX_R : 0;
-        emit(REX_BASE|REX_W|R);
-        emit(0xFE);
-        emit(make_modrm_byte(0x03, 0x01, r1 & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|R);
+        emit8(SECTION_CODE, 0xFE);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, 0x01, r1 & 7));
 }
 
 INTERNAL
 void emit_bitwisenot_64_reg(int r1)
 {
         int R = (r1 & ~7) ? REX_R : 0;
-        emit(REX_BASE|REX_W|R);
-        emit(0xF7);
-        emit(make_modrm_byte(0x03, 0x02, r1 & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|R);
+        emit8(SECTION_CODE, 0xF7);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, 0x02, r1 & 7));
 }
 
 void emit_setcc(int x64CmpKind, int r)
 {
         int B = (r & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|B);
-        emit(0x0F);
+        emit8(SECTION_CODE, REX_BASE|REX_W|B);
+        emit8(SECTION_CODE, 0x0F);
         switch (x64CmpKind) {
-        case X64CMP_LT: emit(0x9C); break;
-        case X64CMP_GT: emit(0x9F); break;
-        case X64CMP_LE: emit(0x9E); break;
-        case X64CMP_GE: emit(0x9D); break;
-        case X64CMP_EQ: emit(0x94); break;
-        case X64CMP_NE: emit(0x95); break;
+        case X64CMP_LT: emit8(SECTION_CODE, 0x9C); break;
+        case X64CMP_GT: emit8(SECTION_CODE, 0x9F); break;
+        case X64CMP_LE: emit8(SECTION_CODE, 0x9E); break;
+        case X64CMP_GE: emit8(SECTION_CODE, 0x9D); break;
+        case X64CMP_EQ: emit8(SECTION_CODE, 0x94); break;
+        case X64CMP_NE: emit8(SECTION_CODE, 0x95); break;
         default: UNHANDLED_CASE();
         }
-        emit(make_modrm_byte(0x03, 0x00, r & 7));
+        emit8(SECTION_CODE, make_modrm_byte(0x03, 0x00, r & 7));
 }
 
 
@@ -502,13 +501,13 @@ INTERNAL
 void emit_mov_64_imm_reg(Imm64 imm, int r1)
 {
         if (is_imm32(imm)) {
-                emit(0xb8 | r1);
-                emit32(imm);
+                emit8(SECTION_CODE, 0xb8 | r1);
+                emit32(SECTION_CODE, imm);
         }
         else {
-                emit(REX_BASE|REX_W);
-                emit(0xb8 | r1);
-                emit64(imm);
+                emit8(SECTION_CODE, REX_BASE|REX_W);
+                emit8(SECTION_CODE, 0xb8 | r1);
+                emit64(SECTION_CODE, imm);
         }
 }
 
@@ -517,9 +516,9 @@ INTERNAL UNUSEDFUNC
 void emit_mov_64_address_reg(Imm64 imm, int r1)
 {
         int B = (r1 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|B);
-        emit(0xb8 | r1);
-        emit64(imm);
+        emit8(SECTION_CODE, REX_BASE|REX_W|B);
+        emit8(SECTION_CODE, 0xb8 | r1);
+        emit64(SECTION_CODE, imm);
 }
 /* Like emit_mov_64_imm_reg(), but always use the 8-byte version and emit
  * a relocation */
@@ -533,8 +532,8 @@ void emit_mov_64_reloc_reg(Symbol symbol, int addend, int r1)
                                            have relocations in the code section
                                            */
         int B = (r1 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|B);
-        emit(0xb8 | r1);
+        emit8(SECTION_CODE, REX_BASE|REX_W|B);
+        emit8(SECTION_CODE, 0xb8 | r1);
         {
                 int offset = codeSectionCnt;
                 Reloc reloc = relocCnt++;
@@ -544,7 +543,7 @@ void emit_mov_64_reloc_reg(Symbol symbol, int addend, int r1)
                 relocInfo[reloc].addend = addend;
                 relocInfo[reloc].offset = offset;
         }
-        emit64(0x00);
+        emit64(SECTION_CODE, 0x00);
 }
 
 INTERNAL
@@ -552,9 +551,9 @@ void emit_mov_64_reg_reg(int r1, int r2)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|R|B);
-        emit(0x89);
-        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
+        emit8(SECTION_CODE, 0x89);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, r1 & 7, r2 & 7));
 }
 
 INTERNAL
@@ -562,8 +561,8 @@ void emit_mov_64_reg_indirect(int r1, int r2, long d)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|R|B);
-        emit(0x89);
+        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
+        emit8(SECTION_CODE, 0x89);
         emit_modrmreg_and_displacement_bytes(r1, r2, d);
 }
 
@@ -573,8 +572,8 @@ void emit_mov_64_indirect_reg(int r1, int r2, long d)
 {
         int R = (r2 & ~7) ? REX_R : 0;
         int B = (r1 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|R|B);
-        emit(0x89|0x02);
+        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
+        emit8(SECTION_CODE, 0x89|0x02);
         emit_modrmreg_and_displacement_bytes(r2, r1, d);
 }
 
@@ -623,9 +622,9 @@ void emit_call_reg(int r1)
 {
         /* FF /2 */
         int B = (r1 & ~7) ? REX_B : 0;
-        emit(REX_BASE|REX_W|B);
-        emit(0xff);
-        emit(make_modrm_byte(0x3, 0x02, r1 & 7));
+        emit8(SECTION_CODE, REX_BASE|REX_W|B);
+        emit8(SECTION_CODE, 0xff);
+        emit8(SECTION_CODE, make_modrm_byte(0x3, 0x02, r1 & 7));
 }
 
 INTERNAL
@@ -635,8 +634,8 @@ void emit_local_jump(IrStmt tgtstmt)
         int relocpos = codeSectionCnt - 8; //XXX
 
         // FF /4, Jump
-        emit(0xFF);
-        emit(make_modrm_byte(0x03 /* register value */, 0x04, X64_RAX));
+        emit8(SECTION_CODE, 0xFF);
+        emit8(SECTION_CODE, make_modrm_byte(0x03 /* register value */, 0x04, X64_RAX));
 
         int x = gotoCnt++;
         RESIZE_GLOBAL_BUFFER(gotoInfo, gotoCnt);
@@ -649,15 +648,15 @@ void emit_local_conditional_jump(X64StackLoc condloc, IrStmt tgtstmt, int isNeg)
 {
         emit_mov_64_stack_reg(condloc, X64_RAX);
         // CMP AL, imm8
-        emit(0x3c);
-        emit(0x00);
+        emit8(SECTION_CODE, 0x3c);
+        emit8(SECTION_CODE, 0x00);
 
         if (isNeg)
-                emit(0x75); // JNZ
+                emit8(SECTION_CODE, 0x75); // JNZ
         else
-                emit(0x74); // JZ
+                emit8(SECTION_CODE, 0x74); // JZ
         int oldpos = codeSectionCnt;
-        emit(-1); // fix later
+        emit8(SECTION_CODE, -1); // fix later
         emit_local_jump(tgtstmt);
         codeSection[oldpos] = codeSectionCnt - oldpos - 1; // this is the fix
 }
@@ -665,7 +664,7 @@ void emit_local_conditional_jump(X64StackLoc condloc, IrStmt tgtstmt, int isNeg)
 INTERNAL
 void emit_function_prologue(IrProc irp)
 {
-        emit(0x55);  // push rbp
+        emit8(SECTION_CODE, 0x55);  // push rbp
         emit_mov_64_reg_reg(X64_RSP, X64_RBP);
 
         int size = compute_size_of_stack_frame(irp);
@@ -676,8 +675,8 @@ INTERNAL
 void emit_function_epilogue(void)
 {
         //emit_mov_64_reg_reg(X64_RBP, X64_RSP);
-        emit(0xc9);  // leave
-        emit(0xc3);  // ret
+        emit8(SECTION_CODE, 0xc9);  // leave
+        emit8(SECTION_CODE, 0xc3);  // ret
 }
 
 INTERNAL
@@ -696,7 +695,7 @@ void x64asm_loadconstant_irstmt(IrStmt irs)
                 IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
                 X64StackLoc loc = find_stack_loc(irreg);
                 int rodataPos = rodataSectionCnt;
-                emit_rodata(string_buffer(s), string_length(s) + 1);
+                emit_bytes(SECTION_RODATA, string_buffer(s), string_length(s) + 1);
                 emit_load_relocatedConstant_stack(SECTION_RODATA, rodataPos, loc);
                 break;
         }
@@ -802,7 +801,7 @@ void x64asm_op2_irstmt(IrStmt irs)
                 break;
         case IROP2_DIV:
                 // clear rdx before div, with xor %rdx, %rdx
-                emit(0x48); emit(0x31); emit(0xD2);
+                emit8(SECTION_CODE, 0x48); emit8(SECTION_CODE, 0x31); emit8(SECTION_CODE, 0xD2);
                 emit_div_64(X64_RBX);
                 break;
         case IROP2_BITAND:
@@ -840,7 +839,7 @@ void x64asm_cmp_irstmt(IrStmt irs)
          * comparing. Which means we need to use a different
          * register!
          */
-        emit(0x31); emit(0xC9); // xor %ecx, %ecx
+        emit8(SECTION_CODE, 0x31); emit8(SECTION_CODE, 0xC9); // xor %ecx, %ecx
         emit_cmp_64_reg_reg(X64_RAX, X64_RBX);
         switch (irStmtInfo[irs].tCmp.irCmpKind) {
         case IRCMP_LT: emit_setcc(X64CMP_LT, X64_RCX); break;
@@ -988,15 +987,36 @@ void codegen_x64(void)
         RESIZE_GLOBAL_BUFFER(irprocToCodepos, irProcCnt);
 
         /* TODO: do we need an "IrData" type? */
-        for (Data x = 0; x < dataCnt; x++) {
-                if (scopeInfo[dataInfo[x].scope].scopeKind != SCOPE_GLOBAL)
+        for (Directive d = 0; d < directiveCnt; d++) {
+                if (directiveInfo[d].directiveKind != BUILTINDIRECTIVE_DATA)
                         continue;
-                int offset = zerodataSectionCnt;
-                int size = get_type_size(dataInfo[x].tp);
-                zerodataSectionCnt += size;
-                // TODO: initialized data must be allocated in SECTION_DATA /
-                // in the dataSection Buffer.
-                emit_symbol(dataInfo[x].sym, SECTION_ZERODATA, offset, size);
+                Data data = directiveInfo[d].tData.data;
+                Expr expr = directiveInfo[d].tData.optionalInitializerExpr;
+                int size = get_type_size(dataInfo[data].tp);
+
+                if (expr == (Expr) -1) {
+                        int offset = zerodataSectionCnt;
+                        zerodataSectionCnt += size;
+                        emit_symbol(dataInfo[data].sym, SECTION_ZERODATA,
+                                    offset, size);
+                }
+                else {
+                        int offset = dataSectionCnt;
+
+                        //XXX
+                        if (exprInfo[expr].exprKind == EXPR_LITERAL &&
+                            exprInfo[expr].tLiteral.literalKind == LITERAL_INTEGER) {
+                                Token token = exprInfo[expr].tLiteral.tok;
+                                emit64(SECTION_DATA, tokenInfo[token].tInteger.value);
+                        }
+                        else {
+                                // XXX XXX XXX
+                                *(int64_t *) &dataSection[offset] = 5;
+                        }
+
+                        emit_symbol(dataInfo[data].sym, SECTION_DATA,
+                                    offset, size);
+                }
         }
 
         for (IrProc x = 0; x < irProcCnt; x++) {

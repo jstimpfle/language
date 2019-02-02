@@ -1,0 +1,11 @@
+/* Test global initialized data */
+
+data value int = 42;
+
+proc main() int
+{
+    print64(value);
+    --value;
+    print64(value);
+    return 0;
+}
