@@ -4,6 +4,8 @@ proc main() int
     print64(7 - 2);
     print64(7 * 2);
     print64(7 / 2);
+    print64(3 & 2);
+    print64(2 | 1);
     print64(~1);
     return 0;
 }

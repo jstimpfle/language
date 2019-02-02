@@ -232,7 +232,10 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
         else if (binopKind == BINOP_PLUS ||
                  binopKind == BINOP_MINUS ||
                  binopKind == BINOP_MUL ||
-                 binopKind == BINOP_DIV) {
+                 binopKind == BINOP_DIV ||
+                 binopKind == BINOP_BITAND ||
+                 binopKind == BINOP_BITOR ||
+                 binopKind == BINOP_BITXOR) {
                 compile_expr(e1, NOT_USED_AS_LVALUE);
                 compile_expr(e2, NOT_USED_AS_LVALUE);
                 int irOp2Kind;
@@ -241,6 +244,9 @@ void compile_binop_expr(Expr x, UNUSED int usedAsLvalue)
                 case BINOP_MINUS: irOp2Kind = IROP2_SUB; break;
                 case BINOP_MUL:   irOp2Kind = IROP2_MUL; break;
                 case BINOP_DIV:   irOp2Kind = IROP2_DIV; break;
+                case BINOP_BITAND: irOp2Kind = IROP2_BITAND; break;
+                case BINOP_BITOR:  irOp2Kind = IROP2_BITOR; break;
+                case BINOP_BITXOR: irOp2Kind = IROP2_BITXOR; break;
                 default: UNREACHABLE();
                 }
                 IrStmt y = irStmtCnt++;

@@ -225,7 +225,7 @@ const char *const irOp1String[NUM_IROP1_KINDS] = {
         MAKE( IROP1_INC,    "INC" ),
         MAKE( IROP1_DEC,    "DEC" ),
         MAKE( IROP1_NEG,    "NEG" ),
-        MAKE( IROP1_BITNEG, "BITNEG" ),
+        MAKE( IROP1_BITWISENOT, "BITWISENOT" ),
 #undef MAKE
 };
 
@@ -235,6 +235,9 @@ const char *const irOp2String[NUM_IROP2_KINDS] = {
         MAKE( IROP2_SUB, "SUB" ),
         MAKE( IROP2_MUL, "MUL" ),
         MAKE( IROP2_DIV, "DIV" ),
+        MAKE( IROP2_BITAND, "AND" ),
+        MAKE( IROP2_BITOR,  "OR" ),
+        MAKE( IROP2_BITXOR, "XOR" ),
 #undef MAKE
 };
 

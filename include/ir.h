@@ -73,7 +73,6 @@ enum IrOp1Kind {
         IROP1_INC,
         IROP1_DEC,
         IROP1_NEG,
-        IROP1_BITNEG,
         IROP1_BITWISENOT,
         NUM_IROP1_KINDS,
 };
@@ -83,6 +82,9 @@ enum IrOp2Kind {
         IROP2_SUB,
         IROP2_MUL,
         IROP2_DIV,
+        IROP2_BITAND,
+        IROP2_BITOR,
+        IROP2_BITXOR,
         NUM_IROP2_KINDS,
 };
 

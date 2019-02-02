@@ -394,6 +394,36 @@ void emit_sub_64_reg_reg(int r1, int r2)
         emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
 }
 
+INTERNAL
+void emit_bitand_64_reg_reg(int r1, int r2)
+{
+        int R = (r1 & ~7) ? REX_R : 0;
+        int B = (r2 & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|R|B);
+        emit(0x23);
+        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+}
+
+INTERNAL
+void emit_bitor_64_reg_reg(int r1, int r2)
+{
+        int R = (r1 & ~7) ? REX_R : 0;
+        int B = (r2 & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|R|B);
+        emit(0x0B);
+        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+}
+
+INTERNAL
+void emit_bitxor_64_reg_reg(int r1, int r2)
+{
+        int R = (r1 & ~7) ? REX_R : 0;
+        int B = (r2 & ~7) ? REX_B : 0;
+        emit(REX_BASE|REX_W|R|B);
+        emit(0x33);
+        emit(make_modrm_byte(0x03, r1 & 7, r2 & 7));
+}
+
 /* Multiply RAX with given register. Result is in RDX:RAX */
 INTERNAL
 void emit_mul_64(int r)
@@ -774,6 +804,15 @@ void x64asm_op2_irstmt(IrStmt irs)
                 // clear rdx before div, with xor %rdx, %rdx
                 emit(0x48); emit(0x31); emit(0xD2);
                 emit_div_64(X64_RBX);
+                break;
+        case IROP2_BITAND:
+                emit_bitand_64_reg_reg(X64_RAX, X64_RBX);
+                break;
+        case IROP2_BITOR:
+                emit_bitor_64_reg_reg(X64_RAX, X64_RBX);
+                break;
+        case IROP2_BITXOR:
+                emit_bitxor_64_reg_reg(X64_RAX, X64_RBX);
                 break;
         default:
                 UNHANDLED_CASE();
