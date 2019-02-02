@@ -41,6 +41,9 @@ int arg_type_matches_param_type(Type argTp, Type paramTp)
         /* Any pointer argument is compatible with void pointer parameter */
         if (ptr && paramTp == builtinType[BUILTINTYPE_VOID])
                 return 1;
+        /* void pointer arguments are compatible with any pointer parameter */
+        if (ptr && argTp == builtinType[BUILTINTYPE_VOID])
+                return 1;
         /* If the argument type is ^[N]T for some length N and number T, and
          * the parameter type is just a ^T, then that's also fine. */
         if (ptr && typeInfo[argTp].typeKind == TYPE_ARRAY) {
