@@ -466,7 +466,7 @@ void emit_dec_64_reg(int r1)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         emit8(SECTION_CODE, REX_BASE|REX_W|R);
-        emit8(SECTION_CODE, 0xFE);
+        emit8(SECTION_CODE, 0xFF);
         emit8(SECTION_CODE, make_modrm_byte(0x03, 0x01, r1 & 7));
 }
 
