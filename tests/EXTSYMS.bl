@@ -8,6 +8,7 @@ compile command-line. E.g.,
 
 extern print64 void(int);
 extern prints  void(^char);
+extern fflush  void(^void);
 
 /* stdin, stdout, stderr are evil complicated macros on MSVC */
 extern get_stdin ^void();
@@ -18,4 +19,5 @@ extern memset  void(^void, int, int);
 extern memcpy  void(^void, ^void, int);
 extern memmove void(^void, ^void, int);
 extern malloc  ^void(int);
+extern free    void(^void);
 extern fgets   int(^void, int, ^void);
