@@ -775,6 +775,7 @@ void compile_for_stmt(IrProc irp, Stmt stmt)
 INTERNAL
 void compile_range_stmt(IrProc irp, Stmt stmt)
 {
+        int directionIsDown = stmtInfo[stmt].tRange.directionIsDown;
         Data variable = stmtInfo[stmt].tRange.variable;
         Expr e1 = stmtInfo[stmt].tRange.startExpr;
         Expr e2 = stmtInfo[stmt].tRange.stopExpr;
@@ -794,13 +795,39 @@ void compile_range_stmt(IrProc irp, Stmt stmt)
          * Remove initStmt later when we have better structure, and properly
          * route the e1 expression to the variable instead!
          */
-        IrStmt initStmt = irStmtCnt++;
-        IrStmt checkStmt = irStmtCnt++;
-        IrStmt breakStmt = irStmtCnt++;
-        compile_stmt(irp, rangebody);
-        IrStmt stepStmt = irStmtCnt++;
-        IrStmt jumpStmt = irStmtCnt++;
-        IrStmt stmtAfterBlock = irStmtCnt;
+        IrStmt initStmt;
+        IrStmt checkStmt;
+        IrStmt breakStmt;
+        IrStmt stepStmt;
+        IrStmt jumpStmt;
+        IrStmt jumpTarget;
+        IrStmt stmtAfterBlock;
+        int incOrDec;
+
+        /* Depending on direction ("to" or "downto") we need to emit slightly
+         * different code */
+        if (directionIsDown) {
+                initStmt = irStmtCnt++;
+                stepStmt = irStmtCnt++;
+                checkStmt = irStmtCnt++;
+                breakStmt = irStmtCnt++;
+                compile_stmt(irp, rangebody);
+                jumpTarget = stepStmt;
+                jumpStmt = irStmtCnt++;
+                stmtAfterBlock = irStmtCnt;
+                incOrDec = IROP1_DEC;
+        }
+        else {
+                initStmt = irStmtCnt++;
+                checkStmt = irStmtCnt++;
+                breakStmt = irStmtCnt++;
+                compile_stmt(irp, rangebody);
+                stepStmt = irStmtCnt++;
+                jumpStmt = irStmtCnt++;
+                jumpTarget = checkStmt;
+                stmtAfterBlock = irStmtCnt;
+                incOrDec = IROP1_INC;
+        }
 
         RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
@@ -822,15 +849,15 @@ void compile_range_stmt(IrProc irp, Stmt stmt)
         irStmtInfo[breakStmt].irStmtKind = IRSTMT_CONDGOTO;
         irStmtInfo[breakStmt].tCondGoto.condreg = cmpReg;
         irStmtInfo[breakStmt].tCondGoto.tgtstmt = stmtAfterBlock;
-        irStmtInfo[breakStmt].tCondGoto.isNeg = 0;
+        irStmtInfo[breakStmt].tCondGoto.isNeg = directionIsDown;
         irStmtInfo[stepStmt].proc = irp;
         irStmtInfo[stepStmt].irStmtKind = IRSTMT_OP1;
-        irStmtInfo[stepStmt].tOp1.irOp1Kind = IROP1_INC;
+        irStmtInfo[stepStmt].tOp1.irOp1Kind = incOrDec;
         irStmtInfo[stepStmt].tOp1.reg = varReg;
         irStmtInfo[stepStmt].tOp1.tgtreg = varReg;
         irStmtInfo[jumpStmt].proc = irp;
         irStmtInfo[jumpStmt].irStmtKind = IRSTMT_GOTO;
-        irStmtInfo[jumpStmt].tGoto.tgtstmt = checkStmt;
+        irStmtInfo[jumpStmt].tGoto.tgtstmt = jumpTarget;
 }
 
 INTERNAL
