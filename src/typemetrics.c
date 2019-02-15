@@ -8,7 +8,7 @@ Type referenced_type(Type t)
         return t;
 }
 
-long long get_type_size(Type tp)
+int get_type_size(Type tp)
 {
         tp = referenced_type(tp);
         switch (typeInfo[tp].typeKind) {
@@ -26,8 +26,8 @@ long long get_type_size(Type tp)
                 return 8;
         case TYPE_ARRAY: {
                 Type valueTp = typeInfo[tp].tArray.valueTp;
-                long long length = typeInfo[tp].tArray.length;
-                long long elementSize = get_type_size(valueTp);
+                int length = typeInfo[tp].tArray.length;
+                int elementSize = get_type_size(valueTp);
                 if (length == -1)
                         return -1;
                 ASSERT(length >= 0);

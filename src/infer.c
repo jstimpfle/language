@@ -32,7 +32,7 @@ void infer_array(Directive directive)
         DEBUG("Infer array %s\n", SS(dataInfo[data].sym));
         Type tp = dataInfo[data].tp;
         ASSERT(typeInfo[tp].typeKind == TYPE_ARRAY);
-        typeInfo[tp].tArray.length = fold_integer_expr(lengthExpr);
+        typeInfo[tp].tArray.length = (int) /*XXX: dirty cast */ fold_integer_expr(lengthExpr);
         DEBUG("Array length is %d\n", (int) typeInfo[tp].tArray.length);
 }
 

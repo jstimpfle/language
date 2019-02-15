@@ -12,7 +12,6 @@ void print_usage(const char *progname)
         outf("\n");
 }
 
-
 int main(int argc, const char **argv)
 {
         const char *progname = argv[0];

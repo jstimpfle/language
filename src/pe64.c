@@ -368,7 +368,7 @@ struct PE_Relocation {
                                              symbol’s address is the address
                                              with the first section of the same
                                              name. */
-        PED_DWORD  PER_Type;              /* A value indicating what kind of
+        PED_WORD  PER_Type;               /* A value indicating what kind of
                                              relocation should be performed.
                                              Valid relocation types depend on
                                              machine type. See Section 5.2.1,

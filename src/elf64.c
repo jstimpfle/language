@@ -421,7 +421,7 @@ void n(t x, FILE *f) \
         uint64_t y = x; \
         ASSERT((t) y == x); \
         for (size_t i = 0; i < sizeof (x); i++) { \
-                fputc(y, f); \
+                fputc((int)y, f); \
                 y >>= 8; \
         } \
 }

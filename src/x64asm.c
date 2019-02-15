@@ -181,7 +181,7 @@ void emit_symbol(Symbol sym, int section, int offset, int size)
 }
 
 INTERNAL
-void emit_bytes(int sectionKind, const void *buf, int size)
+void emit_bytes(int sectionKind, const unsigned char *buf, int size)
 {
         if (sectionKind == SECTION_CODE) {
                 int pos = codeSectionCnt;
@@ -207,13 +207,13 @@ void emit_bytes(int sectionKind, const void *buf, int size)
 }
 
 INTERNAL
-void emit8(int sectionKind, uint8_t c)
+void emit8(int sectionKind, Imm8 c)
 {
-        uint8_t b = c;
+        unsigned char b = c;
         emit_bytes(sectionKind, &b, 1);
 }
 
-#define BYTE(x, n) ((unsigned long long) (x) >> (8*(n)))
+#define BYTE(x, n) ((unsigned char) ((unsigned long long) (x) >> (8*(n))))
 void emit16(int sectionKind, uint32_t c)
 {
         unsigned char bs[] = { BYTE(c, 0), BYTE(c, 1) };
@@ -290,7 +290,7 @@ int make_sib_byte(unsigned scale, unsigned r1, unsigned r2)
  * depending on the preceding opcode).
  */
 INTERNAL
-void emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
+void emit_modrmreg_and_displacement_bytes(int r1, int r2, int d)
 {
         r1 &= 7;
         r2 &= 7;
@@ -502,7 +502,7 @@ void emit_mov_64_imm_reg(Imm64 imm, int r1)
 {
         if (is_imm32(imm)) {
                 emit8(SECTION_CODE, 0xb8 | r1);
-                emit32(SECTION_CODE, imm);
+                emit32(SECTION_CODE, (Imm32) imm);
         }
         else {
                 emit8(SECTION_CODE, REX_BASE|REX_W);
