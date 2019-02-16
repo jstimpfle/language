@@ -488,6 +488,8 @@ void emit_bitwisenot_64_reg(int r1)
 
 void emit_setcc(int x64CmpKind, int r1)
 {
+        /* This instruction is in yet another form that is not yet
+         * generalized: 2-byte opcode. 0F followed by another byte */
         static const int x64CmpToOpcode[NUM_X64CMP_KINDS] = {
                 [X64CMP_LT] = 0x9C,
                 [X64CMP_GT] = 0x9F,
@@ -497,9 +499,16 @@ void emit_setcc(int x64CmpKind, int r1)
                 [X64CMP_NE] = 0x95,
         };
         ASSERT(0 <= x64CmpKind && x64CmpKind < NUM_X64CMP_KINDS);
+        int escapecode = 0x0F;
         int opcode = x64CmpToOpcode[x64CmpKind];
+        int morebits = 0x00;
+
+        ASSERT(0 <= morebits && morebits < 8);
+        int B = (r1 & ~7) ? REX_B : 0;
+        emit8(SECTION_CODE, REX_BASE | REX_W | B);
+        emit8(SECTION_CODE, escapecode);
         emit8(SECTION_CODE, opcode);
-        emit_rex_instruction_reg(0x0F, 0x00, r1);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, morebits, r1 & 7));
 }
 
 
