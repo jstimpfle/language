@@ -335,35 +335,45 @@ void emit_modrmreg_and_displacement_bytes(int r1, int r2, int d)
         }
 }
 
-INTERNAL UNUSEDFUNC
-void emit_add_64_reg_indirect(int r1, int r2, long d)
+
+INTERNAL
+void emit_instruction_reg_reg(int opcode, int r1, int r2)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
-        emit8(SECTION_CODE, 0x01);
-        emit_modrmreg_and_displacement_bytes(r1, r2, d);
+        emit8(SECTION_CODE, REX_BASE | REX_W | R | B);
+        emit8(SECTION_CODE, opcode);
+        emit8(SECTION_CODE, make_modrm_byte(0x03, r1 & 7, r2 & 7));
 }
 
-INTERNAL UNUSEDFUNC
-void emit_add_64_indirect_reg(int r1, int r2, long d)
+INTERNAL
+void emit_instruction_reg_indirect(int opcode, int r1, int r2, long d)
 {
-        int R = (r2 & ~7) ? REX_R : 0;
-        int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
-        emit8(SECTION_CODE, 0x01 | 0x02);
-        emit_modrmreg_and_displacement_bytes(r2, r1, d);
+        int R = (r1 & ~7) ? REX_R : 0;
+        int B = (r2 & ~7) ? REX_B : 0;
+        emit8(SECTION_CODE, REX_BASE | REX_W | R | B);
+        emit8(SECTION_CODE, opcode);
+        emit_modrmreg_and_displacement_bytes(r1, r2, d);
 }
 
 INTERNAL UNUSEDFUNC
 void emit_add_64_reg_reg(int r1, int r2)
 {
-        int R = (r1 & ~7) ? REX_R : 0;
-        int B = (r2 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE|REX_W|R|B);
-        emit8(SECTION_CODE, 0x01);
-        emit8(SECTION_CODE, make_modrm_byte(0x03, r1 & 7, r2 & 7));
+        emit_instruction_reg_reg(0x01, r1, r2);
 }
+
+INTERNAL UNUSEDFUNC
+void emit_add_64_reg_indirect(int r1, int r2, long d)
+{
+        emit_instruction_reg_indirect(0x01, r1, r2, d);
+}
+
+INTERNAL UNUSEDFUNC
+void emit_add_64_indirect_reg(int r1, int r2, long d)
+{
+        emit_instruction_reg_indirect(0x03, r2, r1, d);
+}
+
 
 INTERNAL
 void emit_add_imm32_reg(Imm32 imm, int reg)
