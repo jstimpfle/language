@@ -117,7 +117,6 @@ INTERNAL
 Type typecheck_assign(Type dstTp, Expr expr)
 {
         dstTp = referenced_type(dstTp);
-        Type exprTp = exprType[expr];
         if (typeInfo[dstTp].typeKind == TYPE_ARRAY)
                 return typecheck_array_expr(dstTp, expr);
         if (typeInfo[dstTp].typeKind == TYPE_STRUCT)
@@ -429,6 +428,8 @@ Type check_call_expr_type(Expr x)
 INTERNAL
 Type check_compound_expr_type(Expr x)
 {
+        /*XXX*/
+        (void) x;
         return builtinType[BUILTINTYPE_COMPOUND];
 }
 

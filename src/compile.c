@@ -460,6 +460,8 @@ void compile_call_expr(Expr x, UNUSED int usedAsLvalue)
 INTERNAL
 void compile_compound_expr(Expr x, int usedAsLvalue)
 {
+        (void) x;
+        (void) usedAsLvalue;
         FATAL("Not implemented yet\n");
 }
 

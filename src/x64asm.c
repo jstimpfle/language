@@ -182,7 +182,7 @@ void emit_symbol(Symbol sym, int section, int offset, int size)
 }
 
 INTERNAL
-void emit_bytes(int sectionKind, const unsigned char *buf, int size)
+void emit_bytes(int sectionKind, const void *buf, int size)
 {
         if (sectionKind == SECTION_CODE) {
                 int pos = codeSectionCnt;
@@ -291,7 +291,7 @@ int make_sib_byte(int scale, int r1, int r2)
  * depending on the preceding opcode).
  */
 INTERNAL
-void emit_modrmreg_and_displacement_bytes(int r1, int r2, int d)
+void emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
 {
         r1 &= 7;
         r2 &= 7;
@@ -366,7 +366,7 @@ void emit_rex_instruction_reg(int opcode, int morebits, int r1)
         emit8(SECTION_CODE, make_modrm_byte(0x03, morebits, r1 & 7));
 }
 
-INTERNAL
+INTERNAL UNUSEDFUNC
 void emit_rex_instruction_imm8_reg(int opcode, int morebits, Imm8 imm, int r1)
 {
         ASSERT(0 <= morebits && morebits < 8);
