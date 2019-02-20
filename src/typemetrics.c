@@ -52,6 +52,13 @@ int get_type_size(Type tp)
         }
 }
 
+Type get_type_behind_pointer(Type tp)
+{
+        tp = referenced_type(tp); //XXX
+        ASSERT(typeInfo[tp].typeKind == TYPE_POINTER);
+        return typeInfo[tp].tPointer.tp;
+}
+
 /* let's just put this here since we don't have a good place */
 void print_type(Type tp)
 {

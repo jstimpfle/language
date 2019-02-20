@@ -512,7 +512,7 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
         irRegInfo[addrReg].proc = procToIrProc[exprInfo[x].proc];
         irRegInfo[addrReg].name = -1;
         irRegInfo[addrReg].sym = -1;
-        irRegInfo[addrReg].tp = builtinType[BUILTINTYPE_INT];
+        irRegInfo[addrReg].tp = irRegInfo[exprToIrReg[e1]].tp;
 
         irStmtInfo[loadStmt].proc = procToIrProc[exprInfo[x].proc];
         irStmtInfo[loadStmt].irStmtKind = IRSTMT_LOADCONSTANT;
@@ -614,6 +614,9 @@ void compile_expr(Expr x, int usedAsLvalue)
         irRegInfo[r].name = -1;  // register from Expr's are unnamed
         irRegInfo[r].sym = -1; // registers from Expr's are unnamed
         irRegInfo[r].tp = exprType[x];
+        if (usedAsLvalue) //XXX TEST
+                irRegInfo[r].tp = pointer_type(irRegInfo[r].tp); //XXX
+
         exprToIrReg[x] = r;
 
         int kind = exprInfo[x].exprKind;

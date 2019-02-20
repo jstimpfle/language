@@ -36,3 +36,7 @@ FILE *get_stderr(void)
 {
         return stderr;
 }
+
+
+/* XXX: only to work around our unfinished type system */
+int chartoint(char c) { return c; }

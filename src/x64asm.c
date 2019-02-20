@@ -330,9 +330,9 @@ void emit_modrmreg_and_displacement_bytes(int r1, int r2, long d)
                 emit8(SECTION_CODE, sib);
 
         if (mod == 0x01)
-                emit8(SECTION_CODE, d);
+                emit8(SECTION_CODE, (Imm8) d);
         else if (mod == 0x02) {
-                emit32(SECTION_CODE, d);
+                emit32(SECTION_CODE, (Imm32) d);
         }
 }
 
@@ -511,7 +511,6 @@ void emit_setcc(int x64CmpKind, int r1)
         emit8(SECTION_CODE, make_modrm_byte(0x03, morebits, r1 & 7));
 }
 
-
 INTERNAL
 void emit_mov_64_imm_reg(Imm64 imm, int r1)
 {
@@ -552,6 +551,18 @@ void emit_mov_64_reloc_reg(Symbol symbol, int addend, int r1)
         relocInfo[reloc].sectionKind = sectionKind;
         relocInfo[reloc].addend = addend;
         relocInfo[reloc].offset = offset;
+}
+
+INTERNAL
+void emit_mov_8_indirect_reg(int r1, int r2, long d)
+{
+        emit_rex_instruction_reg_indirect(0x8A, r2, r1, d);
+}
+
+INTERNAL
+void emit_mov_8_reg_indirect(int r1, int r2, long d)
+{
+        emit_rex_instruction_reg_indirect(0x88, r1, r2, d);
 }
 
 INTERNAL
@@ -722,8 +733,14 @@ void x64asm_load_irstmt(IrStmt irs)
         IrReg tgtreg = irStmtInfo[irs].tLoad.tgtreg;
         X64StackLoc srcloc = find_stack_loc(addrreg);
         X64StackLoc tgtloc = find_stack_loc(tgtreg);
+        Type addrtype = irRegInfo[addrreg].tp;
+        int numBytesToLoad = get_type_size(get_type_behind_pointer(addrtype));
+
         emit_mov_64_stack_reg(srcloc, X64_RAX);
-        emit_mov_64_indirect_reg(X64_RAX, X64_RAX, 0);
+        if (numBytesToLoad == 1)
+                emit_mov_8_indirect_reg(X64_RAX, X64_RAX, 0);
+        else // XXX: for now
+                emit_mov_64_indirect_reg(X64_RAX, X64_RAX, 0);
         emit_mov_64_reg_stack(X64_RAX, tgtloc);
 }
 
@@ -734,9 +751,15 @@ void x64asm_store_irstmt(IrStmt irs)
         IrReg tgtreg = irStmtInfo[irs].tStore.tgtaddrreg;
         X64StackLoc srcloc = find_stack_loc(addrreg);
         X64StackLoc tgtloc = find_stack_loc(tgtreg);
+        Type tgttype = irRegInfo[tgtreg].tp;
+        int numBytesToStore = get_type_size(get_type_behind_pointer(tgttype));
+
         emit_mov_64_stack_reg(srcloc, X64_RAX);
         emit_mov_64_stack_reg(tgtloc, X64_RCX);
-        emit_mov_64_reg_indirect(X64_RAX, X64_RCX, 0);
+        if (get_type_size(tgttype) == 1)
+                emit_mov_8_reg_indirect(X64_RAX, X64_RCX, 0);
+        else // XXX: for now
+                emit_mov_64_reg_indirect(X64_RAX, X64_RCX, 0);
 }
 
 INTERNAL
