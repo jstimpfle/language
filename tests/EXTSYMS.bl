@@ -24,3 +24,4 @@ extern fgets   int(^void, int, ^void);
 
 /*XXX only to work around our unfinished type system*/
 extern chartoint int(char);
+extern inttochar char(int);

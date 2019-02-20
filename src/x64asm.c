@@ -756,7 +756,7 @@ void x64asm_store_irstmt(IrStmt irs)
 
         emit_mov_64_stack_reg(srcloc, X64_RAX);
         emit_mov_64_stack_reg(tgtloc, X64_RCX);
-        if (get_type_size(tgttype) == 1)
+        if (numBytesToStore == 1)
                 emit_mov_8_reg_indirect(X64_RAX, X64_RCX, 0);
         else // XXX: for now
                 emit_mov_64_reg_indirect(X64_RAX, X64_RCX, 0);
