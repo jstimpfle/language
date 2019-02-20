@@ -13,7 +13,10 @@ Calling to function pointers does not seem to work (compiler or machine code
 emitter).
 
 Need to support loading and moving quantities other than 64-bit integers (IR /
-machine code emitter)
+machine code emitter). (UPDATE: partly implemented: can load/store chars)
 
 Think about and implement syntax for complex literals (arrays and structs). We
 also want to support addressof-literal expressions, even for complex literals.
+
+Do some easy to have machine optimizations. For example, for subscripts with
+constant indices, there is no need to compute the offset at runtime.
