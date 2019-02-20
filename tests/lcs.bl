@@ -11,12 +11,8 @@ proc solve_lcs(s1 ^char, s2 ^char, l1 int, l2 int) void
         macro I(i,j) => ri[i*(l2+1)+j];
         macro J(i,j) => rj[i*(l2+1)+j];
 
-        for i from 0 to l1+1 do {
-                L(i,0) = 0;
-        }
-        for j from 0 to l2+1 do {
-                L(0,j) = 0;
-        }
+        for i from 0 to l1+1 do L(i,0) = 0;
+        for j from 0 to l2+1 do L(0,j) = 0;
 
         for i from 1 to l1+1 do {
                 for j from 1 to l2+1 do {
@@ -28,7 +24,7 @@ proc solve_lcs(s1 ^char, s2 ^char, l1 int, l2 int) void
                                 I(i,j) = I(i,j-1);
                                 J(i,j) = J(i,j-1);
                         }
-                        if ((s1[i-1]&255)==(s2[j-1]&255)) {
+                        if (s1[i-1] == s2[j-1]) {
                                 if (L(i,j) < L(i-1,j-1) + 1) {
                                         L(i,j) = L(i-1,j-1) + 1;
                                         I(i,j) = i-1;
