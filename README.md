@@ -6,17 +6,16 @@ tries to improve on C with a cleaned up syntax, better ergonomics, and a more
 robust compilation model. While it affords a few more special words than C has,
 it is still concise.
 
-Beyond that, the main feature of the language is extreme minimalism, like C.
-The overarching philosophy is that programs should not be specified using
-clever syntactical or semantical tricks of the language, since the information
-encoded in such ways is hard to process (or even access, in the first place) by
-user-defined code.
+Like with C, the main feature of the language is simplicity. The overarching
+philosophy is that programs should not be specified using clever syntactical or
+semantical tricks of the language, since the information encoded in such ways
+is hard to process (or even access, in the first place) by user-defined code.
 
 Of important note is that blunt significantly improves on C's compile times by
-not relying on a lexical preprocessor to access external interfaces. The effect
-is that many blunt files can be compiled at once, reducing the number of times
-interfaces files need to be read. In many cases, the number of lines parsed is
-reduced by 10x or more.
+not relying on textual inclusion to access external interfaces. This leads to a
+drastic reduction of the number of times interface files need to be read, at
+least compared to C header guards. In many cases, the number of lines that must
+be parsed is reduced by 10x or more.
 
 Some support for metaprogramming is offered by expression macros. Blunt
 expression macros are similar to C macros, but they are "hygienic" in the sense
@@ -24,10 +23,6 @@ that free variables are bound at the macro definition site. For this to work,
 blunt expression macros must operate on the expression level, so they are
 restricted to valid blunt expressions -- unlike C macros which operate on the
 token level.
-
-One of the language's main goals besides language simplicity is simplicity of
-implementation. It should be easy to create new implementations and to add
-extensions to support projects created in blunt.
 
 Important influences for blunt's design: First, the venerable C programming
 language. Two more recent projects which have caught some attention: the Jai
@@ -38,11 +33,10 @@ current situation of our development ecosystems.
 
 blunt is not as feature-happy as Jai, though. It aims to be ergonomic by
 offering slightly more built-in features than ion and C have, but it's careful
-not to explore new "dimensions of complexity". In other words, blunt adds
-operators that return the number of elements in a static array because it's
-clear that this feature won't interact with other features in unforeseen ways
-(not any more than the #sizeof operator does, at least). But it doesn't add a
-complex object system or similar bells and whistles.
+not to increase complexity. For example, blunt adds operators that return the
+number of elements in a static array because it's clear that this feature won't
+interact with other features in unforeseen ways. But it doesn't add a complex
+object system or similar bells and whistles.
 
 
 The blunt compiler
@@ -102,7 +96,8 @@ directory. Run for instance:
 ./blunt tests/fib.bl tests/EXTSYMS.bl -write-elf-object
 ```
 
-(note: tests/EXTSYMS.bl is currently needed to access the functions in
+(note: tests/EXTSYMS.bl is an interface file. It holds the function signatures
+of a few functions defined in libc, and of the functions defined in
 runtime/support.c)
 
 You can also try one of the following options accepted by the blunt compiler:
