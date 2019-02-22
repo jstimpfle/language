@@ -99,6 +99,82 @@ calling scope). And you cannot do things like defining an APPLES_FOREACH(name,
 container) macro because that is not an expression. So probably, we will need
 to consider additional mechanisms in the future.
 
+No `const` type modifiers
+-------------------------
+
+Experienced programmers largely agree that `const` in C doesn't work.  The
+number of times programmers need to circumvent the const-type-system tends to
+be higher than the number of types where the system actually helps preventing
+bugs. I think the fundamental problem is that one man's const is another man's
+writeable value.
+
+Take, for example, the following API for finding the first non-whitespace
+character in a string:
+
+```c
+char *find_first_nonwhite(char *string, int length);
+```
+
+It cannot be used by callers who have not a `char *` but only a `const char *`.
+But `find_first_nonwhite()` does not actually write to the string. If we change
+the signature to
+
+```c
+const char *find_first_nonwhite(const char *string, int length);
+```
+
+That works! But now this version is unusable for callers who do have a `char *`
+and also need a `char *` returned! The only way to stay within the bounds of
+the const-type-system is to have two versions of the API:
+
+```c
+char *find_first_nonwhite(char *string, int length);
+const char *find_first_nonwhite_const(const char *string, int length);
+```
+
+We can circumvent the problem in this particular instance by returning an
+integer offset instead of a pointer:
+
+```c
+int find_first_nonwhite(const char *string, int length);
+```
+
+But it's not very satisfying to be required to change the function signature in
+a fundamental way, simply to please the type system. Also, this works only for
+such a simple interface. In more involved situations, say, when writing an API
+that takes a function pointer that implements an arbitrary predicate, the only
+way is to circumvent the type system.
+
+The situation is much worse in C++ land where const correctness is valued more,
+and where const is deeply embedded into the inner workings of the language and
+standard library. The `::iterator` vs `::const_iterator` madness is only the
+most prominent example. I don't wont to go to a place where I need to type
+everything two or four times more than necessary each time I want to make a
+simple interface.  (Four times is not an exaggeration. Think of other
+non-orthogonalities, such as references vs pointers, methods vs functions, and
+so on).
+
+Again, I think the fundamental problem with `const` is that one man's const is
+another man's writeable value. As soon as there is any interaction between
+opposing views, this will lead to problems. I don't think there is a practical
+system that can prevent accidental writes and improve programmer productivity.
+And, as stated, accidental writes are not an actual serious problem in my own
+practice.
+
+For these reasons this is an easy decision: there are no const types in blunt.
+
+The only thing we (plan to) have is real constant memory, mapped as readonly
+pages of memory by the operating system. But blunt's type system does *not*
+make a distinction based on the kind of memory in which the data lives.
+
+Finally, while I don't believe `const` can carry its own weight as a language
+feature, I still think that it has some documentational value, especially in
+function signatures. For pointer arguments, It helps make a distinction between
+input and output values. Should it turn out that this documentation cannot be
+adequately provided with good variable names, then I will consider a simple
+system to provide such (and similar) hints.
+
+
 The #lengthof() builtin
 ---------------------
 
