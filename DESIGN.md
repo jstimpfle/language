@@ -102,13 +102,10 @@ to consider additional mechanisms in the future.
 No `const` type modifiers
 -------------------------
 
-Experienced programmers largely agree that `const` in C doesn't work.  The
-number of times programmers need to circumvent the const-type-system tends to
-be higher than the number of types where the system actually helps preventing
-bugs. I think the fundamental problem is that one man's const is another man's
-writeable value.
-
-Take, for example, the following API for finding the first non-whitespace
+Most experienced programmers agree that `const` in C doesn't work. The number
+of times programmers need to circumvent the const-type-system tends to be
+higher than the number of types where the system actually helps preventing
+bugs. Take, for example, the following API for finding the first non-whitespace
 character in a string:
 
 ```c
@@ -132,8 +129,9 @@ char *find_first_nonwhite(char *string, int length);
 const char *find_first_nonwhite_const(const char *string, int length);
 ```
 
-We can circumvent the problem in this particular instance by returning an
-integer offset instead of a pointer:
+It's clearly not a good thing to be required to define two interface for a
+single thing. We can work around the problem in this particular instance by
+returning an integer offset instead of a pointer:
 
 ```c
 int find_first_nonwhite(const char *string, int length);
@@ -148,24 +146,24 @@ way is to circumvent the type system.
 The situation is much worse in C++ land where const correctness is valued more,
 and where const is deeply embedded into the inner workings of the language and
 standard library. The `::iterator` vs `::const_iterator` madness is only the
-most prominent example. I don't wont to go to a place where I need to type
-everything two or four times more than necessary each time I want to make a
-simple interface.  (Four times is not an exaggeration. Think of other
-non-orthogonalities, such as references vs pointers, methods vs functions, and
-so on).
+most prominent example. I don't want to go to a place where I need to make
+two or four versions of each little abstraction. (Four is not an exaggeration.
+Think of other non-orthogonalities, such as references vs pointers, methods vs
+functions, and so on).
 
-Again, I think the fundamental problem with `const` is that one man's const is
-another man's writeable value. As soon as there is any interaction between
-opposing views, this will lead to problems. I don't think there is a practical
-system that can prevent accidental writes and improve programmer productivity.
-And, as stated, accidental writes are not an actual serious problem in my own
-practice.
+I think the fundamental problem with `const` is that one man's const is another
+man's writeable value. As soon as there is any interaction between parts with
+different expectations, there tend to be problems. I don't think there is a
+practical system that can actually improve programmer productivity. And after
+all, in my own practice accidental writes are not a significant problem.
+Meaning that C's `const` rarely helps preventing problems in my code.
 
-For these reasons this is an easy decision: there are no const types in blunt.
+Due to these experiences it was easy to make a decision: there are no const
+types in blunt.
 
-The only thing we (plan to) have is real constant memory, mapped as readonly
+The only thing we (plan to) have is non-writeable memory, mapped as readonly
 pages of memory by the operating system. But blunt's type system does *not*
-make a distinction based on the kind of memory in which the data lives.
+make a distinction based on the kind of memory in which any data item lives.
 
 Finally, while I don't believe `const` can carry its own weight as a language
 feature, I still think that it has some documentational value, especially in
@@ -242,10 +240,10 @@ int main(void)
 
 I think this is a little weird, so I'm experimenting with first class static
 array types. For example, `[3]^int` is the type of arrays containing three
-integer pointers.  And `^[3]int` is a pointer type to an array of three
+integer pointers. And `^[3]int` is a pointer type to an array of three
 integers.
 
-Since blunt has first class static array types, it forgoes array decay.  In
+Since blunt has first class static array types, it forgoes array decay. In
 Blunt you need to explicitly take the address of the array to get a pointer to
 the first element.
 
@@ -295,22 +293,46 @@ proc test2(void) void;
 }
 ```
 
-No preprocessor
----------------
+Proper module system
+--------------------
 
-Blunt does not require the use of a lexical preprocessor. Like in C, there is
-no technical distinction between a module interface and an implementation file.
-Both contain regular Blunt source code. But in blunt, the implementation does
-not explicitly import the interface. Interfaces are made known to the
-implementation simply by compiling them together in a single job (i.e. list
-both files on the command line).
+Blunt does not require the crutch that is `#include` in C just to compile code
+against an interface. The big problem with `#include` is that it reads the
+included interface in the parsing context of the file/compilation that included
+it. Not only can this lead to miscompiled code when used inexpertly. It also
+means that each compilation needs to read the interface again, as many times as
+that file is included transitively by the compiled file or any of the files
+that it includes. This is a huge compilation performance problem in C, where
+average code files, containing maybe a few hundred lines, casually include many
+thousand lines of system dependencies. It's easy to see why we can expect to
+save factor 2x or more in compilation times, simply by ending the mess that is
+textual inclusion.
 
-Since there is no preprocessor and no #include statement, the compilation is
-not sensitive to where the interface was included and what state the
-preprocessor was in at that point. This little restriction allows us to use a
-single parse/compilation of the interface file to compile many implementation
-files. This brings huge speed-ups compared to C, where huge include files are
-often a big issue.
+Blunt achieves modularity by guaranteeing that files cannot interact with each
+other when compiled together. In this way many files in a project can be built
+at once, sharing a single parse of their dependencies.
+
+The current interface to do this is to simply list on the command-line all
+files that should be parsed and compiled together. Each of these files will be
+read exactly once. For example, let us imagine that we want to compile a blunt
+source file named `src/main.bl`, which requires some blunt files under
+`include/` for interfacing with separately compiled code, and finally it uses a
+few system dependencies that are located outside the project:
+
+```
+$ blunt src/main.bl include/*.bl /usr/blunt/include/libc.bl /usr/blunt/include/opengl.bl
+```
+
+Each of the files listed on the command-line will be read only once, even if
+some files und `include/` might depend on `libc.bl` as well!
+
+And it gets even better. We can compile all the project files under `src` at
+once. (This results in a single object file, which may or may not be wanted).
+In this case the savings get multiplied by the number of files under `src/`!
+
+```
+$ blunt src/*.bl include/*.bl /usr/blunt/include/libc.bl /usr/blunt/include/opengl.bl
+```
 
 No import statements
 --------------------
@@ -328,14 +350,40 @@ it's plumbed in a larger project. A blunt implementation file simply uses the
 artifacts that it depends on (constants, data, functions, macros...). The
 plumbing is left for an external build system.
 
-In the future, restricted forms of static asserts will probably be added, and
-implementations can use those to check that a plumbed interface is actually the
-one it expects by inventing an arbitrary protocol. For example, requiring the
-interface to define a global constant to a certain value or range of values.
+However, while I don't think that including "files" or "packages" is the right
+way to achieve modularity, I still think it's important for a file to document
+what it expects. My current idea how to support this is to add two simple
+global statements to blunt: "provides" and "requires". This might be used like
+so:
 
-In fact I might consider adding to blunt an import statement that would be
-nothing more than a glorified static assert (with more sensible syntax and
-error messages).
+```
+/* file fooproject/src/code.bl */
+
+require "fooproject-base"
+
+proc main(argc int, argv ^^char) int
+{
+    ...
+}
+```
+
+```
+/* file fooproject/include/base.bl */
+/* This file "implements" fooproject-base. To achieve this, it can list its own
+abstract or non-abstract dependencies. Of course, it can also define
+datastructures or code directory like any other blunt file. */
+
+provide "fooproject-base"
+require "opengl"
+require "posix"
+
+provide "fooproject-memory"  /* Provide multiple things. Why not? */
+proc allocmemory() ^void { ... }
+```
+
+So, in essence, blunt allows the programmer to make dependencies as concrete or
+as abstract as required. I don't know any other languages who have this
+feature, so lets see how it works out!
 
 No namespaces
 --------------
