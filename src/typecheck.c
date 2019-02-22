@@ -38,6 +38,10 @@ int arg_type_matches_param_type(Type argTp, Type paramTp)
         }
         if (argTp == paramTp)
                 return 1;
+        /* char can be converted to int */
+        if (argTp == builtinType[BUILTINTYPE_CHAR] &&
+            paramTp == builtinType[BUILTINTYPE_INT])
+                return 1;
         /* Any pointer argument is compatible with void pointer parameter */
         if (ptr && paramTp == builtinType[BUILTINTYPE_VOID])
                 return 1;

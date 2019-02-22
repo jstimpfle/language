@@ -281,6 +281,18 @@ int make_sib_byte(int scale, int r1, int r2)
 #define REX_X    0x02  /* Extension of the SIB index field */
 #define REX_B    0x01  /* Extension of the ModR/M r/m field, SIB base field, or Opcode reg field */
 
+/* Emit opcode. The opcodes that we use here are, so far, either single byte
+ * opcodes, or 2-byte opcodes where the first byte is 0F. I don't know what
+ * surprise the x64 ISA still has in store for us, but for now we'll encode that
+ * as an int. */
+INTERNAL
+void emit_opcode(int opcode)
+{
+        if (opcode > 255)
+                emit8(SECTION_CODE, (opcode >> 8) & 255);
+        emit8(SECTION_CODE, opcode & 255);
+}
+
 /* Emit the MOD-REG-R/M byte and the optional SIB and displacement byte(s).
  *
  * r1 and r2 are interpreted without the 4th LSB, such that they are always one
@@ -352,7 +364,7 @@ void emit_rex_instruction_reg_indirect(int opcode, int r1, int r2, long d)
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
         emit8(SECTION_CODE, REX_BASE | REX_W | R | B);
-        emit8(SECTION_CODE, opcode);
+        emit_opcode(opcode);
         emit_modrmreg_and_displacement_bytes(r1, r2, d);
 }
 
@@ -362,7 +374,7 @@ void emit_rex_instruction_reg(int opcode, int morebits, int r1)
         ASSERT(0 <= morebits && morebits < 8);
         int B = (r1 & ~7) ? REX_B : 0;
         emit8(SECTION_CODE, REX_BASE | REX_W | B);
-        emit8(SECTION_CODE, opcode);
+        emit_opcode(opcode);
         emit8(SECTION_CODE, make_modrm_byte(0x03, morebits, r1 & 7));
 }
 
@@ -372,7 +384,7 @@ void emit_rex_instruction_imm8_reg(int opcode, int morebits, Imm8 imm, int r1)
         ASSERT(0 <= morebits && morebits < 8);
         int B = (r1 & ~7) ? REX_B : 0;
         emit8(SECTION_CODE, REX_BASE | REX_W | B);
-        emit8(SECTION_CODE, opcode);
+        emit_opcode(opcode);
         emit8(SECTION_CODE, make_modrm_byte(0x03, morebits, r1 & 7));
         emit8(SECTION_CODE, imm);
 }
@@ -383,7 +395,7 @@ void emit_rex_instruction_imm32_reg(int opcode, int morebits, Imm32 imm, int r1)
         ASSERT(0 <= morebits && morebits < 8);
         int B = (r1 & ~7) ? REX_B : 0;
         emit8(SECTION_CODE, REX_BASE | REX_W | B);
-        emit8(SECTION_CODE, opcode);
+        emit_opcode(opcode);
         emit8(SECTION_CODE, make_modrm_byte(0x03, morebits, r1 & 7));
         emit32(SECTION_CODE, imm);
 }
@@ -396,7 +408,7 @@ void emit_rex_instruction_imm64_opreg(int opcode, Imm64 imm, int r1)
         ASSERT(!(opcode & 7));
         int B = (r1 & ~7) ? REX_B : 0;
         emit8(SECTION_CODE, REX_BASE | REX_W | B);
-        emit8(SECTION_CODE, opcode | (r1 & 7));
+        emit_opcode(opcode | (r1 & 7));
         emit64(SECTION_CODE, imm);
 }
 
@@ -488,27 +500,18 @@ void emit_bitwisenot_64_reg(int r1)
 
 void emit_setcc(int x64CmpKind, int r1)
 {
-        /* This instruction is in yet another form that is not yet
-         * generalized: 2-byte opcode. 0F followed by another byte */
-        static const int x64CmpToOpcode[NUM_X64CMP_KINDS] = {
-                [X64CMP_LT] = 0x9C,
-                [X64CMP_GT] = 0x9F,
-                [X64CMP_LE] = 0x9E,
-                [X64CMP_GE] = 0x9D,
-                [X64CMP_EQ] = 0x94,
-                [X64CMP_NE] = 0x95,
-        };
         ASSERT(0 <= x64CmpKind && x64CmpKind < NUM_X64CMP_KINDS);
-        int escapecode = 0x0F;
+        static const int x64CmpToOpcode[NUM_X64CMP_KINDS] = {
+                [X64CMP_LT] = 0x0F9C,
+                [X64CMP_GT] = 0x0F9F,
+                [X64CMP_LE] = 0x0F9E,
+                [X64CMP_GE] = 0x0F9D,
+                [X64CMP_EQ] = 0x0F94,
+                [X64CMP_NE] = 0x0F95,
+        };
         int opcode = x64CmpToOpcode[x64CmpKind];
         int morebits = 0x00;
-
-        ASSERT(0 <= morebits && morebits < 8);
-        int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE | REX_W | B);
-        emit8(SECTION_CODE, escapecode);
-        emit8(SECTION_CODE, opcode);
-        emit8(SECTION_CODE, make_modrm_byte(0x03, morebits, r1 & 7));
+        emit_rex_instruction_reg(opcode, morebits, r1);
 }
 
 INTERNAL
@@ -556,7 +559,15 @@ void emit_mov_64_reloc_reg(Symbol symbol, int addend, int r1)
 INTERNAL
 void emit_mov_8_indirect_reg(int r1, int r2, long d)
 {
-        emit_rex_instruction_reg_indirect(0x8A, r2, r1, d);
+        /*
+         * Experiment: use zero extension instead of sign extension. For now.
+         * In the future we will need to decide at least between zero-extension
+         * and sign-extension based on the situation.
+         *
+         * This is the set-only-lower-byte-of-register version:
+        //emit_rex_instruction_reg_indirect(0x8A, r2, r1, d);
+         */
+        emit_rex_instruction_reg_indirect(0x0FB6, r2, r1, d);
 }
 
 INTERNAL
