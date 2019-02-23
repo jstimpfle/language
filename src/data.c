@@ -119,7 +119,6 @@ const char *const stmtKindString[NUM_STMT_KINDS] = {
         MAKE( STMT_EXPR ),
         MAKE( STMT_COMPOUND ),
         MAKE( STMT_DATA ),
-        MAKE( STMT_ARRAY ),
         MAKE( STMT_MACRO ),
         MAKE( STMT_IGNORE ),
 #undef MAKE
@@ -335,7 +334,6 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_STRUCT, "struct" ),
         MAKE( CONSTSTR_DATA,   "data"   ),
         MAKE( CONSTSTR_ENTITY, "entity" ),
-        MAKE( CONSTSTR_ARRAY,  "array"  ),
         MAKE( CONSTSTR_EXPORT, "export" ),
         MAKE( CONSTSTR_IN,     "in"     ),
         MAKE( CONSTSTR_FROM,   "from"   ),

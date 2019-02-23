@@ -210,13 +210,6 @@ void pp_data_stmt(Stmt stmt)
 }
 
 INTERNAL
-void pp_array_stmt(Stmt stmt)
-{
-        /* TODO */
-        (void) stmt;
-}
-
-INTERNAL
 void pp_childstmt(Stmt stmt)
 {
         if (stmtInfo[stmt].stmtKind == STMT_COMPOUND) {
@@ -296,9 +289,6 @@ void pp_stmt(Stmt stmt, int suppressnewline)
                 break;
         case STMT_DATA:
                 pp_data_stmt(stmt);
-                break;
-        case STMT_ARRAY:
-                pp_array_stmt(stmt);
                 break;
         case STMT_MACRO:
                 UNHANDLED_CASE(); // TODO

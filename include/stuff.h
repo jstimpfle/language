@@ -45,7 +45,6 @@ enum ConstStrKind {
         CONSTSTR_STRUCT,
         CONSTSTR_DATA,
         CONSTSTR_ENTITY,
-        CONSTSTR_ARRAY,
         CONSTSTR_EXPORT,
         CONSTSTR_IN,
         CONSTSTR_FROM,

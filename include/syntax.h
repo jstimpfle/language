@@ -162,7 +162,6 @@ enum StmtKind {
         STMT_EXPR,
         STMT_COMPOUND,
         STMT_DATA,
-        STMT_ARRAY,
         STMT_MACRO,
         STMT_IGNORE,
         NUM_STMT_KINDS,
@@ -366,10 +365,6 @@ struct DataStmtInfo {
         Expr optionalInitializerExpr;
 };
 
-struct ArrayStmtInfo {
-        Data data;
-};
-
 struct StmtInfo {
         int stmtKind;
         union {
@@ -382,7 +377,6 @@ struct StmtInfo {
                 struct RangeStmtInfo tRange;
                 struct ReturnStmtInfo tReturn;
                 struct DataStmtInfo tData;
-                struct ArrayStmtInfo tArray;
                 Macro tMacro;
                 Stmt tIgnore;
         };
@@ -450,7 +444,6 @@ struct ExportInfo {
 enum {
         BUILTINDIRECTIVE_EXTERN,
         BUILTINDIRECTIVE_DATA,
-        BUILTINDIRECTIVE_ARRAY,
         BUILTINDIRECTIVE_STRUCT,
         BUILTINDIRECTIVE_PROC,
         BUILTINDIRECTIVE_MACRO,
@@ -480,11 +473,6 @@ struct DataDirectiveInfo {
         Expr optionalInitializerExpr;
 };
 
-struct ArrayDirectiveInfo {
-        Data data;
-        Expr lengthExpr;
-};
-
 struct StructDirectiveInfo {
         Type tp;
 };
@@ -494,7 +482,6 @@ struct DirectiveInfo {
         union {
                 struct ExternDirectiveInfo tExtern;
                 struct DataDirectiveInfo tData;
-                struct ArrayDirectiveInfo tArray;
                 struct StructDirectiveInfo tStruct;
                 Proc tProc;
                 Macro tMacro;

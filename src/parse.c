@@ -573,14 +573,6 @@ Stmt parse_data_stmt(void)
 }
 
 INTERNAL
-Stmt parse_array_stmt(void)
-{
-        PARSE_LOG();
-        FATAL("Not implemented!\n");
-        return (Stmt) -1;
-}
-
-INTERNAL
 Stmt parse_macro_stmt(void)
 {
         PARSE_LOG();
@@ -876,10 +868,6 @@ Stmt parse_stmt(void)
                         consume_token();
                         return parse_data_stmt();
                 }
-                else if (s == constStr[CONSTSTR_ARRAY]) {
-                        consume_token();
-                        return parse_array_stmt();
-                }
                 else if (s == constStr[CONSTSTR_MACRO]) {
                         consume_token();
                         return parse_macro_stmt();
@@ -937,46 +925,6 @@ void parse_data_directive(Directive directive)
         directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_DATA;
         directiveInfo[directive].tData.data = data;
         directiveInfo[directive].tData.optionalInitializerExpr = expr;
-}
-
-INTERNAL
-void parse_array_directive(Directive directive)
-{
-        PARSE_LOG();
-
-        String name = parse_name();
-        parse_token_kind(TOKEN_LEFTBRACKET);
-        Expr lengthExpr = parse_expr(0);
-        parse_token_kind(TOKEN_RIGHTBRACKET);
-        Type valueTp = parse_type(0);
-        parse_token_kind(TOKEN_SEMICOLON);
-
-        Scope scope = currentScope;
-        Symbol symbol = symbolCnt++;
-        Type tp = typeCnt++;
-        Data data = dataCnt++;
-
-        RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
-        RESIZE_GLOBAL_BUFFER(dataInfo, dataCnt);
-
-        symbolInfo[symbol].name = name;
-        symbolInfo[symbol].scope = scope;
-        symbolInfo[symbol].symbolKind = SYMBOL_DATA;
-        symbolInfo[symbol].tData.tp = tp;
-        symbolInfo[symbol].tData.optionaldata = data;
-
-        typeInfo[tp].typeKind = TYPE_ARRAY;
-        typeInfo[tp].tArray.valueTp = valueTp;
-        typeInfo[tp].tArray.length = -1;  /* evaluated later from lengthExpr */
-
-        dataInfo[data].scope = scope;
-        dataInfo[data].tp = tp;
-        dataInfo[data].sym = symbol;
-
-        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_ARRAY;
-        directiveInfo[directive].tArray.data = data;
-        directiveInfo[directive].tArray.lengthExpr = lengthExpr;
 }
 
 INTERNAL
@@ -1381,7 +1329,6 @@ const struct BuiltinDirectiveKindInfo builtinDirectiveKindInfo[] = {
 #define MAKE(bdir, keyword, parser) [bdir] = { keyword, &(parser) }
         MAKE( BUILTINDIRECTIVE_EXTERN,   CONSTSTR_EXTERN,   parse_extern_directive ),
         MAKE( BUILTINDIRECTIVE_DATA,     CONSTSTR_DATA,     parse_data_directive ),
-        MAKE( BUILTINDIRECTIVE_ARRAY,    CONSTSTR_ARRAY,    parse_array_directive ),
         MAKE( BUILTINDIRECTIVE_STRUCT,   CONSTSTR_STRUCT,   parse_struct_directive ),
         MAKE( BUILTINDIRECTIVE_PROC,     CONSTSTR_PROC,     parse_proc_directive ),
         MAKE( BUILTINDIRECTIVE_MACRO,    CONSTSTR_MACRO,    parse_macro_directive ),

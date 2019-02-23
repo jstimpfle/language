@@ -25,18 +25,6 @@ void infer_constant(Directive directive)
 }
 
 INTERNAL
-void infer_array(Directive directive)
-{
-        Data data = directiveInfo[directive].tArray.data;
-        Expr lengthExpr = directiveInfo[directive].tArray.lengthExpr;
-        DEBUG("Infer array %s\n", SS(dataInfo[data].sym));
-        Type tp = dataInfo[data].tp;
-        ASSERT(typeInfo[tp].typeKind == TYPE_ARRAY);
-        typeInfo[tp].tArray.length = (int) /*XXX: dirty cast */ fold_integer_expr(lengthExpr);
-        DEBUG("Array length is %d\n", (int) typeInfo[tp].tArray.length);
-}
-
-INTERNAL
 void infer_struct(Directive directive)
 {
         Type tp = directiveInfo[directive].tStruct.tp;
@@ -89,9 +77,6 @@ void infer_constants_and_types(void)
                 switch (directiveInfo[i].directiveKind) {
                 case BUILTINDIRECTIVE_CONSTANT:
                         infer_constant(i);
-                        break;
-                case BUILTINDIRECTIVE_ARRAY:
-                        infer_array(i);
                         break;
                 case BUILTINDIRECTIVE_STRUCT:
                         infer_struct(i);
