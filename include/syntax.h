@@ -4,6 +4,9 @@
 
 
 /**
+ * Scopes and Symbols
+ * ==================
+ *
  * \typedef{Symbol}: A symbol is a name for a syntactical entity (such as a
  * type, a data item or a proc) that is visible within a particular \ref{Scope}.
  * See also \ref{SymbolKind}.
@@ -17,14 +20,7 @@
  * DAG?) of scopes is built up. Symbol lookup is done starting in a particular
  * scope and looking for the symbol recursively in the parent scopes until a
  * match is found. There are different kinds of scopes; see \ref{ScopeKind}.
- */
-
-typedef int Symbol;
-typedef int Symref;
-typedef int Scope;
-
-
-/**
+ *
  * \enum{ScopeKind}: Scope kinds. For now, there are global and block scopes.
  * The latter exist inside procedures.
  *
@@ -33,7 +29,90 @@ typedef int Scope;
  * procedures. A symbol is a name (string) together with a scope (definition
  * namespace), and an artifact kind and index. The kind and index identify the
  * artifact that the symbol names.
+ *
+ * \struct{SymbolInfo}: Contains the name and scope of a symbol as well as a
+ * reference to the named item (by means of a kind tag and union containing an
+ * index for each possible kind).
+ *
+ * \struct{ScopeInfo}: Represents a scope. TODO
+ *
+ * \struct{SymrefInfo}: Represents a reference to a symbol that is (hopefully)
+ * defined somewhere else in the code. The reference itself can occur at various
+ * places in the grammar, such as as expressions or type definitions.
+ *
+ * \struct{DataInfo}: Contains the name, scope, and type of a data declaration.
+ *
+ * \struct{ProcInfo}: Result from parsing a `proc` declaration.
+ *
+ *
+ * Expressions and statements
+ * ==========================
+ *
+ * \typedef{Expr}: Expression (part of a statement). Expressions have a type and
+ * a (runtime) value. Each expressions is of one of the \enum{ExprKind} kinds.
+ * See also \ref{ExprInfo}.
+ *
+ * \typedef{Stmt}: Statement, which can be any of the \enum{StmtKind} kinds of
+ * statements. See also \ref{StmtInfo}.
+ *
+ * \enum{LiteralKind}: Literal value expression kinds (e.g. integer literal or
+ * string literal)
+ *
+ * \enum{ExprKind}: Expression kinds. Expressions are (typically?) contained in
+ * statements.
+ *
+ * \enum{StmtKind}: Statement kinds. Procedure bodies are made up of statements.
+ * One kind of statement is the compound statement, which contains an arbitrary
+ * number of other child statements in curly braces.
+ *
+ *
+ * Top-level Program elements:
+ * ===========================
+ *
+ * \typedef{Data}: Data value. See also \ref{DataInfo}.
+ *
+ * \typedef{Proc}: Procedure. See also \ref{ProcInfo}.
+ *
+ * \typedef{Macro}: Simple expression replacement
+ * \typedef{MacroParam}: Formal macro parameter
+ *
+ * \typedef{Constant}: Compile-time constant value (defined using an Expr)
+ *
+ * \typedef{Export}: Statement that some definition should be "exported" (TODO:
+ * not a program element. Move to another place)
+ *
+ * \typedef{Directive}: Any of the above top-level program elements. Each file
+ * is grammatically a sequence of directives.
+ *
+ * (supplementary)
+ * ---------------
+ *
+ * \enum{MacroKind}: Macro kinds. Currently we have function macros and value
+ * macros.
+ *
+ * \enum{ConstantKind}: Constant kinds. Currently we have integer and expression
+ * constants.  Expression constants are declared by "constant" directives in the
+ * source file. Integer constants are defined by "enum" directives.
+ *
+ * \enum{ValueKind}: Value Kinds. These values are used for the representation
+ * of constants.  CONSTANT_INTEGER constants have a value of kind VALUE_INTEGER.
+ * CONSTANT_EXPRESSION constants have a value of a kind that depends on the type
+ * of the expression (typechecking needed).
  */
+
+typedef int Symbol;
+typedef int Symref;
+typedef int Scope;
+typedef int Expr;
+typedef int Stmt;
+typedef int Data;
+typedef int Proc;
+typedef int Macro;
+typedef int MacroParam;
+typedef int Constant;
+typedef int Export;
+typedef int Directive;
+
 
 enum ScopeKind {
         SCOPE_GLOBAL,
@@ -52,56 +131,42 @@ enum SymbolKind {
         NUM_SYMBOL_KINDS,
 };
 
+enum LiteralKind {
+        LITERAL_INTEGER,
+        LITERAL_STRING,
+        NUM_LITERAL_KINDS,
+};
 
-/**
- * \typedef{Expr}: Expression (part of a statement). Expressions have a type and
- * a (runtime) value. Each expressions is of one of the \enum{ExprKind} kinds.
- * See also \ref{ExprInfo}.
- *
- * \typedef{Stmt}: Statement, which can be any of the \enum{StmtKind} kinds of
- * statements. See also \ref{StmtInfo}.
- */
+enum ExprKind {
+        EXPR_LITERAL,
+        EXPR_SYMREF,
+        EXPR_UNOP,
+        EXPR_BINOP,
+        EXPR_MEMBER,
+        EXPR_SUBSCRIPT,
+        EXPR_CALL,
+        EXPR_COMPOUND,
+        EXPR_SIZEOF,
+        EXPR_LENGTHOF,
+        EXPR_STRINGIFY,
+        NUM_EXPR_KINDS,
+};
 
-typedef int Expr;
-typedef int Stmt;
-
-/**
- * Top-level Program elements:
- *
- * \typedef{Data}: Data value. See also \ref{DataInfo}.
- *
- * \typedef{Proc}: Procedure. See also \ref{ProcInfo}.
- *
- * \typedef{Macro}: Simple expression replacement
- * \typedef{MacroParam}: Formal macro parameter
- *
- * \typedef{Constant}: Compile-time constant value (defined using an Expr)
- *
- * \typedef{Export}: Statement that some definition should be "exported" (TODO:
- * not a program element. Move to another place)
- */
-
-typedef int Data;
-typedef int Proc;
-typedef int Macro;
-typedef int MacroParam;
-typedef int Constant;
-typedef int Export;
-
-
-/*
- * \enum{MacroKind}: Macro kinds. Currently we have function macros and value
- * macros.
-
- * \enum{ConstantKind}: Constant kinds. Currently we have integer and expression
- * constants.  Expression constants are declared by "constant" directives in the
- * source file. Integer constants are defined by "enum" directives.
- *
- * \enum{ValueKind}: Value Kinds. These values are used for the representation
- * of constants.  CONSTANT_INTEGER constants have a value of kind VALUE_INTEGER.
- * CONSTANT_EXPRESSION constants have a value of a kind that depends on the type
- * of the expression (typechecking needed).
- */
+enum StmtKind {
+        STMT_IF,
+        STMT_IFELSE,
+        STMT_FOR,
+        STMT_WHILE,
+        STMT_RANGE,
+        STMT_RETURN,
+        STMT_EXPR,
+        STMT_COMPOUND,
+        STMT_DATA,
+        STMT_ARRAY,
+        STMT_MACRO,
+        STMT_IGNORE,
+        NUM_STMT_KINDS,
+};
 
 enum MacroKind {
         MACRO_VALUE,
@@ -120,27 +185,6 @@ enum ValueKind {
         VALUE_STRING,
         NUM_VALUE_KINDS
 };
-
-const char *const macroKindString[NUM_MACRO_KINDS];
-const char *const constantKindString[NUM_CONSTANT_KINDS];
-const char *const valueKindString[NUM_VALUE_KINDS];
-
-
-/**
- * \struct{SymbolInfo}: Contains the name and scope of a symbol as well as a
- * reference to the named item (by means of a kind tag and union containing an
- * index for each possible kind).
- *
- * \struct{ScopeInfo}: Represents a scope. TODO
- *
- * \struct{SymrefInfo}: Represents a reference to a symbol that is (hopefully)
- * defined somewhere else in the code. The reference itself can occur at various
- * places in the grammar, such as as expressions or type definitions.
- *
- * \struct{DataInfo}: Contains the name, scope, and type of a data declaration.
- *
- * \struct{ProcInfo}: Result from parsing a `proc` declaration.
- */
 
 struct DatasymbolInfo {
         Type tp;  // TODO: what kind of type?
@@ -182,71 +226,6 @@ struct SymrefInfo {
         String name;
         Scope refScope;
 };
-
-DATA int symbolCnt;
-DATA int scopeCnt;
-DATA int symrefCnt;
-
-DATA struct SymbolInfo *symbolInfo;
-DATA struct ScopeInfo *scopeInfo;
-DATA struct SymrefInfo *symrefInfo;
-DATA Token *symrefToToken;
-DATA Symbol *symrefToSym;
-DATA unsigned char *isSymbolExported;
-
-/**
- * \enum{LiteralKind}: Literal value expression kinds (e.g. integer literal or
- * string literal)
- *
- * \enum{ExprKind}: Expression kinds. Expressions are (typically?) contained in
- * statements.
- *
- * \enum{StmtKind}: Statement kinds. Procedure bodies are made up of statements.
- * One kind of statement is the compound statement, which contains an arbitrary
- * number of other child statements in curly braces.
- */
-
-enum LiteralKind {
-        LITERAL_INTEGER,
-        LITERAL_STRING,
-        NUM_LITERAL_KINDS,
-};
-
-enum ExprKind {
-        EXPR_LITERAL,
-        EXPR_SYMREF,
-        EXPR_UNOP,
-        EXPR_BINOP,
-        EXPR_MEMBER,
-        EXPR_SUBSCRIPT,
-        EXPR_CALL,
-        EXPR_COMPOUND,
-        EXPR_SIZEOF,
-        EXPR_LENGTHOF,
-        EXPR_STRINGIFY,
-        NUM_EXPR_KINDS,
-};
-
-enum StmtKind {
-        STMT_IF,
-        STMT_IFELSE,
-        STMT_FOR,
-        STMT_WHILE,
-        STMT_RANGE,
-        STMT_RETURN,
-        STMT_EXPR,
-        STMT_COMPOUND,
-        STMT_DATA,
-        STMT_ARRAY,
-        STMT_MACRO,
-        STMT_IGNORE,
-        NUM_STMT_KINDS,
-};
-
-
-/**
- * Expressions
- */
 
 struct SymrefExprInfo {
         Symref ref;
@@ -338,10 +317,6 @@ struct CompoundExprLink {
         Expr childExpr;
 };
 
-/**
- * Statements
- */
-
 struct CompoundStmtInfo {
         int numStatements;
         int firstChildStmtIdx;
@@ -418,10 +393,6 @@ struct ChildStmtInfo {
         Stmt child;
 };
 
-/**
- * Top-level entities
- */
-
 struct DataInfo {
         Scope scope;
         Type tp;
@@ -475,13 +446,6 @@ struct ConstantValue {
 struct ExportInfo {
         Symref ref;
 };
-
-/*
- * \typedef{Directive}: Top-level syntactic element. Each file is grammatically
- * a sequence of directives.
- */
-
-typedef int Directive;
 
 enum {
         BUILTINDIRECTIVE_EXTERN,
@@ -546,9 +510,12 @@ struct DirectiveInfo {
  */
 
 extern const char *const symbolKindString[NUM_SYMBOL_KINDS];
-extern const char *const stmtKindString[NUM_STMT_KINDS];
-extern const char *const exprKindString[NUM_EXPR_KINDS];
 extern const char *const literalKindString[NUM_LITERAL_KINDS];
+extern const char *const exprKindString[NUM_EXPR_KINDS];
+extern const char *const stmtKindString[NUM_STMT_KINDS];
+extern const char *const macroKindString[NUM_MACRO_KINDS];
+extern const char *const constantKindString[NUM_CONSTANT_KINDS];
+extern const char *const valueKindString[NUM_VALUE_KINDS];
 
 /* initializer for directiveKindInfo */
 extern const struct BuiltinDirectiveKindInfo builtinDirectiveKindInfo[];
@@ -560,12 +527,11 @@ DATA int directiveKindCnt;
 
 DATA File currentFile;
 DATA int currentOffset;
-
 DATA Scope globalScope;
-DATA Scope currentScope;
-DATA Scope scopeStack[16];
-DATA int scopeStackCnt;
-DATA Proc currentProc;
+
+DATA int symbolCnt;
+DATA int scopeCnt;
+DATA int symrefCnt;
 
 DATA int exprCnt;
 DATA int callArgCnt;
@@ -580,6 +546,13 @@ DATA int constantCnt;
 DATA int macroParamCnt;
 DATA int exportCnt;
 DATA int directiveCnt;
+
+DATA struct SymbolInfo *symbolInfo;
+DATA struct ScopeInfo *scopeInfo;
+DATA struct SymrefInfo *symrefInfo;
+DATA Token *symrefToToken;
+DATA Symbol *symrefToSym;
+DATA unsigned char *isSymbolExported;
 
 DATA struct ExprInfo *exprInfo;
 DATA struct CallArgInfo *callArgInfo;

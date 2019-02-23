@@ -1,6 +1,11 @@
 #include "defs.h"
 #include "api.h"
 
+static Scope currentScope;
+static Scope scopeStack[16];
+static int scopeStackCnt;
+static Proc currentProc;
+
 INTERNAL
 Symbol add_type_symbol(String name, Scope scope, Type tp)
 {

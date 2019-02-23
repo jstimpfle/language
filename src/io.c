@@ -87,6 +87,11 @@ int cstr_compare(const char *s1, const char *s2)
         return strcmp(s1, s2);
 }
 
+int cstr_equal(const char *a, const char *b)
+{
+        return cstr_compare(a, b) == 0;
+}
+
 void sort_array(void *ptr, int nelems, int elemsize,
                 int (*cmp)(const void*, const void*))
 {

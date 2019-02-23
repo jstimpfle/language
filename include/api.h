@@ -3,15 +3,11 @@
 #endif
 #define API_H_INCLUDED 1
 
-
 #ifdef DATA_IMPL
 #define DATA
 #else
 #define DATA extern
 #endif
-
-
-#define INTERNAL static
 
 /*
  *
@@ -50,11 +46,7 @@ void sort_array(void *ptr, int nelems, int elemsize,
 
 int cstr_length(const char *s);
 int cstr_compare(const char *s1, const char *m2);
-
-static inline int cstr_equal(const char *a, const char *b)
-{
-        return cstr_compare(a, b) == 0;
-}
+int cstr_equal(const char *a, const char *b);
 
 void outc(char c);
 void outs(const char *s);
@@ -65,8 +57,8 @@ void NORETURN _abort(void);
 
 
 /*
-* messages.c
-*/
+ * messages.c
+ */
 
 void _msg(const char *filename, int line,
         const char *loglevel, const char *fmt, ...);
