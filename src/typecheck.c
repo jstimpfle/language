@@ -495,7 +495,7 @@ Type check_expr_type(Expr x)
 
         /* Catch redundant type checks. They indicate a structural problem */
         if (exprType[x] != (Type) -1) {
-                print_type(exprType[x]);
+                print_type(exprType[x]); outs("\n");
                 MSG_AT_EXPR(lvl_info, x,
                             "type of %s expression=%d is %d\n",
                             exprKindString[exprInfo[x].exprKind],

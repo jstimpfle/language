@@ -71,25 +71,25 @@ long long fold_integer_expr(Expr x)
                 Expr subexpr = exprInfo[x].tSizeof.expr;
                 Type tp = exprType[subexpr];
                 ASSERT(tp != (Type) -1);  // XXX not sure
+                infer_type(tp);
                 long long size = get_type_size(tp);
-                if (size == -1)
-                        FATAL_ERROR_AT_EXPR(x,
-                                "The size of this type is not yet known. "
-                                "Try changing the order of declarations.\n");
+                ASSERT(size != -1);
                 return size;
         }
         else if (exprKind == EXPR_LENGTHOF) {
                 Expr subexpr = exprInfo[x].tSizeof.expr;
                 Type tp = exprType[subexpr];
                 ASSERT(tp != (Type) -1);  // XXX not sure
+                infer_type(tp);
                 /* I think this should have been caught during an earlier type
                    check. */
                 ASSERT(typeInfo[tp].typeKind == TYPE_ARRAY);
-                long long length = typeInfo[tp].tArray.length;
-                if (length == -1)
-                        FATAL_ERROR_AT_EXPR(x,
-                                "The array length is not yet known. "
-                                "Try changing the order of declarations.\n");
+                Constant lengthConstant = typeInfo[tp].tArray.lengthConstant;
+                infer_constant(lengthConstant);
+                ASSERT(constantInfo[lengthConstant].constantKind == CONSTANT_INTEGER);
+                ASSERT(constantValue[lengthConstant].valueKind == VALUE_INTEGER);
+
+                long long length = constantValue[lengthConstant].tInteger;
                 return length;
         }
         else {

@@ -123,6 +123,27 @@ void consume_token(void)
         haveSavedToken = 0;
 }
 
+// TODO: think about dependencies between the parsed things here. parse_macro()
+// is used for top-level macros as well as in procs. It also depends on
+// parse_expr which is why we need this forward declaration.  Same for
+// parse_type().
+INTERNAL Expr parse_expr(int minprec);
+
+/* some expression are not inside a normal proc. As long as every expr has
+ * a proc field (which is probably not good design anyway), we need to
+ * temporarily unset the currentProc variable to parse those expression who
+ * don't have a proc. */
+INTERNAL
+Expr parse_expr_without_currentProc(void)
+{
+        Proc proc = currentProc;
+        currentProc = (Proc) -1;  // macro expr shouldn't have a proc
+        Expr expr = parse_expr(0);
+        ASSERT(exprInfo[expr].proc == (Proc) -1);
+        currentProc = proc;
+        return expr;
+}
+
 INTERNAL
 Token parse_token_kind(int tkind)
 {
@@ -177,6 +198,28 @@ Type parse_type(int prec)
                 RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
                 typeInfo[tp].typeKind = TYPE_POINTER;
                 typeInfo[tp].tPointer.tp = subtp;
+        }
+        else if (look_token_kind(TOKEN_LEFTBRACKET) != (Token) -1) {
+                consume_token();
+                Expr lengthExpr = parse_expr_without_currentProc();
+                parse_token_kind(TOKEN_RIGHTBRACKET);
+                tp = typeCnt++;
+                Constant lengthConstant = constantCnt++;
+                Type valueTp = parse_type(1);
+                RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
+                typeInfo[tp].typeKind = TYPE_ARRAY;
+                typeInfo[tp].tArray.valueTp = valueTp;
+                typeInfo[tp].tArray.lengthConstant = lengthConstant;
+
+                RESIZE_GLOBAL_BUFFER(constantInfo, constantCnt);
+                /* Currently parse_enum_directive() has to resize the
+                 * constantValue buffer along with constantInfo.
+                 * For consistency we do that here, too. */
+                RESIZE_GLOBAL_BUFFER(constantValue, constantCnt);
+                constantInfo[lengthConstant].constantKind = CONSTANT_EXPRESSION;
+                constantInfo[lengthConstant].symbol = (Symbol) -1;
+                constantInfo[lengthConstant].scope = (Scope) -1;
+                constantInfo[lengthConstant].tExpr = lengthExpr;
         }
         else if (look_token_kind(TOKEN_LEFTPAREN) != (Token) -1) {
                 consume_token();
@@ -280,11 +323,6 @@ Data parse_data(void)
         return data;
 }
 
-// TODO: think about dependencies between the parsed things here.
-// parse_macro is used for top-level macros as well as in procs. It also
-// depends on parse_expr which is why we need this forward declaration.
-INTERNAL Expr parse_expr(int minprec);
-
 INTERNAL
 Macro parse_macro(void)
 {
@@ -329,14 +367,7 @@ Macro parse_macro(void)
                 macroInfo[macro].macroKind = MACRO_VALUE;
         }
         parse_token_kind(TOKEN_RIGHTARROW);
-        Expr expr;
-        {
-                Proc proc = currentProc;
-                currentProc = (Proc) -1;  // macro expr shouldn't have a proc
-                expr = parse_expr(0);
-                ASSERT(exprInfo[expr].proc == (Proc) -1);
-                currentProc = proc;
-        }
+        Expr expr = parse_expr_without_currentProc();
         parse_token_kind(TOKEN_SEMICOLON);
         pop_scope();
         symbolInfo[symbol].name = name;
@@ -975,7 +1006,6 @@ void parse_constant_directive(Directive directive)
         constantInfo[constant].symbol = symbol;
         constantInfo[constant].scope = currentScope;
         constantInfo[constant].tExpr = expr;
-
         directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_CONSTANT;
         directiveInfo[directive].tConstant = constant;
 }
@@ -1092,7 +1122,7 @@ void parse_proc_directive(Directive directive)
         currentProc = (Proc) -1; // "pop proc"
 
         directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_PROC;
-        // TODO
+        directiveInfo[directive].tProc = proc;
 }
 
 INTERNAL

@@ -230,6 +230,8 @@ long long fold_integer_expr(Expr x);
 
 /* infer.c */
 void infer_constants_and_types(void);
+void infer_type(Type tp);
+void infer_constant(Constant constant);
 
 /* ifacegen.c */
 void generate_interface_file(void);

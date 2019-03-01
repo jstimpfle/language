@@ -101,10 +101,6 @@ void resolve_ref_type(Type t)
                                 resolveState = RESOLVE_ERROR;
                 }
                 break;
-        case TYPE_ENTITY:
-                resolve_ref_type(typeInfo[t].tEntity.tp);
-                resolveState = typeInfo[typeInfo[t].tEntity.tp].resolveState;
-                break;
         case TYPE_ARRAY:
                 resolve_ref_type(typeInfo[t].tArray.valueTp);
                 // TODO: XXX: This doesn't make sense. At this stage the

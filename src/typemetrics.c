@@ -25,12 +25,18 @@ int get_type_size(Type tp)
                  * else. */
                 return 8;
         case TYPE_ARRAY: {
-                Type valueTp = typeInfo[tp].tArray.valueTp;
-                int length = typeInfo[tp].tArray.length;
-                int elementSize = get_type_size(valueTp);
+                Constant lengthConstant = typeInfo[tp].tArray.lengthConstant;
+                ASSERT(constantValue[lengthConstant].valueKind != -1); // this means "not inferred yet"
+                ASSERT(0 <= lengthConstant && lengthConstant < constantCnt);
+                ASSERT(constantValue[lengthConstant].valueKind == VALUE_INTEGER);
+                int length = constantValue[lengthConstant].tInteger;
+
                 if (length == -1)
                         return -1;
                 ASSERT(length >= 0);
+
+                Type valueTp = typeInfo[tp].tArray.valueTp;
+                int elementSize = get_type_size(valueTp);
                 if (elementSize <= 0) {
                         ASSERT_FMT(0, "Could this ever happen?");
                         return -1;
@@ -75,10 +81,12 @@ void print_type(Type tp)
         case TYPE_STRUCT:
                 outs(string_buffer(typeInfo[tp].tStruct.name));
                 break;
-        case TYPE_ARRAY:
-                outf("[%d]", typeInfo[tp].tArray.length);
+        case TYPE_ARRAY: {
+                Constant lengthConstant = typeInfo[tp].tArray.lengthConstant;
+                outf("[%d]", (int) constantValue[lengthConstant].tInteger);
                 print_type(typeInfo[tp].tArray.valueTp);
                 break;
+        }
         case TYPE_POINTER:
                 outs("^");
                 print_type(typeInfo[tp].tPointer.tp);

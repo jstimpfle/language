@@ -128,7 +128,6 @@ const char *const typeKindString[NUM_TYPE_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( TYPE_BASE ),
         MAKE( TYPE_STRUCT ),
-        MAKE( TYPE_ENTITY ),
         MAKE( TYPE_ARRAY ),
         MAKE( TYPE_POINTER ),
         MAKE( TYPE_PROC ),
@@ -333,7 +332,6 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_MACRO,  "macro"  ),
         MAKE( CONSTSTR_STRUCT, "struct" ),
         MAKE( CONSTSTR_DATA,   "data"   ),
-        MAKE( CONSTSTR_ENTITY, "entity" ),
         MAKE( CONSTSTR_EXPORT, "export" ),
         MAKE( CONSTSTR_IN,     "in"     ),
         MAKE( CONSTSTR_FROM,   "from"   ),

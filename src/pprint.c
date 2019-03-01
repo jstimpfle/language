@@ -34,9 +34,6 @@ void pp_type(Type tp)
         case TYPE_BASE:
                 outs(string_buffer(typeInfo[tp].tBase.name));
                 break;
-        case TYPE_ENTITY:
-                outs(string_buffer(typeInfo[tp].tEntity.name));
-                break;
         case TYPE_ARRAY:
                 outs("(array type)");
                 break;
@@ -53,17 +50,6 @@ void pp_type(Type tp)
         default:
                 UNHANDLED_CASE();
         }
-}
-
-INTERNAL
-void pp_entity(Type t)
-{
-        pp_newline();
-        outs("entity ");
-        pp_type(typeInfo[t].tEntity.tp);
-        outs(" ");
-        outs(string_buffer(typeInfo[t].tEntity.name));
-        outs(";");
 }
 
 INTERNAL
@@ -336,9 +322,6 @@ void pp_export(Export x)
 
 void prettyprint(void)
 {
-        for (Type i = 0; i < typeCnt; i++)
-                if (typeInfo[i].typeKind == TYPE_ENTITY)
-                        pp_entity(i);
         pp_newline();
         for (Data i = 0; i < dataCnt; i++)
                 if (scopeInfo[dataInfo[i].scope].scopeKind == SCOPE_GLOBAL)

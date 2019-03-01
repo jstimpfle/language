@@ -44,7 +44,6 @@ enum ConstStrKind {
         CONSTSTR_MACRO,
         CONSTSTR_STRUCT,
         CONSTSTR_DATA,
-        CONSTSTR_ENTITY,
         CONSTSTR_EXPORT,
         CONSTSTR_IN,
         CONSTSTR_FROM,
@@ -180,6 +179,7 @@ struct StringToBeInterned {
         MAKE_GLOBAL_BUFFER(  symrefCnt,          symrefToSym          ),  \
         MAKE_GLOBAL_BUFFER(  symrefCnt,          symrefToToken        ),  \
         MAKE_GLOBAL_BUFFER(  tokenCnt ,          tokenInfo            ),  \
+        MAKE_GLOBAL_BUFFER(  typeCnt,            isTypeInferred       ),  \
         MAKE_GLOBAL_BUFFER(  typeCnt,            typeInfo             ),  \
         MAKE_GLOBAL_BUFFER(  typeCnt,            firstProctypeParam   ),  \
         MAKE_GLOBAL_BUFFER(  x64StackLocCnt,     x64StackLocInfo      ),  \

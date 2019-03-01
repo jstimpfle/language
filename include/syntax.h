@@ -423,8 +423,14 @@ struct MacroInfo {
 
 struct ConstantInfo {
         int constantKind;
+        /* 2019/02. Ok so now I'll use constants also for things that don't
+         * have a name, namely lengths of constant arrays (for now). Which
+         * means that the symbol and scope fields can be -1. Maybe we should
+         * remove them altogether? */
         Symbol symbol;
         Scope scope; // same scope as symbol's scope. Is this too redundant?
+        /* if constantKind == CONSTANT_EXPR, the expression that is used to
+         * compute the constant's value. */
         Expr tExpr;
 };
 

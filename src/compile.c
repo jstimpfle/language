@@ -369,7 +369,7 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
                         emit_integer_load(constantValue[constant].tInteger,
                                           irproc, exprToIrReg[x]);
                 else if (valueKind == VALUE_STRING)
-                        emit_string_load(constantValue[constant].tString, 
+                        emit_string_load(constantValue[constant].tString,
                                          irproc, exprToIrReg[x]);
                 else
                         UNHANDLED_CASE();

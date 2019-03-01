@@ -39,7 +39,6 @@ typedef int Structmember;
 enum TypeKind {
         TYPE_BASE,
         TYPE_STRUCT,
-        TYPE_ENTITY,
         TYPE_ARRAY,
         TYPE_POINTER,
         TYPE_PROC,
@@ -95,7 +94,7 @@ struct ArraytypeInfo {
         Type valueTp;
         /* If the array is defined by an "array" directive, then the length
          * field is -1 until the constant length expression is evaluated */
-        int length;
+        Constant lengthConstant;
 };
 
 struct PointertypeInfo {
@@ -171,3 +170,4 @@ DATA struct ParamInfo *paramInfo;
 DATA Type *exprType;
 DATA Type *procType;
 DATA Param *firstProctypeParam;
+DATA int *isTypeInferred;
