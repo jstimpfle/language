@@ -11,20 +11,6 @@ enum {
 };
 
 INTERNAL
-int find_struct_offset(Type tp, String memberName)
-{
-        if (typeInfo[tp].typeKind == TYPE_REFERENCE) //XXX
-                tp = typeInfo[tp].tRef.resolvedTp;
-        ASSERT(typeInfo[tp].typeKind == TYPE_STRUCT);
-        Structmember firstMember = typeInfo[tp].tStruct.firstStructmember;
-        int numMembers = typeInfo[tp].tStruct.numMembers;
-        for (Structmember m = firstMember; m < firstMember + numMembers; m++)
-                if (structmemberInfo[m].memberName == memberName)
-                        return structmemberInfo[m].offset;
-        UNREACHABLE();
-}
-
-INTERNAL
 int is_local_variable(Expr e, Data *out)
 {
         if (exprInfo[e].exprKind != EXPR_SYMREF)
@@ -93,106 +79,168 @@ void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
 }
 
 INTERNAL
-void compile_unop_expr(Expr x, int usedAsLvalue)
+void compile_addressof_unop_expr(Expr x, Expr subx, int usedAsLvalue)
+{
+        (void) usedAsLvalue;
+        compile_expr(subx, USED_AS_LVALUE);
+        exprToIrReg[x] = exprToIrReg[subx]; //XXX
+}
+
+INTERNAL
+void compile_deref_unop_expr(Expr x, Expr subx, int usedAsLvalue)
+{
+        compile_expr(subx, NOT_USED_AS_LVALUE);
+        IrProc irp = procToIrProc[exprInfo[x].proc];
+        if (usedAsLvalue) {
+                exprToIrReg[x] = exprToIrReg[subx]; //XXX
+        }
+        else {
+                IrStmt y = irStmtCnt++;
+                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                irStmtInfo[y].proc = irp;
+                irStmtInfo[y].irStmtKind = IRSTMT_LOAD;
+                irStmtInfo[y].tLoad.srcaddrreg = exprToIrReg[subx];
+                irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
+        }
+}
+
+INTERNAL
+void compile_not_unop_expr(Expr x, Expr subx, int usedAsLvalue)
+{
+        (void) usedAsLvalue;
+        IrProc irp = procToIrProc[exprInfo[x].proc];
+        compile_expr(subx, NOT_USED_AS_LVALUE);
+        IrReg zeroReg = irRegCnt++;
+        IrStmt loadStmt = irStmtCnt++;
+        IrStmt y = irStmtCnt++;
+        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irRegInfo[zeroReg].proc = irp;
+        irRegInfo[zeroReg].name = -1;
+        irRegInfo[zeroReg].sym = -1;
+        irRegInfo[zeroReg].tp = builtinType[BUILTINTYPE_INT];
+        irStmtInfo[loadStmt].proc = irp;
+        irStmtInfo[loadStmt].irStmtKind = IRSTMT_LOADCONSTANT;
+        irStmtInfo[loadStmt].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
+        irStmtInfo[loadStmt].tLoadConstant.tInteger = 0;
+        irStmtInfo[loadStmt].tLoadConstant.tgtreg = zeroReg;
+        irStmtInfo[y].proc = irp;
+        irStmtInfo[y].irStmtKind = IRSTMT_CMP;
+        irStmtInfo[y].tCmp.irCmpKind = IRCMP_EQ;
+        irStmtInfo[y].tCmp.reg1 = exprToIrReg[subx];
+        irStmtInfo[y].tCmp.reg2 = zeroReg;
+        irStmtInfo[y].tCmp.tgtreg = exprToIrReg[x];
+}
+
+INTERNAL
+void compile_bitwisenot_unop_expr(Expr x, Expr subx, int usedAsLvalue)
+{
+        (void) usedAsLvalue;
+        IrProc irp = procToIrProc[exprInfo[x].proc];
+        compile_expr(subx, NOT_USED_AS_LVALUE);
+        IrStmt invertStmt = irStmtCnt++;
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irStmtInfo[invertStmt].proc = irp;
+        irStmtInfo[invertStmt].irStmtKind = IRSTMT_OP1;
+        irStmtInfo[invertStmt].tOp1.irOp1Kind = IROP1_BITWISENOT;
+        irStmtInfo[invertStmt].tOp1.reg = exprToIrReg[subx];
+        irStmtInfo[invertStmt].tOp1.tgtreg = exprToIrReg[x];
+}
+
+INTERNAL
+void help_compile_increment(Expr x, Expr subx, IrReg tmpReg, IrReg loadReg, IrReg incReg, int opkind)
 {
         IrProc irp = procToIrProc[exprInfo[x].proc];
-        Expr e1 = exprInfo[x].tUnop.expr;
-        switch (exprInfo[x].tUnop.unopKind) {
-        case UNOP_ADDRESSOF: {
-                compile_expr(e1, USED_AS_LVALUE);
-                exprToIrReg[x] = exprToIrReg[e1]; //XXX
-                break;
-        }
-        case UNOP_DEREF: {
-                compile_expr(e1, NOT_USED_AS_LVALUE);
-                if (usedAsLvalue) {
-                        exprToIrReg[x] = exprToIrReg[e1]; //XXX
-                }
-                else {
-                        IrStmt y = irStmtCnt++;
-                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                        irStmtInfo[y].proc = irp;
-                        irStmtInfo[y].irStmtKind = IRSTMT_LOAD;
-                        irStmtInfo[y].tLoad.srcaddrreg = exprToIrReg[e1];
-                        irStmtInfo[y].tLoad.tgtreg = exprToIrReg[x];
-                }
-                break;
-        }
-        case UNOP_NOT: {
-                compile_expr(e1, NOT_USED_AS_LVALUE);
-                IrReg zeroReg = irRegCnt++;
-                IrStmt loadStmt = irStmtCnt++;
-                IrStmt y = irStmtCnt++;
-                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irRegInfo[zeroReg].proc = irp;
-                irRegInfo[zeroReg].name = -1;
-                irRegInfo[zeroReg].sym = -1;
-                irRegInfo[zeroReg].tp = builtinType[BUILTINTYPE_INT];
-                irStmtInfo[loadStmt].proc = irp;
-                irStmtInfo[loadStmt].irStmtKind = IRSTMT_LOADCONSTANT;
-                irStmtInfo[loadStmt].tLoadConstant.irConstantKind = IRCONSTANT_INTEGER;
-                irStmtInfo[loadStmt].tLoadConstant.tInteger = 0;
-                irStmtInfo[loadStmt].tLoadConstant.tgtreg = zeroReg;
-                irStmtInfo[y].proc = irp;
-                irStmtInfo[y].irStmtKind = IRSTMT_CMP;
-                irStmtInfo[y].tCmp.irCmpKind = IRCMP_EQ;
-                irStmtInfo[y].tCmp.reg1 = exprToIrReg[e1];
-                irStmtInfo[y].tCmp.reg2 = zeroReg;
-                irStmtInfo[y].tCmp.tgtreg = exprToIrReg[x];
-                break;
-        }
+        compile_expr(subx, USED_AS_LVALUE);
+        IrStmt loadStmt = irStmtCnt++;
+        IrStmt incStmt = irStmtCnt++;
+        IrStmt storeStmt = irStmtCnt++;
+        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irRegInfo[tmpReg].proc = irp;
+        irRegInfo[tmpReg].name = -1;
+        irRegInfo[tmpReg].sym = -1;
+        irRegInfo[tmpReg].tp = builtinType[BUILTINTYPE_INT];
+        irStmtInfo[loadStmt].proc = irp;
+        irStmtInfo[loadStmt].irStmtKind = IRSTMT_LOAD;
+        irStmtInfo[loadStmt].tLoad.srcaddrreg = exprToIrReg[subx];
+        irStmtInfo[loadStmt].tLoad.tgtreg = loadReg;
+        irStmtInfo[incStmt].proc = irp;
+        irStmtInfo[incStmt].irStmtKind = IRSTMT_OP1;
+        irStmtInfo[incStmt].tOp1.irOp1Kind = opkind;
+        irStmtInfo[incStmt].tOp1.reg = loadReg;
+        irStmtInfo[incStmt].tOp1.tgtreg = incReg;
+        irStmtInfo[storeStmt].proc = irp;
+        irStmtInfo[storeStmt].irStmtKind = IRSTMT_STORE;
+        irStmtInfo[storeStmt].tStore.srcreg = incReg;
+        irStmtInfo[storeStmt].tStore.tgtaddrreg = exprToIrReg[subx];
+}
 
-        case UNOP_BITWISENOT: {
-                compile_expr(e1, NOT_USED_AS_LVALUE);
-                IrStmt invertStmt = irStmtCnt++;
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[invertStmt].proc = irp;
-                irStmtInfo[invertStmt].irStmtKind = IRSTMT_OP1;
-                irStmtInfo[invertStmt].tOp1.irOp1Kind = IROP1_BITWISENOT;
-                irStmtInfo[invertStmt].tOp1.reg = exprToIrReg[e1];
-                irStmtInfo[invertStmt].tOp1.tgtreg = exprToIrReg[x];
-                break;
-        }
+INTERNAL
+void compile_preincrement_unop_expr(Expr x, Expr subx, int usedAsLvalue)
+{
+        (void) usedAsLvalue;
+        IrReg tmpReg = irRegCnt++;
+        IrReg loadReg = tmpReg;
+        IrReg incReg = exprToIrReg[x];
+        int opkind = IROP1_INC;
+        help_compile_increment(x, subx, tmpReg, loadReg, incReg, opkind);
+}
 
-        {
-                int opkind;
-                IrReg incReg;
-                IrReg loadReg;
-                IrReg tmpReg;
-        case UNOP_PREINCREMENT:   tmpReg = irRegCnt++;  loadReg = tmpReg;  incReg = exprToIrReg[x];  opkind = IROP1_INC; goto doit;
-        case UNOP_PREDECREMENT:   tmpReg = irRegCnt++;  loadReg = tmpReg;  incReg = exprToIrReg[x];  opkind = IROP1_DEC; goto doit;
-        case UNOP_POSTINCREMENT:  tmpReg = irRegCnt++;  loadReg = exprToIrReg[x];  incReg = tmpReg;  opkind = IROP1_INC; goto doit;
-        case UNOP_POSTDECREMENT:  tmpReg = irRegCnt++;  loadReg = exprToIrReg[x];  incReg = tmpReg;  opkind = IROP1_DEC; goto doit;
-        doit:
-                compile_expr(e1, USED_AS_LVALUE);
-                IrStmt loadStmt = irStmtCnt++;
-                IrStmt incStmt = irStmtCnt++;
-                IrStmt storeStmt = irStmtCnt++;
-                RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irRegInfo[tmpReg].proc = irp;
-                irRegInfo[tmpReg].name = -1;
-                irRegInfo[tmpReg].sym = -1;
-                irRegInfo[tmpReg].tp = builtinType[BUILTINTYPE_INT];
-                irStmtInfo[loadStmt].proc = irp;
-                irStmtInfo[loadStmt].irStmtKind = IRSTMT_LOAD;
-                irStmtInfo[loadStmt].tLoad.srcaddrreg = exprToIrReg[e1];
-                irStmtInfo[loadStmt].tLoad.tgtreg = loadReg;
-                irStmtInfo[incStmt].proc = irp;
-                irStmtInfo[incStmt].irStmtKind = IRSTMT_OP1;
-                irStmtInfo[incStmt].tOp1.irOp1Kind = opkind;
-                irStmtInfo[incStmt].tOp1.reg = loadReg;
-                irStmtInfo[incStmt].tOp1.tgtreg = incReg;
-                irStmtInfo[storeStmt].proc = irp;
-                irStmtInfo[storeStmt].irStmtKind = IRSTMT_STORE;
-                irStmtInfo[storeStmt].tStore.srcreg = incReg;
-                irStmtInfo[storeStmt].tStore.tgtaddrreg = exprToIrReg[e1];
-                break;
-        }
-        default:
-                UNHANDLED_CASE();
-        }
+INTERNAL
+void compile_predecrement_unop_expr(Expr x, Expr subx, int usedAsLvalue)
+{
+        (void) usedAsLvalue;
+        IrReg tmpReg = irRegCnt++;
+        IrReg loadReg = tmpReg;
+        IrReg incReg = exprToIrReg[x];
+        int opkind = IROP1_DEC;
+        help_compile_increment(x, subx, tmpReg, loadReg, incReg, opkind);
+}
+
+INTERNAL
+void compile_postincrement_unop_expr(Expr x, Expr subx, int usedAsLvalue)
+{
+        (void) usedAsLvalue;
+        IrReg tmpReg = irRegCnt++;
+        IrReg loadReg = exprToIrReg[x];
+        IrReg incReg = tmpReg;
+        int opkind = IROP1_INC;
+        help_compile_increment(x, subx, tmpReg, loadReg, incReg, opkind);
+}
+
+INTERNAL
+void compile_postdecrement_unop_expr(Expr x, Expr subx, int usedAsLvalue)
+{
+        (void) usedAsLvalue;
+        IrReg tmpReg = irRegCnt++;
+        IrReg loadReg = exprToIrReg[x];
+        IrReg incReg = tmpReg;
+        int opkind = IROP1_DEC;
+        help_compile_increment(x, subx, tmpReg, loadReg, incReg, opkind);
+}
+
+INTERNAL
+void (*const unopKindToCompileFunc[NUM_UNOP_KINDS])(Expr x, Expr subx, int usedAsLvalue) = {
+#define MAKE(uk, f) [uk] = &f
+        MAKE( UNOP_ADDRESSOF,     compile_addressof_unop_expr     ),
+        MAKE( UNOP_DEREF,         compile_deref_unop_expr         ),
+        MAKE( UNOP_NOT,           compile_not_unop_expr           ),
+        MAKE( UNOP_BITWISENOT,    compile_bitwisenot_unop_expr    ),
+        MAKE( UNOP_PREINCREMENT,  compile_preincrement_unop_expr  ),
+        MAKE( UNOP_PREDECREMENT,  compile_predecrement_unop_expr  ),
+        MAKE( UNOP_POSTINCREMENT, compile_postincrement_unop_expr ),
+        MAKE( UNOP_POSTDECREMENT, compile_postdecrement_unop_expr ),
+#undef MAKE
+};
+
+INTERNAL
+void compile_unop_expr(Expr x, int usedAsLvalue)
+{
+        Expr subx = exprInfo[x].tUnop.expr;
+        int opKind = exprInfo[x].tUnop.unopKind;
+        ASSERT(0 <= opKind && opKind < NUM_UNOP_KINDS);
+        unopKindToCompileFunc[opKind](x, subx, usedAsLvalue);
 }
 
 INTERNAL
@@ -305,7 +353,7 @@ void compile_member_expr(Expr x, int usedAsLvalue)
         while (exprInfo[e].exprKind == EXPR_MEMBER) {
                 String memberName = exprInfo[e].tMember.name;
                 e = exprInfo[e].tMember.expr;
-                offset += find_struct_offset(exprType[e], memberName);
+                offset += get_struct_offset(exprType[e], memberName);
         }
 
         compile_expr(e, USED_AS_LVALUE);
@@ -935,7 +983,7 @@ void compile_to_IR(void)
         //RESIZE_GLOBAL_BUFFER(firstExprOfProc, procCnt);
         RESIZE_GLOBAL_BUFFER(exprToIrReg, exprCnt);
                 for (Expr x = 0; x < exprCnt; x++)
-                        exprToIrReg[x] = -1; // really necessary? at least for debugging
+                        exprToIrReg[x] = -1; /* really necessary? at least for debugging */
         RESIZE_GLOBAL_BUFFER(dataToIrReg, dataCnt);
 
         /* For each local variable start without associated IrReg */

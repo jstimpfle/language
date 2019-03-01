@@ -215,6 +215,7 @@ void expand_macros(void);
 /* typemetrics.c */
 Type referenced_type(Type tp);//XXX try to get rid of this
 int get_type_size(Type tp);
+int get_struct_offset(Type tp, String memberName);
 Type get_type_behind_pointer(Type tp);
 void print_type(Type tp);
 Type pointer_type(Type t);

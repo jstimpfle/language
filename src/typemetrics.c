@@ -58,6 +58,18 @@ int get_type_size(Type tp)
         }
 }
 
+int get_struct_offset(Type tp, String memberName)
+{
+        tp = referenced_type(tp);
+        ASSERT(typeInfo[tp].typeKind == TYPE_STRUCT);
+        Structmember firstMember = typeInfo[tp].tStruct.firstStructmember;
+        int numMembers = typeInfo[tp].tStruct.numMembers;
+        for (Structmember m = firstMember; m < firstMember + numMembers; m++)
+                if (structmemberInfo[m].memberName == memberName)
+                        return structmemberInfo[m].offset;
+        UNREACHABLE();
+}
+
 Type get_type_behind_pointer(Type tp)
 {
         tp = referenced_type(tp); //XXX
