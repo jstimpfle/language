@@ -1,6 +1,8 @@
 #include "defs.h"
 #include "api.h"
 
+INTERNAL void infer_stmt(Stmt stmt);
+
 void infer_constant(Constant constant)
 {
         /* Some constants' values are immediately known. */
@@ -87,79 +89,79 @@ void infer_reference_type(Type tp)
 }
 
 INTERNAL
-void (*const typeKindToInferFunc[NUM_TYPE_KINDS])(Type tp) = {
-#define MAKE(tk, f) [tk] = &(f)
-        MAKE( TYPE_BASE,      infer_base_type ),
-        MAKE( TYPE_STRUCT,    infer_struct_type ),
-        MAKE( TYPE_ARRAY,     infer_array_type ),
-        MAKE( TYPE_POINTER,   infer_pointer_type ),
-        MAKE( TYPE_PROC,      infer_proc_type ),
-        MAKE( TYPE_REFERENCE, infer_reference_type ),
-#undef MAKE
-};
-
-void infer_type(Type tp)
-{
-        ASSERT(0 <= tp && tp < typeCnt);
-        if (isTypeInferred[tp])
-                return;
-
-        int typeKind = typeInfo[tp].typeKind;
-        typeKindToInferFunc[typeKind](tp);
-
-        isTypeInferred[tp] = 1;
-}
-
-INTERNAL
 void infer_data(Data data)
 {
         infer_type(dataInfo[data].tp);
 }
 
 INTERNAL
-void infer_stmt(Stmt stmt)
+void infer_if_stmt(Stmt stmt)
 {
-        switch (stmtInfo[stmt].stmtKind) {
-        case STMT_IF:
-                infer_stmt(stmtInfo[stmt].tIf.ifbody);
-                break;
-        case STMT_IFELSE:
-                infer_stmt(stmtInfo[stmt].tIfelse.ifbody);
-                infer_stmt(stmtInfo[stmt].tIfelse.elsebody);
-                break;
-        case STMT_FOR:
-                infer_stmt(stmtInfo[stmt].tFor.forbody);
-                break;
-        case STMT_WHILE:
-                infer_stmt(stmtInfo[stmt].tWhile.whilebody);
-                break;
-        case STMT_RANGE:
-                infer_stmt(stmtInfo[stmt].tRange.rangebody);
-                break;
-        case STMT_RETURN:
-                break;
-        case STMT_EXPR:
-                break;
-        case STMT_COMPOUND: {
-                int first = stmtInfo[stmt].tCompound.firstChildStmtIdx;
-                int c = stmtInfo[stmt].tCompound.numStatements;
-                for (int child = first; child < first + c; child++)
-                        infer_stmt(childStmtInfo[child].child);
-                break;
-        }
-        case STMT_DATA:
-                /* this is what we actually want to do */
-                infer_data(stmtInfo[stmt].tData.data);
-                break;
-        case STMT_MACRO:
-                break;
-        case STMT_IGNORE:
-                infer_stmt(stmtInfo[stmt].tIgnore);
-                break;
-        default:
-                FATAL("unhandled: %d stmt\n", stmtInfo[stmt].stmtKind);
-                UNHANDLED_CASE();
-        }
+        infer_stmt(stmtInfo[stmt].tIf.ifbody);
+}
+
+INTERNAL
+void infer_ifelse_stmt(Stmt stmt)
+{
+        infer_stmt(stmtInfo[stmt].tIfelse.ifbody);
+        infer_stmt(stmtInfo[stmt].tIfelse.elsebody);
+}
+
+INTERNAL
+void infer_for_stmt(Stmt stmt)
+{
+        infer_stmt(stmtInfo[stmt].tFor.forbody);
+}
+
+INTERNAL
+void infer_while_stmt(Stmt stmt)
+{
+        infer_stmt(stmtInfo[stmt].tWhile.whilebody);
+}
+
+INTERNAL
+void infer_range_stmt(Stmt stmt)
+{
+        infer_stmt(stmtInfo[stmt].tRange.rangebody);
+}
+
+INTERNAL
+void infer_return_stmt(Stmt stmt)
+{
+        (void) stmt;
+}
+
+INTERNAL
+void infer_expr_stmt(Stmt stmt)
+{
+        (void) stmt;
+}
+
+INTERNAL
+void infer_compound_stmt(Stmt stmt)
+{
+        int first = stmtInfo[stmt].tCompound.firstChildStmtIdx;
+        int c = stmtInfo[stmt].tCompound.numStatements;
+        for (int child = first; child < first + c; child++)
+                infer_stmt(childStmtInfo[child].child);
+}
+
+INTERNAL
+void infer_data_stmt(Stmt stmt)
+{
+        infer_data(stmtInfo[stmt].tData.data);
+}
+
+INTERNAL
+void infer_macro_stmt(Stmt stmt)
+{
+        (void) stmt;
+}
+
+INTERNAL
+void infer_ignore_stmt(Stmt stmt)
+{
+        infer_stmt(stmtInfo[stmt].tIgnore);
 }
 
 INTERNAL
@@ -187,6 +189,78 @@ void infer_proc_directive(Directive directive)
         infer_stmt(procInfo[proc].body);
 }
 
+
+INTERNAL
+void (*const typeKindToInferFunc[NUM_TYPE_KINDS])(Type tp) = {
+#define MAKE(tk, f) [tk] = &(f)
+        MAKE( TYPE_BASE,      infer_base_type ),
+        MAKE( TYPE_STRUCT,    infer_struct_type ),
+        MAKE( TYPE_ARRAY,     infer_array_type ),
+        MAKE( TYPE_POINTER,   infer_pointer_type ),
+        MAKE( TYPE_PROC,      infer_proc_type ),
+        MAKE( TYPE_REFERENCE, infer_reference_type ),
+#undef MAKE
+};
+
+INTERNAL
+void (*const stmtKindToInferFunc[NUM_STMT_KINDS])(Stmt stmt) = {
+#define MAKE(sk, f) [sk] = &(f)
+        MAKE( STMT_IF,       infer_if_stmt ),
+        MAKE( STMT_IFELSE,   infer_ifelse_stmt ),
+        MAKE( STMT_FOR,      infer_for_stmt ),
+        MAKE( STMT_WHILE,    infer_while_stmt ),
+        MAKE( STMT_RANGE,    infer_range_stmt ),
+        MAKE( STMT_RETURN,   infer_return_stmt ),
+        MAKE( STMT_EXPR,     infer_expr_stmt ),
+        MAKE( STMT_COMPOUND, infer_compound_stmt ),
+        MAKE( STMT_DATA,     infer_data_stmt ),
+        MAKE( STMT_MACRO,    infer_macro_stmt ),
+        MAKE( STMT_IGNORE,   infer_ignore_stmt ),
+#undef MAKE
+};
+
+INTERNAL
+void (*const directiveKindToInferFunc[NUM_BUILTINDIRECTIVE_KINDS])(Directive d) = {
+#define MAKE(dk, f) [dk] = &(f)
+        MAKE( BUILTINDIRECTIVE_CONSTANT, infer_constant_directive ),
+        MAKE( BUILTINDIRECTIVE_STRUCT,   infer_struct_directive ),
+        MAKE( BUILTINDIRECTIVE_DATA,     infer_data_directive ),
+        MAKE( BUILTINDIRECTIVE_PROC,     infer_proc_directive ),
+#undef MAKE
+};
+
+void infer_type(Type tp)
+{
+        ASSERT(0 <= tp && tp < typeCnt);
+        if (isTypeInferred[tp])
+                return;
+        int typeKind = typeInfo[tp].typeKind;
+        ASSERT(0 <= typeKind && typeKind < NUM_TYPE_KINDS);
+        typeKindToInferFunc[typeKind](tp);
+        isTypeInferred[tp] = 1;
+}
+
+INTERNAL
+void infer_stmt(Stmt stmt)
+{
+        ASSERT(0 <= stmt && stmt < stmtCnt);
+        int stmtKind = stmtInfo[stmt].stmtKind;
+        ASSERT(0 <= stmtKind && stmtKind < NUM_STMT_KINDS);
+        stmtKindToInferFunc[stmtKind](stmt);
+}
+
+INTERNAL
+void infer_directive(Directive d)
+{
+        ASSERT(0 <= d && d < directiveCnt);
+        int directiveKind = directiveInfo[d].directiveKind;
+        /* XXX, we only have builtin directives currently.
+         * Should we remove this flexibility altogether? */
+        ASSERT(0 <= directiveKind && directiveKind < NUM_BUILTINDIRECTIVE_KINDS);
+        if (directiveKindToInferFunc[directiveKind])
+                directiveKindToInferFunc[directiveKind](d);
+}
+
 void infer_constants_and_types(void)
 {
         ASSERT(globalBufferAlloc[BUFFER_constantValue].cap >= constantCnt);
@@ -209,24 +283,8 @@ void infer_constants_and_types(void)
         for (Type tp = 0; tp < typeCnt; tp++)
                 isTypeInferred[tp] = 0;
 
-        for (int i = 0; i < directiveCnt; i++) {
-                switch (directiveInfo[i].directiveKind) {
-                case BUILTINDIRECTIVE_CONSTANT:
-                        infer_constant_directive(i);
-                        break;
-                case BUILTINDIRECTIVE_STRUCT:
-                        infer_struct_directive(i);
-                        break;
-                case BUILTINDIRECTIVE_DATA:
-                        infer_data_directive(i);
-                        break;
-                case BUILTINDIRECTIVE_PROC:
-                        infer_proc_directive(i);
-                        break;
-                default:
-                        break;
-                }
-        }
+        for (int i = 0; i < directiveCnt; i++)
+                infer_directive(i);
 
         DEBUG("Infer types of all procedure bodies..\n");
         for (Proc p = 0; p < procCnt; p++)
