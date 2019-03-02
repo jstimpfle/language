@@ -55,7 +55,7 @@ int arg_type_matches_param_type(Type argTp, Type paramTp)
                 if (arg_type_matches_param_type(valueTp, paramTp))
                         return 1;
         }
-        return 0;
+        return type_equal(argTp, paramTp);
 }
 
 INTERNAL Type typecheck_assign(Type dstTp, Expr expr);
@@ -508,7 +508,7 @@ Type check_expr_type(Expr x)
         ASSERT( exprKindToTypecheckFunc [kind] );
 
         Type tp = exprKindToTypecheckFunc [kind] (x);
-        if (tp == -1) {
+        if (tp == (Type) -1) {
                 LOG_TYPE_ERROR_EXPR(
                         x, "Type check of %s expression failed\n",
                         exprKindString[exprInfo[x].exprKind]);
@@ -593,6 +593,7 @@ void check_stmt_types(Stmt a)
                         if (tp == (Type) -1) { // XXX what to do?
                                 LOG_TYPE_ERROR_EXPR(expr, "Typecheck failed\n");
                                 exprType[expr] = (Type) -1; // XXX
+                                FATAL_ERROR_AT_EXPR(expr, "Type errors detected\n"); //XXX
                         }
                 }
                 break;

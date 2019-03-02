@@ -142,12 +142,33 @@ int type_equal(Type a, Type b)
         b = referenced_type(b);
         ASSERT(a != -1);
         ASSERT(b != -1);
+
+        if (a == b)
+                return 1;
+
         /* TODO: remove this special case as soon as we have pointer type
          * interning (which means that there should be only one instance for
          * each pointer-of-type type) */
-        if (typeInfo[a].typeKind == TYPE_POINTER &&
-            typeInfo[b].typeKind == TYPE_POINTER)
+        int tk = typeInfo[a].typeKind;
+        if (tk != typeInfo[b].typeKind)
+                return 0;
+
+        if (tk == TYPE_POINTER)
                 return type_equal(typeInfo[a].tPointer.tp,
                                   typeInfo[b].tPointer.tp);
-        return a == b;
+        if (tk == TYPE_PROC) {
+                if (typeInfo[a].tProc.nparams !=
+                    typeInfo[b].tProc.nparams)
+                        return 0;
+                if (!type_equal(typeInfo[a].tProc.rettp,
+                                typeInfo[b].tProc.rettp))
+                        return 0;
+                for (int i = 0; i < typeInfo[a].tProc.nparams; i++)
+                        if (!type_equal(paramInfo[firstProctypeParam[a] + i].tp,
+                                        paramInfo[firstProctypeParam[b] + i].tp))
+                                return 0;
+                return 1;
+        }
+
+        return 0; /* More possibilities TODO? */
 }
