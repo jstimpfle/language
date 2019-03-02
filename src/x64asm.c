@@ -141,7 +141,7 @@ int is_imm16(Imm64 imm)
         return imm < (1u << 16);
 }
 
-INTERNAL
+INTERNAL UNUSEDFUNC
 int is_imm32(Imm64 imm)
 {
         return imm < (1ull << 32);
@@ -517,11 +517,12 @@ void emit_setcc(int x64CmpKind, int r1)
 INTERNAL
 void emit_mov_64_imm_reg(Imm64 imm, int r1)
 {
+        /*
         if (!(r1 & ~7) && is_imm32(imm)) {
                 emit8(SECTION_CODE, 0xb8 | r1);
                 emit32(SECTION_CODE, (Imm32) imm);
         }
-        else {
+        else */ {
                 emit_rex_instruction_imm64_opreg(0xB8, imm, r1);
         }
 }
@@ -899,7 +900,7 @@ void x64asm_call_irstmt(IrStmt irs)
         emit_call_reg(X64_R11);
         IrCallResult cr0 = irStmtInfo[irs].tCall.firstIrCallResult;
         IrReg rreg = irCallResultInfo[cr0].tgtreg;
-        ASSERT(rreg != (IrReg)-1); // is this true? what about void returns? How to handle multiple return values later?
+        ASSERT(rreg != (IrReg) -1); // is this true? what about void returns? How to handle multiple return values later?
         /* FIXME: if the return value is void then the stack location is the
         * same as previous register's stack location. That's not a problem in
         * itself, but since we currently *always* move 8 bytes, ignoring the
@@ -937,12 +938,7 @@ void x64asm_return_irstmt(IrStmt irs)
                 X64StackLoc loc = find_stack_loc(irreg);
                 emit_mov_64_stack_reg(loc, X64_RAX);
         }
-        /* if it's not the last statement then emit an extra
-         * return */
-        if (irs+1 < irStmtCnt &&
-            irStmtInfo[irs+1].proc == irStmtInfo[irs].proc) {
-                emit_function_epilogue();
-        }
+        emit_function_epilogue();
 }
 
 INTERNAL void (*irStmtKindToX64asmHandler[NUM_IRSTMT_KINDS])(IrStmt irs) = {
@@ -992,7 +988,8 @@ void x64asm_proc(IrProc irp)
                 }
         }
 
-        for (IrStmt irs = irProcInfo[irp].firstIrStmt;
+        IrStmt irs = irProcInfo[irp].firstIrStmt;
+        for (;
              irs < irStmtCnt && irStmtInfo[irs].proc == irp;
              irs++) {
                 irstmtToCodepos[irs] = codeSectionCnt; // correct?
@@ -1000,7 +997,8 @@ void x64asm_proc(IrProc irp)
                 ASSERT(0 <= kind && kind < NUM_IRSTMT_KINDS);
                 irStmtKindToX64asmHandler [kind] (irs);
         }
-        emit_function_epilogue();
+//        if (!(irs > 0 && irStmtInfo[irs-1].irStmtKind == IRSTMT_RETURN))
+                emit_function_epilogue(); /* no type checking here */
         end_symbol();
 }
 

@@ -448,18 +448,31 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
                 }
         }
         else {
-                IrStmt s0 = irStmtCnt++;
-                RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
-                irStmtInfo[s0].proc = irproc;
-                irStmtInfo[s0].irStmtKind = IRSTMT_LOADSYMBOLADDR;
-                irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
-                irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
-                if (! usedAsLvalue) {
-                        IrStmt s1 = irStmtCnt++;
+                if (usedAsLvalue) {
+                        IrStmt s0 = irStmtCnt++;
                         RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irStmtInfo[s0].proc = irproc;
+                        irStmtInfo[s0].irStmtKind = IRSTMT_LOADSYMBOLADDR;
+                        irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
+                        irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
+                }
+                else {
+                        IrReg tmpreg = irRegCnt++;
+                        IrStmt s0 = irStmtCnt++;
+                        IrStmt s1 = irStmtCnt++;
+                        RESIZE_GLOBAL_BUFFER(irRegInfo, irRegCnt);
+                        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+                        irRegInfo[tmpreg].proc = irproc;
+                        irRegInfo[tmpreg].name = -1;
+                        irRegInfo[tmpreg].sym = -1;
+                        irRegInfo[tmpreg].tp = pointer_type(exprToIrReg[x]);
+                        irStmtInfo[s0].proc = irproc;
+                        irStmtInfo[s0].irStmtKind = IRSTMT_LOADSYMBOLADDR;
+                        irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
+                        irStmtInfo[s0].tLoadSymbolAddr.tgtreg = tmpreg;
                         irStmtInfo[s1].proc = irproc;
                         irStmtInfo[s1].irStmtKind = IRSTMT_LOAD;
-                        irStmtInfo[s1].tLoad.srcaddrreg = exprToIrReg[x];
+                        irStmtInfo[s1].tLoad.srcaddrreg = tmpreg;
                         irStmtInfo[s1].tLoad.tgtreg = exprToIrReg[x];
                 }
         }
