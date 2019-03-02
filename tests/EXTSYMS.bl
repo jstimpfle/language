@@ -21,6 +21,7 @@ extern memmove void(^void, ^void, int);
 extern malloc  ^void(int);
 extern free    void(^void);
 extern fgets   int(^void, int, ^void);
+extern strlen  int(^char);
 
 /*XXX only to work around our unfinished type system*/
 extern chartoint int(char);
