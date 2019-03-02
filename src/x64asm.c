@@ -680,6 +680,12 @@ void emit_function_prologue(IrProc irp)
         emit_mov_64_reg_reg(X64_RSP, X64_RBP);
 
         int size = compute_size_of_stack_frame(irp);
+
+        /* round up to multiple of 16 bytes to address some alignment
+         * issues */
+        size += 15;
+        size -= size % 16;
+
         emit_add_64_imm32_reg(-size, X64_RSP);
 }
 
@@ -812,30 +818,30 @@ void x64asm_op2_irstmt(IrStmt irs)
         X64StackLoc loc2 = find_stack_loc(reg2);
         X64StackLoc tgtloc = find_stack_loc(tgtreg);
         emit_mov_64_stack_reg(loc1, X64_RAX);
-        emit_mov_64_stack_reg(loc2, X64_RBX);
+        emit_mov_64_stack_reg(loc2, X64_RDX);
         switch (irStmtInfo[irs].tOp2.irOp2Kind) {
         case IROP2_ADD:
-                emit_add_64_reg_reg(X64_RBX, X64_RAX);
+                emit_add_64_reg_reg(X64_RDX, X64_RAX);
                 break;
         case IROP2_SUB:
-                emit_sub_64_reg_reg(X64_RAX, X64_RBX);
+                emit_sub_64_reg_reg(X64_RAX, X64_RDX);
                 break;
         case IROP2_MUL:
-                emit_mul_64_rax_reg(X64_RBX);
+                emit_mul_64_rax_reg(X64_RDX);
                 break;
         case IROP2_DIV:
                 // clear rdx before div, with xor %rdx, %rdx
                 emit8(SECTION_CODE, 0x48); emit8(SECTION_CODE, 0x31); emit8(SECTION_CODE, 0xD2);
-                emit_div_64(X64_RBX);
+                emit_div_64(X64_RDX);
                 break;
         case IROP2_BITAND:
-                emit_bitand_64_reg_reg(X64_RAX, X64_RBX);
+                emit_bitand_64_reg_reg(X64_RAX, X64_RDX);
                 break;
         case IROP2_BITOR:
-                emit_bitor_64_reg_reg(X64_RAX, X64_RBX);
+                emit_bitor_64_reg_reg(X64_RAX, X64_RDX);
                 break;
         case IROP2_BITXOR:
-                emit_bitxor_64_reg_reg(X64_RAX, X64_RBX);
+                emit_bitxor_64_reg_reg(X64_RAX, X64_RDX);
                 break;
         default:
                 UNHANDLED_CASE();
@@ -853,7 +859,7 @@ void x64asm_cmp_irstmt(IrStmt irs)
         X64StackLoc loc2 = find_stack_loc(reg2);
         X64StackLoc tgtloc = find_stack_loc(tgtreg);
         emit_mov_64_stack_reg(loc1, X64_RAX);
-        emit_mov_64_stack_reg(loc2, X64_RBX);
+        emit_mov_64_stack_reg(loc2, X64_RDX);
         /*
          * We use ecx here instead of eax as the target. That's
          * because we need to clear the target register before
@@ -864,7 +870,7 @@ void x64asm_cmp_irstmt(IrStmt irs)
          * register!
          */
         emit8(SECTION_CODE, 0x31); emit8(SECTION_CODE, 0xC9); // xor %ecx, %ecx
-        emit_cmp_64_reg_reg(X64_RAX, X64_RBX);
+        emit_cmp_64_reg_reg(X64_RAX, X64_RDX);
         switch (irStmtInfo[irs].tCmp.irCmpKind) {
         case IRCMP_LT: emit_setcc(X64CMP_LT, X64_RCX); break;
         case IRCMP_GT: emit_setcc(X64CMP_GT, X64_RCX); break;
