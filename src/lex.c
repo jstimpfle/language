@@ -89,13 +89,31 @@ wordtoken:
 
         long long value;
 numbertoken:
-        value = c - '0';
-        for (;;) {
-                c = look_char();
-                if (!('0' <= c && c <= '9'))
-                        break;
+        if (c == '0' && look_char() == 'x') {
                 consume_char();
-                value = 10 * value + c - '0';
+                value = 0;
+                for (;;) {
+                        c = look_char();
+                        if ('0' <= c && c <= '9')
+                                value = 16 * value + c - '0';
+                        else if ('a' <= c && c <= 'f')
+                                value = 16 * value + c - 'a';
+                        else if ('A' <= c && c <= 'F')
+                                value = 16 * value + c - 'A';
+                        else
+                                break;
+                        consume_char();
+                }
+        }
+        else {
+                value = c - '0';
+                for (;;) {
+                        c = look_char();
+                        if (!('0' <= c && c <= '9'))
+                                break;
+                        consume_char();
+                        value = 10 * value + c - '0';
+                }
         }
         tokenInfo[x].tokenKind = TOKEN_INTEGER;
         tokenInfo[x].tInteger.value = value;
