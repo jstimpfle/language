@@ -456,6 +456,7 @@ enum {
         BUILTINDIRECTIVE_ENUM,
         BUILTINDIRECTIVE_CONSTANT,
         BUILTINDIRECTIVE_EXPORT,
+        BUILTINDIRECTIVE_TYPEALIAS,
         NUM_BUILTINDIRECTIVE_KINDS,
 };
 
@@ -483,12 +484,17 @@ struct StructDirectiveInfo {
         Type tp;
 };
 
+struct TypealiasDirectiveInfo {
+        Symbol symbol;
+};
+
 struct DirectiveInfo {
         int directiveKind;
         union {
                 struct ExternDirectiveInfo tExtern;
                 struct DataDirectiveInfo tData;
                 struct StructDirectiveInfo tStruct;
+                struct TypealiasDirectiveInfo tTypealias;
                 Proc tProc;
                 Macro tMacro;
                 Constant tConstant;  // Constant of kind CONSTANT_EXPRESSION

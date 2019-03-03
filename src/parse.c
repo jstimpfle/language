@@ -1141,6 +1141,23 @@ void parse_export_directive(Directive directive)
         happy with just DirectiveInfo.tExport where we can store the ref */
 }
 
+INTERNAL
+void parse_typealias_directive(Directive directive)
+{
+        String name = parse_name();
+        parse_token_kind(TOKEN_ASSIGNEQUALS);
+        Type type = parse_type(0);
+        parse_token_kind(TOKEN_SEMICOLON);
+
+        /* XXX Maybe later we want to distinguish between type symbols and
+         * typealias symbols.  But for now, we simply make an ordinary type
+         * symbol. */
+        Symbol symbol = add_type_symbol(name, currentScope, type);
+
+        directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_TYPEALIAS;
+        directiveInfo[directive].tTypealias.symbol = symbol;
+}
+
 void parse_file(File file)
 {
         currentFile = file;
@@ -1357,14 +1374,15 @@ void fixup_parsed_data(void)
 /* initializer for directiveKindInfo */
 const struct BuiltinDirectiveKindInfo builtinDirectiveKindInfo[] = {
 #define MAKE(bdir, keyword, parser) [bdir] = { keyword, &(parser) }
-        MAKE( BUILTINDIRECTIVE_EXTERN,   CONSTSTR_EXTERN,   parse_extern_directive ),
-        MAKE( BUILTINDIRECTIVE_DATA,     CONSTSTR_DATA,     parse_data_directive ),
-        MAKE( BUILTINDIRECTIVE_STRUCT,   CONSTSTR_STRUCT,   parse_struct_directive ),
-        MAKE( BUILTINDIRECTIVE_PROC,     CONSTSTR_PROC,     parse_proc_directive ),
-        MAKE( BUILTINDIRECTIVE_MACRO,    CONSTSTR_MACRO,    parse_macro_directive ),
-        MAKE( BUILTINDIRECTIVE_ENUM,     CONSTSTR_ENUM,     parse_enum_directive ),
-        MAKE( BUILTINDIRECTIVE_CONSTANT, CONSTSTR_CONSTANT, parse_constant_directive ),
-        MAKE( BUILTINDIRECTIVE_EXPORT,   CONSTSTR_EXPORT,   parse_export_directive ),
+        MAKE( BUILTINDIRECTIVE_EXTERN,    CONSTSTR_EXTERN,    parse_extern_directive ),
+        MAKE( BUILTINDIRECTIVE_DATA,      CONSTSTR_DATA,      parse_data_directive ),
+        MAKE( BUILTINDIRECTIVE_STRUCT,    CONSTSTR_STRUCT,    parse_struct_directive ),
+        MAKE( BUILTINDIRECTIVE_PROC,      CONSTSTR_PROC,      parse_proc_directive ),
+        MAKE( BUILTINDIRECTIVE_MACRO,     CONSTSTR_MACRO,     parse_macro_directive ),
+        MAKE( BUILTINDIRECTIVE_ENUM,      CONSTSTR_ENUM,      parse_enum_directive ),
+        MAKE( BUILTINDIRECTIVE_CONSTANT,  CONSTSTR_CONSTANT,  parse_constant_directive ),
+        MAKE( BUILTINDIRECTIVE_EXPORT,    CONSTSTR_EXPORT,    parse_export_directive ),
+        MAKE( BUILTINDIRECTIVE_TYPEALIAS, CONSTSTR_TYPEALIAS, parse_typealias_directive ),
 #undef MAKE
 };
 const int builtinDirectiveKindCnt = LENGTH(builtinDirectiveKindInfo);

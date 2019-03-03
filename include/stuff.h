@@ -56,6 +56,7 @@ enum ConstStrKind {
         CONSTSTR_STRINGIFY,
         CONSTSTR_CONSTANT,
         CONSTSTR_ENUM,
+        CONSTSTR_TYPEALIAS,
         NUM_CONSTSTRS,
 };
 

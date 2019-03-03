@@ -344,6 +344,7 @@ const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS] = {
         MAKE( CONSTSTR_STRINGIFY, "stringify" ),
         MAKE( CONSTSTR_CONSTANT,  "constant" ),
         MAKE( CONSTSTR_ENUM,   "enum" ),
+        MAKE( CONSTSTR_TYPEALIAS, "typealias" ),
 #undef MAKE
 };
 
