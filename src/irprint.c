@@ -52,7 +52,9 @@ void irp_proc(IrProc p)
                 irp_reg(reg);
                 if (irRegInfo[reg].sym >= 0)
                         outf(" (%s)", SS(irRegInfo[reg].sym));
-                outf(" tp=%d", irRegInfo[reg].tp);
+                outf(" tp=%d ", irRegInfo[reg].tp);
+                //XXX
+                print_type(irRegInfo[reg].tp);
                 outs("\n");
         }
         for (IrStmt i = irProcInfo[p].firstIrStmt;
