@@ -814,12 +814,12 @@ void write_elf64_object(const char *outfilepath)
         sh[ES_SHSTRTAB].sh_offset = sh[ES_STRTAB  ].sh_offset + sh[ES_STRTAB  ].sh_size;
 
         /* XXX: ??? */
-        sh[ES_SYMTAB  ].sh_addralign = 8;
-        sh[ES_TEXT    ].sh_addralign = 8;
-        sh[ES_BSS     ].sh_addralign = 8;
-        sh[ES_RODATA  ].sh_addralign = 8;
-        sh[ES_DATA    ].sh_addralign = 8;
-        sh[ES_RELATEXT].sh_addralign = 8;
+        sh[ES_SYMTAB  ].sh_addralign = 16;
+        sh[ES_TEXT    ].sh_addralign = 16;
+        sh[ES_BSS     ].sh_addralign = 16;
+        sh[ES_RODATA  ].sh_addralign = 16;
+        sh[ES_DATA    ].sh_addralign = 16;
+        sh[ES_RELATEXT].sh_addralign = 16;
         sh[ES_STRTAB  ].sh_addralign = 1;
         sh[ES_SHSTRTAB].sh_addralign = 1;
 
