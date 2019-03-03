@@ -78,7 +78,7 @@ const int cc[] = { /* "calling convention" */
 INTERNAL
 int find_stack_loc(IrReg irreg)
 {
-        int out = 8;  // eight bytes reserved for return address
+        int out = 0;
         for (IrReg reg = irreg;
              reg >= 0 && irRegInfo[reg].proc == irRegInfo[irreg].proc;
              reg--) {
@@ -101,18 +101,13 @@ int find_stack_loc(IrReg irreg)
                 ASSERT(size > 0);
                 out += size;
         }
-        /*
-        Type tp = referenced_type(irRegInfo[irreg].tp);
-        int size = get_type_size(tp);
-        DEBUG("IrReg %d (proc=%d) has size %d and location %d\n", irreg, irRegInfo[irreg].proc, size, -out);
-        */
         return -out;
 }
 
 INTERNAL
 int compute_size_of_stack_frame(IrProc irp)
 {
-        int out = 8;  // eight bytes reserved for return address
+        int out = 0;
         for (IrReg irreg = irProcInfo[irp].firstIrReg;
              irreg < irRegCnt && irRegInfo[irreg].proc == irp;
              irreg++)
@@ -403,6 +398,15 @@ void emit_rex_instruction_imm32_reg(int opcode, int morebits, Imm32 imm, int r1)
 /* opreg == register encoded in the low 3 bits of operand (+ optional REX_B).
  * No MOD/RM byte. */
 INTERNAL
+void emit_rex_instruction_opreg(int opcode, int r1)
+{
+        ASSERT(!(opcode & 7));
+        int B = (r1 & ~7) ? REX_B : 0;
+        emit8(SECTION_CODE, REX_BASE | REX_W | B);
+        emit_opcode(opcode | (r1 & 7));
+}
+
+INTERNAL
 void emit_rex_instruction_imm64_opreg(int opcode, Imm64 imm, int r1)
 {
         ASSERT(!(opcode & 7));
@@ -498,6 +502,7 @@ void emit_bitwisenot_64_reg(int r1)
         emit_rex_instruction_reg(0xF7, 0x02, r1);
 }
 
+INTERNAL
 void emit_setcc(int x64CmpKind, int r1)
 {
         ASSERT(0 <= x64CmpKind && x64CmpKind < NUM_X64CMP_KINDS);
@@ -512,6 +517,28 @@ void emit_setcc(int x64CmpKind, int r1)
         int opcode = x64CmpToOpcode[x64CmpKind];
         int morebits = 0x00;
         emit_rex_instruction_reg(opcode, morebits, r1);
+}
+
+INTERNAL
+void emit_push_64(int r1)
+{
+        /*
+        if (r1 == (r1 & 7))
+        emit8(SECTION_CODE, 0x50 | r1);
+        else
+        */
+        emit_rex_instruction_opreg(0x50, r1);
+}
+
+INTERNAL
+void emit_pop_64(int r1)
+{
+        /*
+        if (r1 == (r1 & 7))
+        emit8(SECTION_CODE, 0x58 | r1);
+        else
+        */
+        emit_rex_instruction_opreg(0x58, r1);
 }
 
 INTERNAL
@@ -676,23 +703,22 @@ void emit_local_conditional_jump(X64StackLoc condloc, IrStmt tgtstmt, int isNeg)
 INTERNAL
 void emit_function_prologue(IrProc irp)
 {
-        emit8(SECTION_CODE, 0x55);  // push rbp
+        emit_push_64(X64_RBP);
         emit_mov_64_reg_reg(X64_RSP, X64_RBP);
-
         int size = compute_size_of_stack_frame(irp);
-
-        /* round up to multiple of 16 bytes to address some alignment
-         * issues */
         size += 15;
-        size -= size % 16;
-
+        size -= (size) % 16;
         emit_add_64_imm32_reg(-size, X64_RSP);
+        emit_push_64(X64_RBX);
 }
 
 INTERNAL
 void emit_function_epilogue(void)
 {
-        //emit_mov_64_reg_reg(X64_RBP, X64_RSP);
+        emit_pop_64(X64_RBX);
+        // not needed because the leave instruction does that
+        // emit_mov_64_stack_reg(-8, X64_RBX);
+
         emit8(SECTION_CODE, 0xc9);  // leave
         emit8(SECTION_CODE, 0xc3);  // ret
 }
@@ -818,30 +844,30 @@ void x64asm_op2_irstmt(IrStmt irs)
         X64StackLoc loc2 = find_stack_loc(reg2);
         X64StackLoc tgtloc = find_stack_loc(tgtreg);
         emit_mov_64_stack_reg(loc1, X64_RAX);
-        emit_mov_64_stack_reg(loc2, X64_RDX);
+        emit_mov_64_stack_reg(loc2, X64_RBX);
         switch (irStmtInfo[irs].tOp2.irOp2Kind) {
         case IROP2_ADD:
-                emit_add_64_reg_reg(X64_RDX, X64_RAX);
+                emit_add_64_reg_reg(X64_RBX, X64_RAX);
                 break;
         case IROP2_SUB:
-                emit_sub_64_reg_reg(X64_RAX, X64_RDX);
+                emit_sub_64_reg_reg(X64_RAX, X64_RBX);
                 break;
         case IROP2_MUL:
-                emit_mul_64_rax_reg(X64_RDX);
+                emit_mul_64_rax_reg(X64_RBX);
                 break;
         case IROP2_DIV:
                 // clear rdx before div, with xor %rdx, %rdx
                 emit8(SECTION_CODE, 0x48); emit8(SECTION_CODE, 0x31); emit8(SECTION_CODE, 0xD2);
-                emit_div_64(X64_RDX);
+                emit_div_64(X64_RBX);
                 break;
         case IROP2_BITAND:
-                emit_bitand_64_reg_reg(X64_RAX, X64_RDX);
+                emit_bitand_64_reg_reg(X64_RAX, X64_RBX);
                 break;
         case IROP2_BITOR:
-                emit_bitor_64_reg_reg(X64_RAX, X64_RDX);
+                emit_bitor_64_reg_reg(X64_RAX, X64_RBX);
                 break;
         case IROP2_BITXOR:
-                emit_bitxor_64_reg_reg(X64_RAX, X64_RDX);
+                emit_bitxor_64_reg_reg(X64_RAX, X64_RBX);
                 break;
         default:
                 UNHANDLED_CASE();
@@ -859,7 +885,7 @@ void x64asm_cmp_irstmt(IrStmt irs)
         X64StackLoc loc2 = find_stack_loc(reg2);
         X64StackLoc tgtloc = find_stack_loc(tgtreg);
         emit_mov_64_stack_reg(loc1, X64_RAX);
-        emit_mov_64_stack_reg(loc2, X64_RDX);
+        emit_mov_64_stack_reg(loc2, X64_RBX);
         /*
          * We use ecx here instead of eax as the target. That's
          * because we need to clear the target register before
@@ -870,7 +896,7 @@ void x64asm_cmp_irstmt(IrStmt irs)
          * register!
          */
         emit8(SECTION_CODE, 0x31); emit8(SECTION_CODE, 0xC9); // xor %ecx, %ecx
-        emit_cmp_64_reg_reg(X64_RAX, X64_RDX);
+        emit_cmp_64_reg_reg(X64_RAX, X64_RBX);
         switch (irStmtInfo[irs].tCmp.irCmpKind) {
         case IRCMP_LT: emit_setcc(X64CMP_LT, X64_RCX); break;
         case IRCMP_GT: emit_setcc(X64CMP_GT, X64_RCX); break;
@@ -891,8 +917,7 @@ void x64asm_call_irstmt(IrStmt irs)
         IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
         for (int i = 0; ; i++) {
                 IrCallArg a = firstArg + i;
-                if (!(a < irCallArgCnt
-                      && irCallArgInfo[a].callStmt == irs))
+                if (!(a < irCallArgCnt && irCallArgInfo[a].callStmt == irs))
                         break;
                 IrReg r = irCallArgInfo[a].srcreg;
                 X64StackLoc loc = find_stack_loc(r);
@@ -1003,7 +1028,7 @@ void x64asm_proc(IrProc irp)
                 ASSERT(0 <= kind && kind < NUM_IRSTMT_KINDS);
                 irStmtKindToX64asmHandler [kind] (irs);
         }
-//        if (!(irs > 0 && irStmtInfo[irs-1].irStmtKind == IRSTMT_RETURN))
+        if (!(irs > 0 && irStmtInfo[irs-1].irStmtKind == IRSTMT_RETURN))
                 emit_function_epilogue(); /* no type checking here */
         end_symbol();
 }
