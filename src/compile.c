@@ -457,6 +457,7 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
                         irStmtInfo[s0].tLoadSymbolAddr.tgtreg = exprToIrReg[x];
                 }
                 else {
+                        Type tp = irRegInfo[exprToIrReg[x]].tp;
                         IrReg tmpreg = irRegCnt++;
                         IrStmt s0 = irStmtCnt++;
                         IrStmt s1 = irStmtCnt++;
@@ -465,7 +466,7 @@ void compile_symref_expr(Expr x, int usedAsLvalue)
                         irRegInfo[tmpreg].proc = irproc;
                         irRegInfo[tmpreg].name = -1;
                         irRegInfo[tmpreg].sym = -1;
-                        irRegInfo[tmpreg].tp = pointer_type(exprToIrReg[x]);
+                        irRegInfo[tmpreg].tp = pointer_type(tp);
                         irStmtInfo[s0].proc = irproc;
                         irStmtInfo[s0].irStmtKind = IRSTMT_LOADSYMBOLADDR;
                         irStmtInfo[s0].tLoadSymbolAddr.sym = sym;
