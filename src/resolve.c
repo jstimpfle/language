@@ -3,13 +3,30 @@
 
 void ensure_there_are_no_symbol_collisions(void)
 {
-        for (Symbol sym = 1; sym < symbolCnt; sym++) {
-                if (symbolInfo[sym].scope == symbolInfo[sym - 1].scope &&
-                    symbolInfo[sym].name == symbolInfo[sym - 1].name) {
-                        // TODO better message
-                        FATAL("Symbol already defined in this scope: %s\n",
-                              SS(sym));
+        int bad = 0;
+
+        Symbol s1 = 0;
+        while (s1 < symbolCnt) {
+                Symbol s2 = s1 + 1;
+                for (;
+                     symbolInfo[s2].scope == symbolInfo[s1].scope &&
+                     symbolInfo[s2].name == symbolInfo[s1].name;
+                     s2++) {
+                        const char *f1, *f2;
+                        int l1, l2;
+                        int c1, c2;
+                        compute_file_location_of_symbol(s1, &f1, &l1, &c1);
+                        compute_file_location_of_symbol(s2, &f2, &l2, &c2);
+                        MSG(lvl_fatal,
+                            "Symbol %s (%s, %d:%d) collides with "
+                            "earlier definition (%s, %d:%d)\n",
+                            SS(s1), f2, l2, c2, f1, l1, c1);
+                        bad = 1;
                 }
+                s1 = s2;
+        }
+        if (bad) {
+                FATAL("Exiting due to symbol collisions\n");
         }
 }
 

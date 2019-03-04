@@ -175,6 +175,7 @@ struct StringToBeInterned {
         MAKE_GLOBAL_BUFFER(  structmemberCnt,    structmemberInfo     ),  \
         MAKE_GLOBAL_BUFFER(  symbolCnt,          isSymbolExported     ),  \
         MAKE_GLOBAL_BUFFER(  symbolCnt,          symbolInfo           ),  \
+        MAKE_GLOBAL_BUFFER(  symbolCnt,          symbolToToken        ),  \
         MAKE_GLOBAL_BUFFER(  symDefCnt,          symDefInfo           ),  \
         MAKE_GLOBAL_BUFFER(  symrefCnt,          symrefInfo           ),  \
         MAKE_GLOBAL_BUFFER(  symrefCnt,          symrefToSym          ),  \

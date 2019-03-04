@@ -60,6 +60,11 @@ void NORETURN _abort(void);
  * messages.c
  */
 
+int compute_lineno(File file, int offset);
+int compute_colno(File file, int offset);
+void compute_file_location_of_symbol(
+        Symbol symbol, const char **filename, int *lineno, int *colno);
+
 void _msg(const char *filename, int line,
         const char *loglevel, const char *fmt, ...);
 void _msg_begin(const char *srcfilename, int srcline,

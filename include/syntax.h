@@ -547,6 +547,7 @@ DATA int exportCnt;
 DATA int directiveCnt;
 
 DATA struct SymbolInfo *symbolInfo;
+DATA Token *symbolToToken;
 DATA struct ScopeInfo *scopeInfo;
 DATA struct SymrefInfo *symrefInfo;
 DATA Token *symrefToToken;

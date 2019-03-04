@@ -4,7 +4,6 @@
 #include <stdio.h>
 
 /* offset may be 1 past the end of file (i.e., equal to file size) */
-INTERNAL
 int compute_lineno(File file, int offset)
 {
         int line = 1;
@@ -15,7 +14,6 @@ int compute_lineno(File file, int offset)
 }
 
 /* offset may be 1 past the end of file (i.e., equal to file size) */
-INTERNAL
 int compute_colno(File file, int offset)
 {
         int column = 1;
@@ -25,6 +23,25 @@ int compute_colno(File file, int offset)
                 else
                         column++;
         return column;
+}
+
+void compute_file_location_of_symbol(
+        Symbol symbol, const char **filename, int *lineno, int *colno)
+{
+        Token token = symbolToToken[symbol];
+        if (token == (Token) -1) {
+                *filename = "(Internal symbol)";
+                *lineno = -1;
+                *colno = -1;
+        }
+        else {
+                ASSERT(0 <= token && token < tokenCnt);
+                File file = tokenInfo[token].file;
+                int offset = tokenInfo[token].offset;
+                *filename = string_buffer(fileInfo[file].filepath);
+                *lineno = compute_lineno(file, offset);
+                *colno = compute_colno(file, offset);
+        }
 }
 
 INTERNAL

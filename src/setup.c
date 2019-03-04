@@ -31,10 +31,12 @@ void setup_program(void)
 
                 Symbol x = symbolCnt++;
                 RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
+                RESIZE_GLOBAL_BUFFER(symbolToToken, symbolCnt);
                 symbolInfo[x].name = name;
                 symbolInfo[x].scope = globalScope;
                 symbolInfo[x].symbolKind = SYMBOL_TYPE;
                 symbolInfo[x].tType = tp;
+                symbolToToken[x] = (Token) -1;
 
                 *basetypesToBeInitialized[i].builtinTypePtr = tp;
         }

@@ -7,15 +7,24 @@ static int scopeStackCnt;
 static Proc currentProc;
 
 INTERNAL
-Symbol add_type_symbol(String name, Scope scope, Type tp)
+void set_symbol_token(Symbol symbol, Token token)
 {
-        Symbol x = symbolCnt++;
+        ASSERT(0 <= symbol && symbol < symbolCnt);
+        RESIZE_GLOBAL_BUFFER(symbolToToken, symbolCnt);
+        symbolToToken[symbol] = token;
+}
+
+INTERNAL
+Symbol add_type_symbol(String name, Scope scope, Token nameToken, Type tp)
+{
+        Symbol symbol = symbolCnt++;
         RESIZE_GLOBAL_BUFFER(symbolInfo, symbolCnt);
-        symbolInfo[x].name = name;
-        symbolInfo[x].scope = scope;
-        symbolInfo[x].symbolKind = SYMBOL_TYPE;
-        symbolInfo[x].tType = tp;
-        return x;
+        symbolInfo[symbol].name = name;
+        symbolInfo[symbol].scope = scope;
+        symbolInfo[symbol].symbolKind = SYMBOL_TYPE;
+        symbolInfo[symbol].tType = tp;
+        set_symbol_token(symbol, nameToken);
+        return symbol;
 }
 
 INTERNAL
@@ -162,14 +171,6 @@ Token parse_token_kind(int tkind)
 }
 
 INTERNAL
-String parse_name(void)
-{
-        PARSE_LOG();
-        Token tok = parse_token_kind(TOKEN_WORD);
-        return tokenInfo[tok].tWord.string;
-}
-
-INTERNAL
 Symref parse_symref(void)
 {
         PARSE_LOG();
@@ -273,7 +274,8 @@ void parse_struct_member(Type structTp)
         Token tok = parse_token_kind(TOKEN_WORD);
         if (tokenInfo[tok].tWord.string != constStr[CONSTSTR_DATA])
                 FATAL_PARSE_ERROR_AT_TOK(tok, "struct data member expected\n");
-        String memberName = parse_name();
+        Token nameToken = parse_token_kind(TOKEN_WORD);
+        String memberName = tokenInfo[nameToken].tWord.string;
         Type memberTp = parse_type(0);
         parse_token_kind(TOKEN_SEMICOLON);
         Structmember y = structmemberCnt++;
@@ -287,12 +289,13 @@ INTERNAL
 Type parse_struct(void)
 {
         PARSE_LOG();
-        String name = parse_name();
+        Token nameToken = parse_token_kind(TOKEN_WORD);
+        String name = tokenInfo[nameToken].tWord.string;
         Type tp = typeCnt++;
         RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
         typeInfo[tp].typeKind = TYPE_STRUCT;
         typeInfo[tp].tStruct.name = name;
-        add_type_symbol(name, globalScope, tp);
+        add_type_symbol(name, globalScope, nameToken, tp);
         parse_token_kind(TOKEN_LEFTBRACE);
         while (look_token_kind(TOKEN_RIGHTBRACE) == -1)
                 parse_struct_member(tp);
@@ -304,7 +307,8 @@ INTERNAL
 Data parse_data(void)
 {
         PARSE_LOG();
-        String name = parse_name();
+        Token nameToken = parse_token_kind(TOKEN_WORD);
+        String name = tokenInfo[nameToken].tWord.string;
         Type tp = parse_type(0);
 
         Scope scope = currentScope;
@@ -320,6 +324,7 @@ Data parse_data(void)
         symbolInfo[sym].symbolKind = SYMBOL_DATA;
         symbolInfo[sym].tData.tp = tp;
         symbolInfo[sym].tData.optionaldata = data;
+        set_symbol_token(sym, nameToken);
         return data;
 }
 
@@ -327,7 +332,8 @@ INTERNAL
 Macro parse_macro(void)
 {
         PARSE_LOG();
-        String name = parse_name();
+        Token nameToken = parse_token_kind(TOKEN_WORD);
+        String name = tokenInfo[nameToken].tWord.string;
         Macro macro = macroCnt++;
         Symbol symbol = symbolCnt++;
         Scope scope = scopeCnt++;
@@ -341,8 +347,8 @@ Macro parse_macro(void)
         if (look_token_kind(TOKEN_LEFTPAREN) != (Token) -1) {
                 consume_token();
                 while (look_token_kind(TOKEN_RIGHTPAREN) == -1) {
-                        Token token = parse_token_kind(TOKEN_WORD);
-                        String paramname = tokenInfo[token].tWord.string;
+                        Token paramToken = parse_token_kind(TOKEN_WORD);
+                        String paramname = tokenInfo[paramToken].tWord.string;
                         MacroParam param = macroParamCnt++;
                         Symbol paramsym = symbolCnt++;
                         RESIZE_GLOBAL_BUFFER(macroParamInfo, macroParamCnt);
@@ -353,6 +359,7 @@ Macro parse_macro(void)
                         symbolInfo[paramsym].scope = scope;
                         symbolInfo[paramsym].symbolKind = SYMBOL_MACROPARAM;
                         symbolInfo[paramsym].tMacroParam = param;
+                        set_symbol_token(paramsym, paramToken);
                         nparams++;
                         if (look_token_kind(TOKEN_COMMA) == -1)
                                 break;
@@ -374,6 +381,7 @@ Macro parse_macro(void)
         symbolInfo[symbol].scope = currentScope;
         symbolInfo[symbol].symbolKind = SYMBOL_MACRO;
         symbolInfo[symbol].tMacro = macro;
+        set_symbol_token(symbol, nameToken);
         scopeInfo[scope].parentScope = currentScope;
         scopeInfo[scope].firstSymbol = -1;
         scopeInfo[scope].numSymbols = 0;
@@ -799,7 +807,8 @@ INTERNAL
 Stmt parse_range_stmt(void)
 {
         PARSE_LOG();
-        String varname = parse_name();
+        Token varnameToken = parse_token_kind(TOKEN_WORD);
+        String varname = tokenInfo[varnameToken].tWord.string;
         {
                 Token tok = parse_token_kind(TOKEN_WORD);
                 String word = tokenInfo[tok].tWord.string;
@@ -864,6 +873,7 @@ Stmt parse_range_stmt(void)
         symbolInfo[sym].symbolKind = SYMBOL_DATA;
         symbolInfo[sym].tData.tp = dataTp;
         symbolInfo[sym].tData.optionaldata = data;
+        set_symbol_token(sym, varnameToken);
 
         stmtInfo[stmt].stmtKind = STMT_RANGE;
         stmtInfo[stmt].tRange.variable = data;
@@ -910,7 +920,8 @@ Stmt parse_stmt(void)
 INTERNAL
 void parse_extern_directive(Directive directive)
 {
-        String name = parse_name();
+        Token nameToken = parse_token_kind(TOKEN_WORD);
+        String name = tokenInfo[nameToken].tWord.string;
         Type tp = parse_type(0);
         parse_token_kind(TOKEN_SEMICOLON);
         Type tt = referenced_type(tp);
@@ -935,6 +946,7 @@ void parse_extern_directive(Directive directive)
         default:
                 UNHANDLED_CASE();
         }
+        set_symbol_token(sym, nameToken);
 
         directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_EXTERN;
         directiveInfo[directive].tExtern.symbol = sym;
@@ -981,7 +993,8 @@ void parse_constant_directive(Directive directive)
         PARSE_LOG();
         Symbol symbol = symbolCnt++;
         Constant constant = constantCnt++;
-        String name = parse_name();
+        Token nameToken = parse_token_kind(TOKEN_WORD);
+        String name = tokenInfo[nameToken].tWord.string;
         parse_token_kind(TOKEN_ASSIGNEQUALS);
         Expr expr;
         {
@@ -1002,6 +1015,7 @@ void parse_constant_directive(Directive directive)
         symbolInfo[symbol].scope = currentScope;
         symbolInfo[symbol].symbolKind = SYMBOL_CONSTANT;
         symbolInfo[symbol].tConstant = constant;
+        set_symbol_token(symbol, nameToken);
         constantInfo[constant].constantKind = CONSTANT_EXPRESSION;
         constantInfo[constant].symbol = symbol;
         constantInfo[constant].scope = currentScope;
@@ -1017,7 +1031,8 @@ void parse_enum_directive(Directive directive)
         int size = 0;
         parse_token_kind(TOKEN_LEFTBRACE);
         while (look_token_kind(TOKEN_RIGHTBRACE) == (Token) -1) {
-                String name = parse_name();
+                Token nameToken = parse_token_kind(TOKEN_WORD);
+                String name = tokenInfo[nameToken].tWord.string;
                 parse_token_kind(TOKEN_SEMICOLON);
                 int value = size++;
                 Symbol symbol = symbolCnt++;
@@ -1029,6 +1044,7 @@ void parse_enum_directive(Directive directive)
                 symbolInfo[symbol].scope = currentScope;
                 symbolInfo[symbol].symbolKind = SYMBOL_CONSTANT;
                 symbolInfo[symbol].tConstant = constant;
+                set_symbol_token(symbol, nameToken);
                 constantInfo[constant].constantKind = CONSTANT_INTEGER;
                 constantInfo[constant].symbol = symbol;
                 constantInfo[constant].scope = currentScope;
@@ -1048,7 +1064,8 @@ void parse_proc_directive(Directive directive)
 {
         PARSE_LOG();
 
-        String pname = parse_name();
+        Token pnameToken = parse_token_kind(TOKEN_WORD);
+        String pname = tokenInfo[pnameToken].tWord.string;
 
         Scope parentScope = currentScope;
         Scope pscope = scopeCnt++;
@@ -1070,7 +1087,8 @@ void parse_proc_directive(Directive directive)
                 Token tok = look_next_token();
                 if (tokenInfo[tok].tokenKind == TOKEN_RIGHTPAREN)
                         break;
-                String paramname = parse_name();
+                Token paramnameToken = parse_token_kind(TOKEN_WORD);
+                String paramname = tokenInfo[paramnameToken].tWord.string;
                 Type paramtp = parse_type(0);
                 Param param = paramCnt++;
                 Symbol paramsym = symbolCnt++;
@@ -1086,6 +1104,7 @@ void parse_proc_directive(Directive directive)
                 symbolInfo[paramsym].symbolKind = SYMBOL_DATA;
                 symbolInfo[paramsym].tData.tp = paramtp;
                 symbolInfo[paramsym].tData.optionaldata = paramdata;
+                set_symbol_token(paramsym, paramnameToken);
                 dataInfo[paramdata].scope = pscope;
                 dataInfo[paramdata].tp = paramtp;
                 dataInfo[paramdata].sym = paramsym;
@@ -1115,6 +1134,7 @@ void parse_proc_directive(Directive directive)
         symbolInfo[psym].symbolKind = SYMBOL_PROC;
         symbolInfo[psym].tProc.tp = ptype;
         symbolInfo[psym].tProc.optionalproc = currentProc;
+        set_symbol_token(psym, pnameToken);
         typeInfo[ptype].typeKind = TYPE_PROC;
         typeInfo[ptype].tProc.rettp = rettp;
         typeInfo[ptype].tProc.nparams = 0;
@@ -1144,7 +1164,8 @@ void parse_export_directive(Directive directive)
 INTERNAL
 void parse_typealias_directive(Directive directive)
 {
-        String name = parse_name();
+        Token nameToken = parse_token_kind(TOKEN_WORD);
+        String name = tokenInfo[nameToken].tWord.string;
         parse_token_kind(TOKEN_ASSIGNEQUALS);
         Type type = parse_type(0);
         parse_token_kind(TOKEN_SEMICOLON);
@@ -1152,7 +1173,7 @@ void parse_typealias_directive(Directive directive)
         /* XXX Maybe later we want to distinguish between type symbols and
          * typealias symbols.  But for now, we simply make an ordinary type
          * symbol. */
-        Symbol symbol = add_type_symbol(name, currentScope, type);
+        Symbol symbol = add_type_symbol(name, currentScope, nameToken, type);
 
         directiveInfo[directive].directiveKind = BUILTINDIRECTIVE_TYPEALIAS;
         directiveInfo[directive].tTypealias.symbol = symbol;
@@ -1288,9 +1309,16 @@ void fixup_parsed_data(void)
                 for (Symbol i = 0; i < symbolCnt; i++) {
                         Symbol j = newname[i];
                         while (j != i) {
+                                {
                                 struct SymbolInfo tmp = symbolInfo[i];
                                 symbolInfo[i] = symbolInfo[j];
                                 symbolInfo[j] = tmp;
+                                }
+                                {
+                                Token tmp = symbolToToken[i];
+                                symbolToToken[i] = symbolToToken[j];
+                                symbolToToken[j] = tmp;
+                                }
                                 Symbol next = newname[j];
                                 newname[j] = j;
                                 j = next;
