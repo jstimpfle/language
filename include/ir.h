@@ -100,6 +100,7 @@ enum IrCmpKind {
 
 enum IrLoadConstantKind {
         IRCONSTANT_INTEGER,
+        IRCONSTANT_FLOAT,
         IRCONSTANT_STRING,
 };
 
@@ -157,6 +158,7 @@ struct IrLoadConstantStmtInfo {
         union {
                 long long tInteger;
                 String tString;
+                float tFloat;
         };
         IrReg tgtreg;
 };

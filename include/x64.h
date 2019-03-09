@@ -3,6 +3,7 @@
 #endif
 
 typedef int X64StackLoc;
+typedef long X64Float;
 
 struct X64StackLocInfo {
         IrReg irreg;

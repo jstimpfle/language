@@ -104,6 +104,8 @@ numbertoken:
                                 break;
                         consume_char();
                 }
+                tokenInfo[x].tokenKind = TOKEN_INTEGER;
+                tokenInfo[x].tInteger.value = value;
         }
         else {
                 value = c - '0';
@@ -114,9 +116,24 @@ numbertoken:
                         consume_char();
                         value = 10 * value + c - '0';
                 }
+                if (c == '.') {
+                        consume_char();
+                        //XXX
+                        long long n = 1;
+                        for (;; n *= 10) {
+                                c = look_char();
+                                if (!('0' <= c && c <= '9'))
+                                        break;
+                                consume_char();
+                                value = 10 * value + c - '0';
+                        }
+                        tokenInfo[x].tokenKind = TOKEN_FLOAT;
+                        tokenInfo[x].tFloat.value = (float) value / n;
+                } else {
+                        tokenInfo[x].tokenKind = TOKEN_INTEGER;
+                        tokenInfo[x].tInteger.value = value;
+                }
         }
-        tokenInfo[x].tokenKind = TOKEN_INTEGER;
-        tokenInfo[x].tInteger.value = value;
         return x;
 
 stringlit:

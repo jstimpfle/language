@@ -33,6 +33,14 @@ enum {
         NUM_X64REGS,
 };
 
+/* a few SSE registers */
+enum {
+        XMM_0,
+        XMM_1,
+        XMM_2,
+        XMM_3,
+};
+
 enum {
         X64CMP_LT,
         X64CMP_GT,
@@ -233,6 +241,11 @@ void emit64(int sectionKind, uint64_t c)
         emit_bytes(sectionKind, bs, LENGTH(bs));
 }
 
+void emit_X64Float(int sectionKind, X64Float v)
+{
+        emit_bytes(sectionKind, &v, 4);  /*XXX*/
+}
+
 void emit_section_relative_relocation(int sectionKind, int sectionPos,
                                       int codePos)
 {
@@ -277,15 +290,17 @@ int make_sib_byte(int scale, int r1, int r2)
 #define REX_B    0x01  /* Extension of the ModR/M r/m field, SIB base field, or Opcode reg field */
 
 /* Emit opcode. The opcodes that we use here are, so far, either single byte
- * opcodes, or 2-byte opcodes where the first byte is 0F. I don't know what
+ * opcodes, or multi-byte opcodes where the first byte is 0F. I don't know what
  * surprise the x64 ISA still has in store for us, but for now we'll encode that
  * as an int. */
 INTERNAL
 void emit_opcode(int opcode)
 {
+        if (opcode > 255 * 255)
+                emit8(SECTION_CODE, (opcode & 0xFF0000) >> 16);
         if (opcode > 255)
-                emit8(SECTION_CODE, (opcode >> 8) & 255);
-        emit8(SECTION_CODE, opcode & 255);
+                emit8(SECTION_CODE, (opcode & 0xFF00) >> 8);
+        emit8(SECTION_CODE, opcode & 0xFF);
 }
 
 /* Emit the MOD-REG-R/M byte and the optional SIB and displacement byte(s).
@@ -416,91 +431,35 @@ void emit_rex_instruction_imm64_opreg(int opcode, Imm64 imm, int r1)
         emit64(SECTION_CODE, imm);
 }
 
-INTERNAL UNUSEDFUNC
-void emit_add_64_reg_reg(int r1, int r2)
-{
-        emit_rex_instruction_reg_reg(0x01, r1, r2);
-}
-
-INTERNAL UNUSEDFUNC
-void emit_add_64_reg_indirect(int r1, int r2, long d)
-{
-        emit_rex_instruction_reg_indirect(0x01, r1, r2, d);
-}
-
-INTERNAL UNUSEDFUNC
-void emit_add_64_indirect_reg(int r1, int r2, long d)
-{
-        emit_rex_instruction_reg_indirect(0x03, r2, r1, d);
-}
-
-INTERNAL
-void emit_add_64_imm32_reg(Imm32 imm, int reg)
-{
-        emit_rex_instruction_imm32_reg(0x81, 0x00, imm, reg);
-}
-
-INTERNAL
-void emit_sub_64_reg_reg(int r1, int r2)
-{
-        emit_rex_instruction_reg_reg(0x2B, r1, r2);
-}
-
-INTERNAL
-void emit_bitand_64_reg_reg(int r1, int r2)
-{
-        emit_rex_instruction_reg_reg(0x23, r1, r2);
-}
-
-INTERNAL
-void emit_bitor_64_reg_reg(int r1, int r2)
-{
-        emit_rex_instruction_reg_reg(0x0B, r1, r2);
-}
-
-INTERNAL
-void emit_bitxor_64_reg_reg(int r1, int r2)
-{
-        emit_rex_instruction_reg_reg(0x33, r1, r2);
-}
+INTERNAL UNUSEDFUNC void emit_add_64_reg_reg      (int r1, int r2) { emit_rex_instruction_reg_reg(0x01, r1, r2); }
+INTERNAL UNUSEDFUNC void emit_add_64_reg_indirect(int r1, int r2, long d) { emit_rex_instruction_reg_indirect(0x01, r1, r2, d); }
+INTERNAL UNUSEDFUNC void emit_add_64_indirect_reg(int r1, int r2, long d) { emit_rex_instruction_reg_indirect(0x03, r2, r1, d); }
+INTERNAL void emit_add_64_imm32_reg   (Imm32 imm, int reg) { emit_rex_instruction_imm32_reg(0x81, 0x00, imm, reg); }
+INTERNAL void emit_sub_64_reg_reg     (int r1, int r2)     { emit_rex_instruction_reg_reg(0x2B, r1, r2); }
+INTERNAL void emit_bitand_64_reg_reg  (int r1, int r2)     { emit_rex_instruction_reg_reg(0x23, r1, r2); }
+INTERNAL void emit_bitor_64_reg_reg   (int r1, int r2)     { emit_rex_instruction_reg_reg(0x0B, r1, r2); }
+INTERNAL void emit_bitxor_64_reg_reg  (int r1, int r2)     { emit_rex_instruction_reg_reg(0x33, r1, r2); }
 
 /* Multiply RAX with given register. Result is in RDX:RAX */
-INTERNAL
-void emit_mul_64_rax_reg(int r1)
-{
-        emit_rex_instruction_reg(0xF7, 0x04, r1);
-}
-
+INTERNAL void emit_mul_64_rax_reg     (int r1)          { emit_rex_instruction_reg(0xF7, 0x04, r1); }
 /* Divide RAX with given register. Result is in ?? */
-INTERNAL
-void emit_div_64(int r1)
-{
-        emit_rex_instruction_reg(0xF7, 0x06, r1);
-}
+INTERNAL void emit_div_64             (int r1)          { emit_rex_instruction_reg(0xF7, 0x06, r1); }
 
-INTERNAL
-void emit_cmp_64_reg_reg(int r1, int r2)
-{
-        emit_rex_instruction_reg_reg(0x3B, r1, r2);
-}
+INTERNAL void emit_cmp_64_reg_reg     (int r1, int r2)  { emit_rex_instruction_reg_reg(0x3B, r1, r2); }
+INTERNAL void emit_inc_64_reg         (int r1)          { emit_rex_instruction_reg(0xFF, 0x00, r1); }
+INTERNAL void emit_dec_64_reg         (int r1)          { emit_rex_instruction_reg(0xFF, 0x01, r1); }
+INTERNAL void emit_bitwisenot_64_reg  (int r1)          { emit_rex_instruction_reg(0xF7, 0x02, r1); }
 
-INTERNAL
-void emit_inc_64_reg(int r1)
-{
-        emit_rex_instruction_reg(0xFF, 0x00, r1);
-}
+INTERNAL void emit_mov_8_reg_indirect    (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(0x88, r1, r2, d); }
 
-INTERNAL
-void emit_dec_64_reg(int r1)
-{
-        emit_rex_instruction_reg(0xFF, 0x01, r1);
-}
+INTERNAL void emit_mov_64_reg_reg       (int r1, int r2)            { emit_rex_instruction_reg_reg(0x89, r1, r2); }
+INTERNAL void emit_mov_64_reg_indirect  (int r1, int r2, long d)    { emit_rex_instruction_reg_indirect(0x89, r1, r2, d); }
+INTERNAL void emit_mov_64_indirect_reg  (int r1, int r2, long d)    { emit_rex_instruction_reg_indirect(0x8B, r2, r1, d); }
+INTERNAL void emit_mov_64_reg_stack     (int reg, X64StackLoc loc)  { emit_mov_64_reg_indirect(reg, X64_RBP, loc); }
+INTERNAL void emit_mov_64_stack_reg     (X64StackLoc loc, int reg)  { emit_mov_64_indirect_reg(X64_RBP, reg, loc); }
 
-INTERNAL
-void emit_bitwisenot_64_reg(int r1)
-{
-        emit_rex_instruction_reg(0xF7, 0x02, r1);
-}
+INTERNAL void emit_mov_float_rip_xreg (X64Float v, int xr)  { emit_opcode(0xF30F10); emit32(SECTION_CODE, v); }
+
 
 INTERNAL
 void emit_setcc(int x64CmpKind, int r1)
@@ -599,42 +558,6 @@ void emit_mov_8_indirect_reg(int r1, int r2, long d)
 }
 
 INTERNAL
-void emit_mov_8_reg_indirect(int r1, int r2, long d)
-{
-        emit_rex_instruction_reg_indirect(0x88, r1, r2, d);
-}
-
-INTERNAL
-void emit_mov_64_reg_reg(int r1, int r2)
-{
-        emit_rex_instruction_reg_reg(0x89, r1, r2);
-}
-
-INTERNAL
-void emit_mov_64_reg_indirect(int r1, int r2, long d)
-{
-        emit_rex_instruction_reg_indirect(0x89, r1, r2, d);
-}
-
-INTERNAL
-void emit_mov_64_indirect_reg(int r1, int r2, long d)
-{
-        emit_rex_instruction_reg_indirect(0x8B, r2, r1, d);
-}
-
-INTERNAL
-void emit_mov_64_reg_stack(int reg, X64StackLoc loc)
-{
-        emit_mov_64_reg_indirect(reg, X64_RBP, loc);
-}
-
-INTERNAL
-void emit_mov_64_stack_reg(X64StackLoc loc, int reg)
-{
-        emit_mov_64_indirect_reg(X64_RBP, reg, loc);
-}
-
-INTERNAL
 void emit_load_constant_stack(Imm64 imm, X64StackLoc loc)
 {
         /* 64-bit immediate loads to stack variable only via imm64
@@ -644,8 +567,7 @@ void emit_load_constant_stack(Imm64 imm, X64StackLoc loc)
 }
 
 INTERNAL
-void emit_load_relocatedConstant_stack(
-        int sectionKind, int sectionPos, X64StackLoc loc)
+void emit_mov_64_reloc_stack(int sectionKind, int sectionPos, X64StackLoc loc)
 {
         emit_mov_64_address_reg(0 /*relocation */, X64_RAX);
         int codePos = codeSectionCnt - 8;  // XXX
@@ -660,6 +582,12 @@ void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
         ASSERT(scopeInfo[symbolInfo[symbol].scope].scopeKind == SCOPE_GLOBAL);
         emit_mov_64_reloc_reg(symbol, 0, r1);
         emit_mov_64_reg_stack(r1, loc);
+}
+
+INTERNAL
+void emit_load_float_stack(X64Float v, X64StackLoc loc)
+{
+        emit_mov_32_imm_stack(x64Float_to_imm32(v), loc);
 }
 
 INTERNAL
@@ -734,13 +662,20 @@ void x64asm_loadconstant_irstmt(IrStmt irs)
                 emit_load_constant_stack(v, loc);
                 break;
         }
+        case IRCONSTANT_FLOAT: {
+                float v = irStmtInfo[irs].tLoadConstant.tFloat;
+                IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
+                X64StackLoc loc = find_stack_loc(irreg);
+                emit_load_float_stack(v, loc);
+                break;
+        }
         case IRCONSTANT_STRING: {
                 String s = irStmtInfo[irs].tLoadConstant.tString;
                 IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
                 X64StackLoc loc = find_stack_loc(irreg);
                 int rodataPos = rodataSectionCnt;
                 emit_bytes(SECTION_RODATA, string_buffer(s), string_length(s) + 1);
-                emit_load_relocatedConstant_stack(SECTION_RODATA, rodataPos, loc);
+                emit_mov_64_reloc_stack(SECTION_RODATA, rodataPos, loc);
                 break;
         }
         default:

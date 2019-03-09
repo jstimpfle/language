@@ -19,6 +19,7 @@ typedef int Token;
 enum TokenKind {
         TOKEN_WORD,
         TOKEN_INTEGER,
+        TOKEN_FLOAT,
         TOKEN_STRING,
         TOKEN_LEFTPAREN,
         TOKEN_RIGHTPAREN,
@@ -91,6 +92,10 @@ struct IntegerTokenInfo {
         long long value;
 };
 
+struct FloatTokenInfo {
+        float value;
+};
+
 struct StringTokenInfo {
         String value;
 };
@@ -102,6 +107,7 @@ struct TokenInfo {
         union {
                 struct WordTokenInfo tWord;
                 struct IntegerTokenInfo tInteger;
+                struct FloatTokenInfo tFloat;
                 struct StringTokenInfo tString;
         };
 };

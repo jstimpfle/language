@@ -140,6 +140,8 @@ Type check_literal_expr_type(Expr x)
         switch (exprInfo[x].tLiteral.literalKind) {
         case LITERAL_INTEGER:
                 return builtinType[BUILTINTYPE_INT];
+        case LITERAL_FLOAT:
+                return builtinType[BUILTINTYPE_FLOAT];
         case LITERAL_STRING:
                 return pointer_type(builtinType[BUILTINTYPE_CHAR]);
         default:

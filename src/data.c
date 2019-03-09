@@ -13,6 +13,7 @@ const char *const tokenKindString[NUM_TOKEN_KINDS] = {
 #define MAKE(x) [x] = #x
         MAKE( TOKEN_WORD ),
         MAKE( TOKEN_INTEGER ),
+        MAKE( TOKEN_FLOAT ),
         MAKE( TOKEN_STRING ),
         MAKE( TOKEN_LEFTPAREN ),
         MAKE( TOKEN_RIGHTPAREN ),
@@ -352,6 +353,7 @@ const struct BasetypeToBeInitialized basetypesToBeInitialized[] = {
         { "void", -42,  &builtinType[BUILTINTYPE_VOID] },
         { "{compound-type}", -42,  &builtinType[BUILTINTYPE_COMPOUND] },
         { "int",    8,  &builtinType[BUILTINTYPE_INT] },
+        { "float",   4,  &builtinType[BUILTINTYPE_FLOAT] },
         { "char",   1,  &builtinType[BUILTINTYPE_CHAR] },
 };
 

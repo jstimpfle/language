@@ -42,6 +42,18 @@ void emit_integer_load(long long constval, IrProc irproc, IrReg irreg)
 }
 
 INTERNAL
+void emit_float_load(float constval, IrProc irproc, IrReg irreg)
+{
+        IrStmt y = irStmtCnt++;
+        RESIZE_GLOBAL_BUFFER(irStmtInfo, irStmtCnt);
+        irStmtInfo[y].proc = irproc;
+        irStmtInfo[y].irStmtKind = IRSTMT_LOADCONSTANT;
+        irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_FLOAT;
+        irStmtInfo[y].tLoadConstant.tInteger = constval;
+        irStmtInfo[y].tLoadConstant.tgtreg = irreg;
+}
+
+INTERNAL
 void emit_string_load(String constval, IrProc irproc, IrReg irreg)
 {
         IrStmt y = irStmtCnt++;
@@ -66,6 +78,12 @@ void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
                 Token tok = exprInfo[x].tLiteral.tok;
                 long long constval = tokenInfo[tok].tInteger.value;
                 emit_integer_load(constval, irproc, irreg);
+                break;
+        }
+        case LITERAL_FLOAT: {
+                Token tok = exprInfo[x].tLiteral.tok;
+                float constval = tokenInfo[tok].tFloat.value;
+                emit_float_load(constval, irproc, irreg);
                 break;
         }
         case LITERAL_STRING: {

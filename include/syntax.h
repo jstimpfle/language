@@ -133,6 +133,7 @@ enum SymbolKind {
 
 enum LiteralKind {
         LITERAL_INTEGER,
+        LITERAL_FLOAT,
         LITERAL_STRING,
         NUM_LITERAL_KINDS,
 };
@@ -232,7 +233,7 @@ struct SymrefExprInfo {
 
 struct LiteralExprInfo {
         int literalKind;  // LITERAL_
-        Token tok; // XXX: currently also used for LITERAL_INTEGER
+        Token tok; // XXX: also used for LITERAL_INTEGER / LITERALL_FLOAT
         union {
                 String tString;
         };

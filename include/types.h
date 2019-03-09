@@ -51,6 +51,7 @@ enum BuiltinTypeKind {
         BUILTINTYPE_COMPOUND,  // ditto
         BUILTINTYPE_INT,
         BUILTINTYPE_CHAR,
+        BUILTINTYPE_FLOAT,
         NUM_BUILTINTYPE_KINDS,
 };
 
