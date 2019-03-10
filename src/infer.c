@@ -190,43 +190,35 @@ void infer_proc_directive(Directive directive)
 }
 
 
-INTERNAL
-void (*const typeKindToInferFunc[NUM_TYPE_KINDS])(Type tp) = {
-#define MAKE(tk, f) [tk] = &(f)
-        MAKE( TYPE_BASE,      infer_base_type ),
-        MAKE( TYPE_STRUCT,    infer_struct_type ),
-        MAKE( TYPE_ARRAY,     infer_array_type ),
-        MAKE( TYPE_POINTER,   infer_pointer_type ),
-        MAKE( TYPE_PROC,      infer_proc_type ),
-        MAKE( TYPE_REFERENCE, infer_reference_type ),
-#undef MAKE
+INTERNAL void (*const typeKindToInferFunc[NUM_TYPE_KINDS])(Type tp) = {
+        [TYPE_BASE]      = infer_base_type,
+        [TYPE_STRUCT]    = infer_struct_type,
+        [TYPE_ARRAY]     = infer_array_type,
+        [TYPE_POINTER]   = infer_pointer_type,
+        [TYPE_PROC]      = infer_proc_type,
+        [TYPE_REFERENCE] = infer_reference_type,
 };
 
-INTERNAL
-void (*const stmtKindToInferFunc[NUM_STMT_KINDS])(Stmt stmt) = {
-#define MAKE(sk, f) [sk] = &(f)
-        MAKE( STMT_IF,       infer_if_stmt ),
-        MAKE( STMT_IFELSE,   infer_ifelse_stmt ),
-        MAKE( STMT_FOR,      infer_for_stmt ),
-        MAKE( STMT_WHILE,    infer_while_stmt ),
-        MAKE( STMT_RANGE,    infer_range_stmt ),
-        MAKE( STMT_RETURN,   infer_return_stmt ),
-        MAKE( STMT_EXPR,     infer_expr_stmt ),
-        MAKE( STMT_COMPOUND, infer_compound_stmt ),
-        MAKE( STMT_DATA,     infer_data_stmt ),
-        MAKE( STMT_MACRO,    infer_macro_stmt ),
-        MAKE( STMT_IGNORE,   infer_ignore_stmt ),
-#undef MAKE
+INTERNAL void (*const stmtKindToInferFunc[NUM_STMT_KINDS])(Stmt stmt) = {
+        [STMT_IF]       = infer_if_stmt,
+        [STMT_IFELSE]   = infer_ifelse_stmt,
+        [STMT_FOR]      = infer_for_stmt,
+        [STMT_WHILE]    = infer_while_stmt,
+        [STMT_RANGE]    = infer_range_stmt,
+        [STMT_RETURN]   = infer_return_stmt,
+        [STMT_EXPR]     = infer_expr_stmt,
+        [STMT_COMPOUND] = infer_compound_stmt,
+        [STMT_DATA]     = infer_data_stmt,
+        [STMT_MACRO]    = infer_macro_stmt,
+        [STMT_IGNORE]   = infer_ignore_stmt,
 };
 
 INTERNAL
 void (*const directiveKindToInferFunc[NUM_BUILTINDIRECTIVE_KINDS])(Directive d) = {
-#define MAKE(dk, f) [dk] = &(f)
-        MAKE( BUILTINDIRECTIVE_CONSTANT, infer_constant_directive ),
-        MAKE( BUILTINDIRECTIVE_STRUCT,   infer_struct_directive ),
-        MAKE( BUILTINDIRECTIVE_DATA,     infer_data_directive ),
-        MAKE( BUILTINDIRECTIVE_PROC,     infer_proc_directive ),
-#undef MAKE
+        [BUILTINDIRECTIVE_CONSTANT] = infer_constant_directive,
+        [BUILTINDIRECTIVE_STRUCT]   = infer_struct_directive,
+        [BUILTINDIRECTIVE_DATA]     = infer_data_directive,
+        [BUILTINDIRECTIVE_PROC]     = infer_proc_directive,
 };
 
 void infer_type(Type tp)

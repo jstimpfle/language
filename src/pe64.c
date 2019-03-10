@@ -833,12 +833,10 @@ enum {
 
 
 const char *const pesecName[NUM_PESEC_KINDS] = {
-#define MAKE(x, y) [x] = y
-        MAKE( PESEC_DATA,  ".data" ),
-        MAKE( PESEC_RDATA, ".rdata" ),
-        MAKE( PESEC_BSS,   ".bss" ),
-        MAKE( PESEC_TEXT,  ".text" ),
-#undef MAKE
+        [PESEC_DATA]  = ".data",
+        [PESEC_RDATA] = ".rdata",
+        [PESEC_BSS]   = ".bss",
+        [PESEC_TEXT]  = ".text",
 };
 
 int pe64symCnt;

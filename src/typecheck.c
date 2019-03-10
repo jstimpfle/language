@@ -474,19 +474,17 @@ Type check_stringify_expr_type(Expr x)
 
 INTERNAL
 Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
-#define MAKE(x, y) [x] = &y
-        MAKE(  EXPR_LITERAL,    check_literal_expr_type    ),
-        MAKE(  EXPR_SYMREF,     check_symref_expr_type     ),
-        MAKE(  EXPR_UNOP,       check_unop_expr_type       ),
-        MAKE(  EXPR_BINOP,      check_binop_expr_type      ),
-        MAKE(  EXPR_MEMBER,     check_member_expr_type     ),
-        MAKE(  EXPR_SUBSCRIPT,  check_subscript_expr_type  ),
-        MAKE(  EXPR_CALL,       check_call_expr_type       ),
-        MAKE(  EXPR_COMPOUND,   check_compound_expr_type   ),
-        MAKE(  EXPR_SIZEOF,     check_sizeof_expr_type     ),
-        MAKE(  EXPR_LENGTHOF,   check_lengthof_expr_type   ),
-        MAKE(  EXPR_STRINGIFY,  check_stringify_expr_type  ),
-#undef MAKE
+        [EXPR_LITERAL]    = check_literal_expr_type,
+        [EXPR_SYMREF]     = check_symref_expr_type,
+        [EXPR_UNOP]       = check_unop_expr_type,
+        [EXPR_BINOP]      = check_binop_expr_type,
+        [EXPR_MEMBER]     = check_member_expr_type,
+        [EXPR_SUBSCRIPT]  = check_subscript_expr_type,
+        [EXPR_CALL]       = check_call_expr_type,
+        [EXPR_COMPOUND]   = check_compound_expr_type,
+        [EXPR_SIZEOF]     = check_sizeof_expr_type,
+        [EXPR_LENGTHOF]   = check_lengthof_expr_type,
+        [EXPR_STRINGIFY]  = check_stringify_expr_type,
 };
 
 Type check_expr_type(Expr x)

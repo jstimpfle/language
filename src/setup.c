@@ -4,10 +4,9 @@
 void setup_program(void)
 {
         /* initialize constant strings */
-        for (int i = 0; i < LENGTH(stringsToBeInterned); i++) {
-                int idx = stringsToBeInterned[i].constant;
-                const char *str = stringsToBeInterned[i].string;
-                constStr[idx] = intern_cstring(str);
+        for (int i = 0; i < NUM_CONSTSTR_KINDS; i++) {
+                const char *str = constStrToCstring[i];
+                constStr[i] = intern_cstring(str);
         }
 
         /* initialize global scope */

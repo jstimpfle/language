@@ -57,7 +57,7 @@ enum ConstStrKind {
         CONSTSTR_CONSTANT,
         CONSTSTR_ENUM,
         CONSTSTR_TYPEALIAS,
-        NUM_CONSTSTRS,
+        NUM_CONSTSTR_KINDS,
 };
 
 /**
@@ -102,16 +102,6 @@ DATA int strBucketCnt;
 DATA char *strbuf;
 DATA struct StringInfo *stringInfo;
 DATA struct StringBucketInfo *strBucketInfo;
-
-/**
- * \struct{StringToBeInterned} Static information used at program initialization
- * time when constant strings get interned.
- */
-
-struct StringToBeInterned {
-        int constant;  // CONSTSTR_
-        const char *string;
-};
 
 
 /**
@@ -214,5 +204,5 @@ extern const char lvl_internalerror[];
 extern const struct GlobalBufferInfo globalBufferInfo[NUM_BUFFERS];
 DATA struct Alloc globalBufferAlloc[NUM_BUFFERS];
 
-extern const struct StringToBeInterned stringsToBeInterned[NUM_CONSTSTRS];
-DATA String constStr[NUM_CONSTSTRS];  // has initializer
+extern const char *const constStrToCstring[NUM_CONSTSTR_KINDS];
+DATA String constStr[NUM_CONSTSTR_KINDS];

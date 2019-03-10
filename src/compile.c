@@ -240,16 +240,14 @@ void compile_postdecrement_unop_expr(Expr x, Expr subx, int usedAsLvalue)
 
 INTERNAL
 void (*const unopKindToCompileFunc[NUM_UNOP_KINDS])(Expr x, Expr subx, int usedAsLvalue) = {
-#define MAKE(uk, f) [uk] = &f
-        MAKE( UNOP_ADDRESSOF,     compile_addressof_unop_expr     ),
-        MAKE( UNOP_DEREF,         compile_deref_unop_expr         ),
-        MAKE( UNOP_NOT,           compile_not_unop_expr           ),
-        MAKE( UNOP_BITWISENOT,    compile_bitwisenot_unop_expr    ),
-        MAKE( UNOP_PREINCREMENT,  compile_preincrement_unop_expr  ),
-        MAKE( UNOP_PREDECREMENT,  compile_predecrement_unop_expr  ),
-        MAKE( UNOP_POSTINCREMENT, compile_postincrement_unop_expr ),
-        MAKE( UNOP_POSTDECREMENT, compile_postdecrement_unop_expr ),
-#undef MAKE
+        [UNOP_ADDRESSOF]      = compile_addressof_unop_expr,
+        [UNOP_DEREF]          = compile_deref_unop_expr,
+        [UNOP_NOT]            = compile_not_unop_expr,
+        [UNOP_BITWISENOT]     = compile_bitwisenot_unop_expr,
+        [UNOP_PREINCREMENT]   = compile_preincrement_unop_expr,
+        [UNOP_PREDECREMENT]   = compile_predecrement_unop_expr,
+        [UNOP_POSTINCREMENT]  = compile_postincrement_unop_expr,
+        [UNOP_POSTDECREMENT]  = compile_postdecrement_unop_expr,
 };
 
 INTERNAL
@@ -656,19 +654,17 @@ void compile_stringify_expr(Expr x, int usedAsLvalue)
 
 INTERNAL
 void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x, int usedAsLvalue) = {
-#define MAKE(x, y) [x] = &y
-        MAKE( EXPR_LITERAL,    compile_literal_expr   ),
-        MAKE( EXPR_UNOP,       compile_unop_expr      ),
-        MAKE( EXPR_BINOP,      compile_binop_expr     ),
-        MAKE( EXPR_MEMBER,     compile_member_expr    ),
-        MAKE( EXPR_SUBSCRIPT,  compile_subscript_expr ),
-        MAKE( EXPR_SYMREF,     compile_symref_expr    ),
-        MAKE( EXPR_CALL,       compile_call_expr      ),
-        MAKE( EXPR_COMPOUND,   compile_compound_expr  ),
-        MAKE( EXPR_SIZEOF,     compile_sizeof_or_lengthof_expr ),
-        MAKE( EXPR_LENGTHOF,   compile_sizeof_or_lengthof_expr ),
-        MAKE( EXPR_STRINGIFY,  compile_stringify_expr ),
-#undef MAKE
+        [EXPR_LITERAL]    = compile_literal_expr,
+        [EXPR_UNOP]       = compile_unop_expr,
+        [EXPR_BINOP]      = compile_binop_expr,
+        [EXPR_MEMBER]     = compile_member_expr,
+        [EXPR_SUBSCRIPT]  = compile_subscript_expr,
+        [EXPR_SYMREF]     = compile_symref_expr,
+        [EXPR_CALL]       = compile_call_expr,
+        [EXPR_COMPOUND]   = compile_compound_expr,
+        [EXPR_SIZEOF]     = compile_sizeof_or_lengthof_expr,
+        [EXPR_LENGTHOF]   = compile_sizeof_or_lengthof_expr,
+        [EXPR_STRINGIFY]  = compile_stringify_expr,
 };
 
 INTERNAL
@@ -955,19 +951,17 @@ void compile_return_stmt(IrProc irp, Stmt stmt)
 
 INTERNAL
 void (*const stmtKindToCompileFunc[NUM_STMT_KINDS])(IrProc irp, Stmt stmt) = {
-#define MAKE(x, y) [x] = &y
-        MAKE( STMT_DATA,      compile_data_stmt     ),
-        MAKE( STMT_MACRO,     compile_macro_stmt    ),
-        MAKE( STMT_IGNORE,    compile_ignore_stmt   ),
-        MAKE( STMT_EXPR,      compile_expr_stmt     ),
-        MAKE( STMT_COMPOUND,  compile_compound_stmt ),
-        MAKE( STMT_IF,        compile_if_stmt       ),
-        MAKE( STMT_IFELSE,    compile_ifelse_stmt   ),
-        MAKE( STMT_WHILE,     compile_while_stmt    ),
-        MAKE( STMT_FOR,       compile_for_stmt      ),
-        MAKE( STMT_RANGE,     compile_range_stmt    ),
-        MAKE( STMT_RETURN,    compile_return_stmt   ),
-#undef MAKE
+        [STMT_DATA]      = compile_data_stmt,
+        [STMT_MACRO]     = compile_macro_stmt,
+        [STMT_IGNORE]    = compile_ignore_stmt,
+        [STMT_EXPR]      = compile_expr_stmt,
+        [STMT_COMPOUND]  = compile_compound_stmt,
+        [STMT_IF]        = compile_if_stmt,
+        [STMT_IFELSE]    = compile_ifelse_stmt,
+        [STMT_WHILE]     = compile_while_stmt,
+        [STMT_FOR]       = compile_for_stmt,
+        [STMT_RANGE]     = compile_range_stmt,
+        [STMT_RETURN]    = compile_return_stmt,
 };
 
 INTERNAL

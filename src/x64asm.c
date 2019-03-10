@@ -53,24 +53,22 @@ enum {
 
 INTERNAL
 const char *x64regNames[NUM_X64REGS] = {
-#define MAKE(x) [x] = #x
-        MAKE( X64_RAX ),
-        MAKE( X64_RCX ),
-        MAKE( X64_RDX ),
-        MAKE( X64_RBX ),
-        MAKE( X64_RSP ),
-        MAKE( X64_RBP ),
-        MAKE( X64_RSI ),
-        MAKE( X64_RDI ),
-        MAKE( X64_R8 ),
-        MAKE( X64_R9 ),
-        MAKE( X64_R10 ),
-        MAKE( X64_R11 ),
-        MAKE( X64_R12 ),
-        MAKE( X64_R13 ),
-        MAKE( X64_R14 ),
-        MAKE( X64_R15 ),
-#undef MAKE
+        [X64_RAX] = "X64_RAX",
+        [X64_RCX] = "X64_RCX",
+        [X64_RDX] = "X64_RDX",
+        [X64_RBX] = "X64_RBX",
+        [X64_RSP] = "X64_RSP",
+        [X64_RBP] = "X64_RBP",
+        [X64_RSI] = "X64_RSI",
+        [X64_RDI] = "X64_RDI",
+        [X64_R8]  = "X64_R8",
+        [X64_R9]  = "X64_R9",
+        [X64_R10] = "X64_R10",
+        [X64_R11] = "X64_R11",
+        [X64_R12] = "X64_R12",
+        [X64_R13] = "X64_R13",
+        [X64_R14] = "X64_R14",
+        [X64_R15] = "X64_R15",
 };
 
 const int cc[] = { /* "calling convention" */
@@ -942,21 +940,19 @@ void x64asm_return_irstmt(IrStmt irs)
 }
 
 INTERNAL void (*irStmtKindToX64asmHandler[NUM_IRSTMT_KINDS])(IrStmt irs) = {
-#define MAKE(x, y) [x] = &y
-        MAKE( IRSTMT_LOADCONSTANT,    x64asm_loadconstant_irstmt    ),
-        MAKE( IRSTMT_LOADSYMBOLADDR,  x64asm_loadsymboladdr_irstmt  ),
-        MAKE( IRSTMT_LOADREGADDR,     x64asm_loadregaddr_irstmt     ),
-        MAKE( IRSTMT_LOAD,            x64asm_load_irstmt            ),
-        MAKE( IRSTMT_STORE,           x64asm_store_irstmt           ),
-        MAKE( IRSTMT_REGREG,          x64asm_regreg_irstmt          ),
-        MAKE( IRSTMT_OP1,             x64asm_op1_irstmt             ),
-        MAKE( IRSTMT_OP2,             x64asm_op2_irstmt             ),
-        MAKE( IRSTMT_CMP,             x64asm_cmp_irstmt             ),
-        MAKE( IRSTMT_CALL,            x64asm_call_irstmt            ),
-        MAKE( IRSTMT_CONDGOTO,        x64asm_condgoto_irstmt        ),
-        MAKE( IRSTMT_GOTO,            x64asm_goto_irstmt            ),
-        MAKE( IRSTMT_RETURN,          x64asm_return_irstmt          ),
-#undef MAKE
+        [IRSTMT_LOADCONSTANT]    = x64asm_loadconstant_irstmt,
+        [IRSTMT_LOADSYMBOLADDR]  = x64asm_loadsymboladdr_irstmt,
+        [IRSTMT_LOADREGADDR]     = x64asm_loadregaddr_irstmt,
+        [IRSTMT_LOAD]            = x64asm_load_irstmt,
+        [IRSTMT_STORE]           = x64asm_store_irstmt,
+        [IRSTMT_REGREG]          = x64asm_regreg_irstmt,
+        [IRSTMT_OP1]             = x64asm_op1_irstmt,
+        [IRSTMT_OP2]             = x64asm_op2_irstmt,
+        [IRSTMT_CMP]             = x64asm_cmp_irstmt,
+        [IRSTMT_CALL]            = x64asm_call_irstmt,
+        [IRSTMT_CONDGOTO]        = x64asm_condgoto_irstmt,
+        [IRSTMT_GOTO]            = x64asm_goto_irstmt,
+        [IRSTMT_RETURN]          = x64asm_return_irstmt,
 };
 
 INTERNAL

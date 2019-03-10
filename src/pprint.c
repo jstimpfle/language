@@ -322,34 +322,30 @@ void pp_macro_stmt(Stmt stmt)
 
 INTERNAL
 void (*const exprKindToPrintFunc[NUM_EXPR_KINDS])(Expr expr) = {
-#define MAKE(ek, f) [ek] = &f
-        MAKE( EXPR_LITERAL,   pp_literal_expr ),
-        MAKE( EXPR_SYMREF,    pp_symref_expr ),
-        MAKE( EXPR_UNOP,      pp_unop_expr ),
-        MAKE( EXPR_BINOP,     pp_binop_expr ),
-        MAKE( EXPR_MEMBER,    pp_member_expr ),
-        MAKE( EXPR_SUBSCRIPT, pp_subscript_expr ),
-        MAKE( EXPR_CALL,      pp_call_expr ),
-        MAKE( EXPR_COMPOUND,  pp_compound_expr ),
-        MAKE( EXPR_SIZEOF,    pp_sizeof_expr ),
-        MAKE( EXPR_LENGTHOF,  pp_lengthof_expr ),
-        MAKE( EXPR_STRINGIFY, pp_stringify_expr ),
-#undef MAKE
+        [EXPR_LITERAL]   = pp_literal_expr,
+        [EXPR_SYMREF]    = pp_symref_expr,
+        [EXPR_UNOP]      = pp_unop_expr,
+        [EXPR_BINOP]     = pp_binop_expr,
+        [EXPR_MEMBER]    = pp_member_expr,
+        [EXPR_SUBSCRIPT] = pp_subscript_expr,
+        [EXPR_CALL]      = pp_call_expr,
+        [EXPR_COMPOUND]  = pp_compound_expr,
+        [EXPR_SIZEOF]    = pp_sizeof_expr,
+        [EXPR_LENGTHOF]  = pp_lengthof_expr,
+        [EXPR_STRINGIFY] = pp_stringify_expr,
 };
 
 INTERNAL void (*const stmtKindToPrintFunc[NUM_STMT_KINDS])(Stmt stmt) = {
-#define MAKE(sk, f) [sk] = &f
-        MAKE( STMT_EXPR,     pp_expr_stmt ),
-        MAKE( STMT_IF,       pp_if_stmt   ),
-        MAKE( STMT_IFELSE,   pp_ifelse_stmt ),
-        MAKE( STMT_FOR,      pp_for_stmt ),
-        MAKE( STMT_RANGE,    pp_range_stmt ),
-        MAKE( STMT_WHILE,    pp_while_stmt ),
-        MAKE( STMT_RETURN,   pp_return_stmt ),
-        MAKE( STMT_COMPOUND, pp_compound_stmt ),
-        MAKE( STMT_DATA,     pp_data_stmt ),
-        MAKE( STMT_MACRO,    pp_macro_stmt ),
-#undef MAKE
+        [STMT_EXPR]     = pp_expr_stmt,
+        [STMT_IF]       = pp_if_stmt,
+        [STMT_IFELSE]   = pp_ifelse_stmt,
+        [STMT_FOR]      = pp_for_stmt,
+        [STMT_RANGE]    = pp_range_stmt,
+        [STMT_WHILE]    = pp_while_stmt,
+        [STMT_RETURN]   = pp_return_stmt,
+        [STMT_COMPOUND] = pp_compound_stmt,
+        [STMT_DATA]     = pp_data_stmt,
+        [STMT_MACRO]    = pp_macro_stmt,
 };
 
 INTERNAL
