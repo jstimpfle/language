@@ -24,6 +24,10 @@ void irp_constant(const struct IrLoadConstantStmtInfo *c)
                 outc('"');
                 break;
         }
+        case IRCONSTANT_FLOAT: {
+                outf("%f", c->tFloat);  /* maybe a lossless representation of the float would be preferable? */
+                break;
+        }
         default:
                 UNHANDLED_CASE();
         }
