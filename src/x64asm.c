@@ -51,26 +51,6 @@ enum {
         NUM_X64CMP_KINDS,
 };
 
-INTERNAL
-const char *x64regNames[NUM_X64REGS] = {
-        [X64_RAX] = "X64_RAX",
-        [X64_RCX] = "X64_RCX",
-        [X64_RDX] = "X64_RDX",
-        [X64_RBX] = "X64_RBX",
-        [X64_RSP] = "X64_RSP",
-        [X64_RBP] = "X64_RBP",
-        [X64_RSI] = "X64_RSI",
-        [X64_RDI] = "X64_RDI",
-        [X64_R8]  = "X64_R8",
-        [X64_R9]  = "X64_R9",
-        [X64_R10] = "X64_R10",
-        [X64_R11] = "X64_R11",
-        [X64_R12] = "X64_R12",
-        [X64_R13] = "X64_R13",
-        [X64_R14] = "X64_R14",
-        [X64_R15] = "X64_R15",
-};
-
 const int cc[] = { /* "calling convention" */
 /* XXX: for now, a compile-time switch will do for chosing the calling
  * convention */
@@ -512,7 +492,7 @@ INTERNAL void emit_mov_size_reg_indirect(int sz, int r1, int r2, long d)
 
 INTERNAL void emit_mov_32_imm32_indirect(Imm32 imm, int r2, X64StackLoc loc) { emit_rex_instruction_imm32_indirect(0xC7, 0x00, imm, r2, loc); }
 INTERNAL void emit_mov_64_reg_reg(int r1, int r2) { emit_rex_instruction_reg_reg(0x89, r1, r2); }
-INTERNAL void emit_mov_float_rip_xreg(X64Float v, int xr) { emit_opcode(0xF30F10); emit32(SECTION_CODE, v); }
+//INTERNAL void emit_mov_float_rip_xreg(X64Float v, int xr) { emit_opcode(0xF30F10); emit32(SECTION_CODE, v); }
 
 
 INTERNAL
@@ -779,7 +759,6 @@ void x64asm_regreg_irstmt(IrStmt irs)
         X64StackLoc srcloc = find_stack_loc(srcreg);
         X64StackLoc tgtloc = find_stack_loc(tgtreg);
         int size = get_type_size(irRegInfo[srcreg].tp);
-        outs("type is "); print_type(irRegInfo[srcreg].tp); outf("!!! size is %d\n", size);
         emit_mov_size_indirect_reg(size, X64_RBP, X64_RAX, srcloc);
         emit_mov_size_reg_indirect(size, X64_RAX, X64_RBP, tgtloc);
 }
@@ -813,31 +792,18 @@ void x64asm_op2_irstmt(IrStmt irs)
         emit_mov_64_indirect_reg(X64_RBP, X64_RAX, loc1);
         emit_mov_64_indirect_reg(X64_RBP, X64_RBX, loc2);
         switch (irStmtInfo[irs].tOp2.irOp2Kind) {
-        case IROP2_ADD:
-                emit_add_64_reg_reg(X64_RBX, X64_RAX);
-                break;
-        case IROP2_SUB:
-                emit_sub_64_reg_reg(X64_RAX, X64_RBX);
-                break;
-        case IROP2_MUL:
-                emit_mul_64_rax_reg(X64_RBX);
-                break;
+        case IROP2_ADD: emit_add_64_reg_reg(X64_RBX, X64_RAX); break;
+        case IROP2_SUB: emit_sub_64_reg_reg(X64_RAX, X64_RBX); break;
+        case IROP2_MUL: emit_mul_64_rax_reg(X64_RBX); break;
         case IROP2_DIV:
                 // clear rdx before div, with xor %rdx, %rdx
                 emit8(SECTION_CODE, 0x48); emit8(SECTION_CODE, 0x31); emit8(SECTION_CODE, 0xD2);
                 emit_div_64(X64_RBX);
                 break;
-        case IROP2_BITAND:
-                emit_bitand_64_reg_reg(X64_RAX, X64_RBX);
-                break;
-        case IROP2_BITOR:
-                emit_bitor_64_reg_reg(X64_RAX, X64_RBX);
-                break;
-        case IROP2_BITXOR:
-                emit_bitxor_64_reg_reg(X64_RAX, X64_RBX);
-                break;
-        default:
-                UNHANDLED_CASE();
+        case IROP2_BITAND: emit_bitand_64_reg_reg(X64_RAX, X64_RBX); break;
+        case IROP2_BITOR: emit_bitor_64_reg_reg(X64_RAX, X64_RBX); break;
+        case IROP2_BITXOR: emit_bitxor_64_reg_reg(X64_RAX, X64_RBX); break;
+        default: UNHANDLED_CASE();
         }
         emit_mov_64_reg_indirect(X64_RAX, X64_RBP, tgtloc);
 }

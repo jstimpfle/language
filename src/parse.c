@@ -1410,14 +1410,14 @@ void fixup_parsed_data(void)
 
 /* initializer for directiveKindInfo */
 const struct BuiltinDirectiveKindInfo builtinDirectiveKindInfo[] = {
-        [BUILTINDIRECTIVE_EXTERN]    = CONSTSTR_EXTERN,    parse_extern_directive,
-        [BUILTINDIRECTIVE_DATA]      = CONSTSTR_DATA,      parse_data_directive,
-        [BUILTINDIRECTIVE_STRUCT]    = CONSTSTR_STRUCT,    parse_struct_directive,
-        [BUILTINDIRECTIVE_PROC]      = CONSTSTR_PROC,      parse_proc_directive,
-        [BUILTINDIRECTIVE_MACRO]     = CONSTSTR_MACRO,     parse_macro_directive,
-        [BUILTINDIRECTIVE_ENUM]      = CONSTSTR_ENUM,      parse_enum_directive,
-        [BUILTINDIRECTIVE_CONSTANT]  = CONSTSTR_CONSTANT,  parse_constant_directive,
-        [BUILTINDIRECTIVE_EXPORT]    = CONSTSTR_EXPORT,    parse_export_directive,
-        [BUILTINDIRECTIVE_TYPEALIAS] = CONSTSTR_TYPEALIAS, parse_typealias_directive,
+        [BUILTINDIRECTIVE_EXTERN]    = { CONSTSTR_EXTERN,    parse_extern_directive },
+        [BUILTINDIRECTIVE_DATA]      = { CONSTSTR_DATA,      parse_data_directive },
+        [BUILTINDIRECTIVE_STRUCT]    = { CONSTSTR_STRUCT,    parse_struct_directive },
+        [BUILTINDIRECTIVE_PROC]      = { CONSTSTR_PROC,      parse_proc_directive },
+        [BUILTINDIRECTIVE_MACRO]     = { CONSTSTR_MACRO,     parse_macro_directive },
+        [BUILTINDIRECTIVE_ENUM]      = { CONSTSTR_ENUM,      parse_enum_directive },
+        [BUILTINDIRECTIVE_CONSTANT]  = { CONSTSTR_CONSTANT,  parse_constant_directive },
+        [BUILTINDIRECTIVE_EXPORT]    = { CONSTSTR_EXPORT,    parse_export_directive },
+        [BUILTINDIRECTIVE_TYPEALIAS] = { CONSTSTR_TYPEALIAS, parse_typealias_directive },
 };
 const int builtinDirectiveKindCnt = LENGTH(builtinDirectiveKindInfo);
