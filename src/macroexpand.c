@@ -260,7 +260,6 @@ void expand_stmt_exprs(Stmt a)
                 break;
         }
         default:
-                FATAL("unhandled: %d stmt\n", stmtInfo[a].stmtKind);
                 UNHANDLED_CASE();
         }
 }

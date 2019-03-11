@@ -29,7 +29,9 @@ int get_type_size(Type tp)
                 ASSERT(constantValue[lengthConstant].valueKind != -1); // this means "not inferred yet"
                 ASSERT(0 <= lengthConstant && lengthConstant < constantCnt);
                 ASSERT(constantValue[lengthConstant].valueKind == VALUE_INTEGER);
-                int length = constantValue[lengthConstant].tInteger;
+                ASSERT((int) constantValue[lengthConstant].tInteger ==
+                        constantValue[lengthConstant].tInteger);
+                int length = (int) constantValue[lengthConstant].tInteger;
 
                 if (length == -1)
                         return -1;

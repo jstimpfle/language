@@ -166,7 +166,7 @@ stringlit:
                 }
                 int idx = lexbufCnt++;
                 RESIZE_GLOBAL_BUFFER(lexbuf, lexbufCnt);
-                lexbuf[idx] = c;
+                lexbuf[idx] = (char) c;
         }
         tokenInfo[x].tokenKind = TOKEN_STRING;
         tokenInfo[x].tString.value = intern_string(lexbuf, lexbufCnt);

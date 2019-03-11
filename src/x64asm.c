@@ -6,10 +6,35 @@
 #include "api.h"
 #include <stdint.h>
 
-typedef uint8_t Imm8;
-typedef uint16_t Imm16;
-typedef uint32_t Imm32;
-typedef uint64_t Imm64;
+#define BYTE(x, n) ((unsigned char) ((unsigned long long) (x) >> (8*(n))))
+
+typedef int8_t Imm8;
+typedef int16_t Imm16;
+typedef int32_t Imm32;
+typedef int64_t Imm64;
+
+enum {
+        REX_BASE = 0x40,
+        REX_W = 0x08,  /* usually means "64-bit operand instead of default size" */
+        REX_R = 0x04,  /* Extension of the ModR/M reg field */
+        REX_X = 0x02,  /* Extension of the SIB index field */
+        REX_B = 0x01,  /* Extension of the ModR/M r/m field, SIB base field, or Opcode reg field */
+};
+
+enum {
+        MODRM_NODISP = 0x00,
+        MODRM_DISP8 = 0x01,
+        MODRM_DISP32 = 0x02,
+        MODRM_REGREG = 0x03,
+};
+
+enum {
+        SIB_SCALE_1 = 0x00,
+        SIB_SCALE_2 = 0x01,
+        SIB_SCALE_4 = 0x02,
+        SIB_SCALE_8 = 0x03,
+};
+
 
 enum {
         /* The order is important here: these values (0000...1111 binary) are
@@ -76,6 +101,24 @@ Imm32 x64Float_to_imm32(X64Float v)
         return (Imm32) v;
 }
 
+INTERNAL UNUSEDFUNC
+int is_imm8(Imm64 imm)
+{
+        return imm < (1u << 8);
+}
+
+INTERNAL UNUSEDFUNC
+int is_imm16(Imm64 imm)
+{
+        return imm < (1u << 16);
+}
+
+INTERNAL UNUSEDFUNC
+int is_imm32(Imm64 imm)
+{
+        return imm < (1ull << 32);
+}
+
 INTERNAL
 int find_stack_loc(IrReg irreg)
 {
@@ -123,24 +166,6 @@ int compute_size_of_stack_frame(IrProc irp)
                 out += size;
         }
         return out;
-}
-
-INTERNAL UNUSEDFUNC
-int is_imm8(Imm64 imm)
-{
-        return imm < (1u << 8);
-}
-
-INTERNAL UNUSEDFUNC
-int is_imm16(Imm64 imm)
-{
-        return imm < (1u << 16);
-}
-
-INTERNAL UNUSEDFUNC
-int is_imm32(Imm64 imm)
-{
-        return imm < (1ull << 32);
 }
 
 /* TODO: The approach with begin_symbol() / end_symbol() is too complicated. We
@@ -204,34 +229,42 @@ void emit_bytes(int sectionKind, const void *buf, int size)
 }
 
 INTERNAL
-void emit8(int sectionKind, Imm8 c)
+void emit8(int sectionKind, uint8_t c)
 {
         unsigned char b = c;
         emit_bytes(sectionKind, &b, 1);
 }
 
-#define BYTE(x, n) ((unsigned char) ((unsigned long long) (x) >> (8*(n))))
-void emit16(int sectionKind, uint32_t c)
+void emit16(int sectionKind, uint16_t c)
 {
-        unsigned char bs[] = { BYTE(c, 0), BYTE(c, 1) };
-        emit_bytes(sectionKind, bs, LENGTH(bs));
+        unsigned char bs[2];
+        bs[0] = BYTE(c, 0);
+        bs[1] = BYTE(c, 1);
+        emit_bytes(sectionKind, bs, 2);
 }
 
 void emit32(int sectionKind, uint32_t c)
 {
-        unsigned char bs[] = {
-                BYTE(c, 0), BYTE(c, 1), BYTE(c, 2), BYTE(c, 3)
-        };
-        emit_bytes(sectionKind, bs, LENGTH(bs));
+        unsigned char bs[4];
+        bs[0] = BYTE(c, 0);
+        bs[1] = BYTE(c, 1);
+        bs[2] = BYTE(c, 2);
+        bs[3] = BYTE(c, 3);
+        emit_bytes(sectionKind, bs, 4);
 }
 
 void emit64(int sectionKind, uint64_t c)
 {
-        unsigned char bs[] = {
-                BYTE(c, 0), BYTE(c, 1), BYTE(c, 2), BYTE(c, 3),
-                BYTE(c, 4), BYTE(c, 5), BYTE(c, 6), BYTE(c, 7),
-        };
-        emit_bytes(sectionKind, bs, LENGTH(bs));
+        unsigned char bs[8];
+        bs[0] = BYTE(c, 0);
+        bs[1] = BYTE(c, 1);
+        bs[2] = BYTE(c, 2);
+        bs[3] = BYTE(c, 3);
+        bs[4] = BYTE(c, 4);
+        bs[5] = BYTE(c, 5);
+        bs[6] = BYTE(c, 6);
+        bs[7] = BYTE(c, 7);
+        emit_bytes(sectionKind, bs, 8);
 }
 
 void emit_X64Float(int sectionKind, X64Float v)
@@ -249,20 +282,6 @@ void emit_section_relative_relocation(int sectionKind, int sectionPos,
         relocInfo[x].addend = sectionPos;
         relocInfo[x].offset = codePos;
 }
-
-enum {
-        MODRM_NODISP = 0x00,
-        MODRM_DISP8 = 0x01,
-        MODRM_DISP32 = 0x02,
-        MODRM_REGREG = 0x03,
-};
-
-enum {
-        SIB_SCALE_1 = 0x00,
-        SIB_SCALE_2 = 0x01,
-        SIB_SCALE_4 = 0x02,
-        SIB_SCALE_8 = 0x03,
-};
 
 INTERNAL
 int make_modrm_byte(int mod, int reg, int rm)
@@ -282,30 +301,28 @@ int make_sib_byte(int scale, int r1, int r2)
         return (scale << 6) | (r1 << 3) | r2;
 }
 
-#define REX_BASE 0x40
-#define REX_W    0x08  /* usually means "64-bit operand instead of default size" */
-#define REX_R    0x04  /* Extension of the ModR/M reg field */
-#define REX_X    0x02  /* Extension of the SIB index field */
-#define REX_B    0x01  /* Extension of the ModR/M r/m field, SIB base field, or Opcode reg field */
-
 /* Emit opcode. The opcodes that we use here are, so far, either single byte
  * opcodes, or multi-byte opcodes where the first byte is 0F. I don't know what
  * surprise the x64 ISA still has in store for us, but for now we'll encode that
  * as an int. */
 INTERNAL
-void emit_opcode(int opcode)
+void emit_opcode(unsigned opcode)
 {
-        if (opcode > 255 * 255)
-                emit8(SECTION_CODE, (opcode & 0xFF0000) >> 16);
-        if (opcode > 255)
-                emit8(SECTION_CODE, (opcode & 0xFF00) >> 8);
+        if (opcode >> 16) goto do24;
+        else if (opcode >> 8) goto do16;
+        else goto do8;
+do24:
+        emit8(SECTION_CODE, (opcode >> 16) & 0xFF);
+do16:
+        emit8(SECTION_CODE, (opcode >> 8) & 0xFF);
+do8:
         emit8(SECTION_CODE, opcode & 0xFF);
 }
 
 INTERNAL
 void emit_modrm_byte(int mod, int reg, int rm)
 {
-        emit8(SECTION_CODE, make_modrm_byte(mod, reg, rm));
+        emit8(SECTION_CODE, (uint8_t) make_modrm_byte(mod, reg, rm));
 }
 
 /* Emit the MOD-REG-R/M byte and the optional SIB and displacement byte(s).
@@ -320,46 +337,48 @@ void emit_modrm_byte(int mod, int reg, int rm)
 INTERNAL
 void emit_modrm_and_sib_and_displacement_bytes(int r1, int r2, long d)
 {
+        int mod;
+        int sib = 0;  /* initialization only because MSVC is too stupid */
+        int havesib = 0;
+
+        /* only the x86 registers (3bits) are relevant */
         r1 &= 7;
         r2 &= 7;
-
-        int mod;
-        int sib;
-        int havesib = 0;
 
         /* RBP indirect with 0 displacement is not possible with a mod=0x00
          * encoding I think. So we make a single byte displacement in this case.
          */
-        if (d == 0 && r2 != X64_RBP) {
+        if (d == 0 && r2 != X64_RBP)
                 mod = MODRM_NODISP;
-        }
-        else if (-128 <= d && d < 128) {
+        else if (-128 <= d && d < 128)
                 mod = MODRM_DISP8;
-        }
         else {
-                ASSERT(-(1LL << 31) <= d);
-                ASSERT(d < (1LL << 31));
+                ASSERT(-(1LL << 31) <= d && d < (1LL < 31));
                 mod = MODRM_DISP32;
         }
 
+        /* RSP indirect is never possible with only the MOD-REG-R/M byte.
+         * So we make a SIB byte specifying base register RSP without offset. */
         if (r2 == X64_RSP) {
                 havesib = 1;
-                sib = make_sib_byte(0x00, 0x00, X64_RSP);
+                /* The third argument to make_sib_byte() specifies RSP as base
+                 * register. The second argument is also RSP which is a special
+                 * case that means "no index". The first argument is an
+                 * arbitrary scale for the index (it's arbitrary since we
+                 * specified no index). */
+                sib = make_sib_byte(SIB_SCALE_1, X64_RSP, X64_RSP);
         }
         else if (r2 == X64_RBP && mod == MODRM_NODISP) {
                 mod = MODRM_DISP8;
         }
 
         emit_modrm_byte(mod, r1, r2);
-
         if (havesib)
-                emit8(SECTION_CODE, sib);
-
+                emit8(SECTION_CODE, (uint8_t) sib);
         if (mod == MODRM_DISP8)
-                emit8(SECTION_CODE, (Imm8) d);
-        else if (mod == MODRM_DISP32) {
-                emit32(SECTION_CODE, (Imm32) d);
-        }
+                emit8(SECTION_CODE, (uint8_t) d);
+        else if (mod == MODRM_DISP32)
+                emit32(SECTION_CODE, (uint32_t) d);
 }
 
 INTERNAL
@@ -367,7 +386,7 @@ void emit_rex_instruction_reg_reg(int opcode, int r1, int r2)
 {
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE | REX_W | R | B);
+        emit8(SECTION_CODE, (uint8_t) (REX_BASE | REX_W | R | B));
         emit_opcode(opcode);
         emit_modrm_byte(MODRM_REGREG, r1 & 7, r2 & 7);
 }
@@ -378,7 +397,7 @@ void emit_rex_instruction_reg_indirect(int W, int opcode, int r1, int r2, long d
         ASSERT(W == 0 || W == REX_W);
         int R = (r1 & ~7) ? REX_R : 0;
         int B = (r2 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE | W | R | B);
+        emit8(SECTION_CODE, (uint8_t) (REX_BASE | W | R | B));
         emit_opcode(opcode);
         emit_modrm_and_sib_and_displacement_bytes(r1, r2, d);
 }
@@ -388,7 +407,7 @@ void emit_rex_instruction_reg(int opcode, int morebits, int r1)
 {
         ASSERT(0 <= morebits && morebits < 8);
         int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE | REX_W | B);
+        emit8(SECTION_CODE, (uint8_t) (REX_BASE | REX_W | B));
         emit_opcode(opcode);
         emit_modrm_byte(MODRM_REGREG, morebits, r1 & 7);
 }
@@ -398,7 +417,7 @@ void emit_rex_instruction_imm8_reg(int opcode, int morebits, Imm8 imm, int r1)
 {
         ASSERT(0 <= morebits && morebits < 8);
         int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE | REX_W | B);
+        emit8(SECTION_CODE, (uint8_t) (REX_BASE | REX_W | B));
         emit_opcode(opcode);
         emit_modrm_byte(MODRM_REGREG, morebits, r1 & 7);
         emit8(SECTION_CODE, imm);
@@ -409,7 +428,7 @@ void emit_rex_instruction_imm32_reg(int opcode, int morebits, Imm32 imm, int r1)
 {
         ASSERT(0 <= morebits && morebits < 8);
         int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE | REX_W | B);
+        emit8(SECTION_CODE, (uint8_t) (REX_BASE | REX_W | B));
         emit_opcode(opcode);
         emit_modrm_byte(MODRM_REGREG, morebits, r1 & 7);
         emit32(SECTION_CODE, imm);
@@ -420,7 +439,7 @@ void emit_rex_instruction_imm32_indirect(int opcode, int morebits, Imm32 imm, in
 {
         ASSERT(0 <= morebits && morebits < 8);
         int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE | B);  /* NOTE: no REX_W */
+        emit8(SECTION_CODE, (uint8_t) (REX_BASE | B));  /* NOTE: no REX_W */
         emit_opcode(opcode);
         emit_modrm_and_sib_and_displacement_bytes(0x00, r1, d);
         emit32(SECTION_CODE, imm);
@@ -433,7 +452,7 @@ void emit_rex_instruction_opreg(int opcode, int r1)
 {
         ASSERT(!(opcode & 7));
         int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE | REX_W | B);
+        emit8(SECTION_CODE, (uint8_t) (REX_BASE | REX_W | B));
         emit_opcode(opcode | (r1 & 7));
 }
 
@@ -442,7 +461,7 @@ void emit_rex_instruction_imm64_opreg(int opcode, Imm64 imm, int r1)
 {
         ASSERT(!(opcode & 7));
         int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, REX_BASE | REX_W | B);
+        emit8(SECTION_CODE, (uint8_t) (REX_BASE | REX_W | B));
         emit_opcode(opcode | (r1 & 7));
         emit64(SECTION_CODE, imm);
 }
@@ -643,9 +662,11 @@ void emit_local_conditional_jump(X64StackLoc condloc, IrStmt tgtstmt, int isNeg)
         else
                 emit8(SECTION_CODE, 0x74); // JZ
         int oldpos = codeSectionCnt;
-        emit8(SECTION_CODE, -1); // fix later
+        emit8(SECTION_CODE, 0); // fix later
         emit_local_jump(tgtstmt);
-        codeSection[oldpos] = codeSectionCnt - oldpos - 1; // this is the fix
+        int jumpLength = codeSectionCnt - oldpos - 1;
+        ASSERT((uint8_t) jumpLength == jumpLength);
+        codeSection[oldpos] = (uint8_t) jumpLength; // this is the fix
 }
 
 INTERNAL

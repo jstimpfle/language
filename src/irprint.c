@@ -2,15 +2,15 @@
 #include "api.h"
 
 INTERNAL
-void irp_constant(const struct IrLoadConstantStmtInfo *c)
+void irp_constant(const struct IrLoadConstantStmtInfo *irc)
 {
-        switch (c->irConstantKind) {
+        switch (irc->irConstantKind) {
         case IRCONSTANT_INTEGER: {
-                outf("%lld", (long long) c->tInteger);
+                outf("%lld", (long long) irc->tInteger);
                 break;
         }
         case IRCONSTANT_STRING: {
-                const char *s = string_buffer(c->tString);
+                const char *s = string_buffer(irc->tString);
                 outc('"');
                 for (int i = 0; s[i] != '\0'; i++) {
                         unsigned char c = s[i];
@@ -25,7 +25,7 @@ void irp_constant(const struct IrLoadConstantStmtInfo *c)
                 break;
         }
         case IRCONSTANT_FLOAT: {
-                outf("%f", c->tFloat);  /* maybe a lossless representation of the float would be preferable? */
+                outf("%f", irc->tFloat);  /* maybe a lossless representation of the float would be preferable? */
                 break;
         }
         default:

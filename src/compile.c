@@ -49,7 +49,7 @@ void emit_float_load(float constval, IrProc irproc, IrReg irreg)
         irStmtInfo[y].proc = irproc;
         irStmtInfo[y].irStmtKind = IRSTMT_LOADCONSTANT;
         irStmtInfo[y].tLoadConstant.irConstantKind = IRCONSTANT_FLOAT;
-        irStmtInfo[y].tLoadConstant.tInteger = constval;
+        irStmtInfo[y].tLoadConstant.tFloat = constval;
         irStmtInfo[y].tLoadConstant.tgtreg = irreg;
 }
 

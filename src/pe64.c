@@ -839,20 +839,20 @@ const char *const pesecName[NUM_PESEC_KINDS] = {
         [PESEC_TEXT]  = ".text",
 };
 
-int pe64symCnt;
-int pe64relocCnt;
+INTERNAL int pe64symCnt;
+INTERNAL int pe64relocCnt;
 
-struct PE_Relocation *pe64relocTab;
-struct PE_Symbol *pe64symTab;
-int *pe64sectionToPe64sym;
-int *symbolToPe64sym;
-int *sectionToPe64section;
+INTERNAL struct PE_Relocation *pe64relocTab;
+INTERNAL struct PE_Symbol *pe64symTab;
+INTERNAL int *pe64sectionToPe64sym;
+INTERNAL int *symbolToPe64sym;
+INTERNAL int *sectionToPe64section;
 
-struct Alloc pe64relocTabAlloc;
-struct Alloc pe64symTabAlloc;
-struct Alloc pe64sectionToPe64symAlloc;
-struct Alloc symbolToPe64symAlloc;
-struct Alloc sectionToPe64sectionAlloc;
+INTERNAL struct Alloc pe64relocTabAlloc;
+INTERNAL struct Alloc pe64symTabAlloc;
+INTERNAL struct Alloc pe64sectionToPe64symAlloc;
+INTERNAL struct Alloc symbolToPe64symAlloc;
+INTERNAL struct Alloc sectionToPe64sectionAlloc;
 
 
 INTERNAL
@@ -898,7 +898,7 @@ void write_freak_show_section_symbol(FILE *f, int pesec, int sectionSize)
         struct PE_Symbol pesym = {0};
         set_PE_Symbol_Name(&pesym, pesecName[pesec]);
         pesym.PESy_Value = 0;  // XXX:??? or sectionSize???
-        pesym.PESy_SectionNumber = pesec + 1;
+        pesym.PESy_SectionNumber = (PED_WORD) (pesec + 1);
         pesym.PESy_Type = 0x00;
         pesym.PESy_StorageClass = IMAGE_SYM_CLASS_STATIC;
         pesym.PESy_NumberOfAuxSymbols = 1;
@@ -990,7 +990,7 @@ void write_pe64_object(const char *filepath)
                 pe64symTab[x].PESy_Type = isProc ? 0x20 : 0x00;
                 // TODO: only export symbols that have an export statement
                 pe64symTab[x].PESy_StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
-                pe64symTab[x].PESy_SectionNumber = sectionNumber + 1;  // 1-based
+                pe64symTab[x].PESy_SectionNumber = (PED_WORD) (sectionNumber + 1);  // 1-based
                 pe64symTab[x].PESy_NumberOfAuxSymbols = 0;
 
                 symbolToPe64sym[sym] = x;
@@ -1037,8 +1037,8 @@ void write_pe64_object(const char *filepath)
 
                 if (sym == -1) {
                         FATAL("Not implemented: %d, %p\n", sectionKind, sectionToPe64section);
-                        int esec = sectionToPe64section[sectionKind];
-                        pesym = pe64sectionToPe64sym[esec];
+                        //int esec = sectionToPe64section[sectionKind];
+                        //pesym = pe64sectionToPe64sym[esec];
                 }
                 else if (addend == 0) {
                         pesym = symbolToPe64sym[sym];
@@ -1127,7 +1127,7 @@ void write_pe64_object(const char *filepath)
          * only have relocations for the .text section, but that will change.
          */
         sh[PESEC_TEXT ].PES_PointerToRelocations = AFTER(PESEC_TEXT);
-        sh[PESEC_TEXT ].PES_NumberOfRelocations = pe64relocCnt;
+        sh[PESEC_TEXT ].PES_NumberOfRelocations = (PED_WORD) pe64relocCnt;
 
         struct PE_FileHeader fh;
         CLEAR(fh);

@@ -40,4 +40,4 @@ FILE *get_stderr(void)
 
 /* XXX: only to work around our unfinished type system */
 int chartoint(char c) { return c; }
-char inttochar(int c) { return c; }
+char inttochar(int c) { return (char) c; }

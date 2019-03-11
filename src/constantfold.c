@@ -93,8 +93,6 @@ long long fold_integer_expr(Expr x)
                 return length;
         }
         else {
-                FATAL_ERROR_AT_EXPR(x, "Unhandled case: %s\n",
-                                    exprKindString[exprKind]);
                 UNHANDLED_CASE();
         }
 }

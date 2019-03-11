@@ -485,9 +485,9 @@ void write_Elf64_Rela(const struct Elf64_Rela *rela, FILE *f)
 
 struct ElfStringTable {
         char *buf;
-        size_t size;
-        size_t allocated_size;
-        size_t numstrings;
+        int size;
+        int allocated_size;
+        int numstrings;
 };
 
 void init_ElfStringTable(struct ElfStringTable *t)
@@ -504,11 +504,11 @@ void exit_ElfStringTable(struct ElfStringTable *t)
         memset(t, 0, sizeof *t);
 }
 
-size_t append_to_ElfStringTable(struct ElfStringTable *t, const char *str)
+int append_to_ElfStringTable(struct ElfStringTable *t, const char *str)
 {
-        size_t len = strlen(str);
+        int len = cstr_length(str);
         if (t->size + len + 1 > t->allocated_size) {
-                size_t new_allocated_size = (t->size + len + 1) * 2;
+                int new_allocated_size = (t->size + len + 1) * 2;
                 char *buf = realloc(t->buf, new_allocated_size);
                 if (!buf) {
                         fprintf(stderr, "ERROR: OOM!\n");
@@ -517,7 +517,7 @@ size_t append_to_ElfStringTable(struct ElfStringTable *t, const char *str)
                 t->buf = buf;
                 t->allocated_size = new_allocated_size;
         }
-        size_t result = t->size;
+        int result = t->size;
         memcpy(t->buf + t->size, str, len + 1);
         t->size += len + 1;
         t->numstrings++;
@@ -618,7 +618,7 @@ void write_elf64_object(const char *outfilepath)
                 elfsym[x].st_name = 0;  // (empty/no) string
                 elfsym[x].st_info = (STB_LOCAL << 4) | STT_SECTION;
                 elfsym[x].st_other = 0;
-                elfsym[x].st_shndx = i;
+                elfsym[x].st_shndx = (Elf64_Half) i;
                 elfsym[x].st_value = 0;
                 elfsym[x].st_size = 0;
                 elfsectionToElfsym[i] = x;
@@ -660,11 +660,10 @@ void write_elf64_object(const char *outfilepath)
 
                 int x = elfsymCnt++;
                 BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
-                elfsym[x].st_name = append_to_ElfStringTable(
-                                                &strtabStrings, SS(sym));
-                elfsym[x].st_info = (visibility << 4) | sttKind;
+                elfsym[x].st_name = append_to_ElfStringTable(&strtabStrings, SS(sym));
+                elfsym[x].st_info = (unsigned char) ((visibility << 4) | sttKind);
                 elfsym[x].st_other = 0;
-                elfsym[x].st_shndx = shndx;
+                elfsym[x].st_shndx = (Elf64_Half) shndx;
                 elfsym[x].st_value = value;
                 elfsym[x].st_size = size;
                 symbolToElfsym[sym] = x;
@@ -690,9 +689,8 @@ void write_elf64_object(const char *outfilepath)
                 }
                 int x = elfsymCnt++;
                 BUF_RESERVE(&elfsym, &elfsymAlloc, elfsymCnt);
-                elfsym[x].st_name = append_to_ElfStringTable(
-                                                &strtabStrings, SS(sym));
-                elfsym[x].st_info = (STB_GLOBAL << 4) | sttKind;
+                elfsym[x].st_name = append_to_ElfStringTable(&strtabStrings, SS(sym));
+                elfsym[x].st_info = (unsigned char) ((STB_GLOBAL << 4) | sttKind);
                 elfsym[x].st_other = 0;
                 elfsym[x].st_shndx = SHN_UNDEF; // undefined symbol
                 elfsym[x].st_value = 0;

@@ -2,7 +2,7 @@ rem Build script for Windows (MSVC compiler).
 rem You must setup the environment using vcvars64 before calling this script
 
 @echo on
-cl /Fe"blunt.exe" /I include\ src\*.c /Zi
+cl /W4 /Fe"blunt.exe" /I include\ src\*.c /Zi
 
 @echo off
 if %ERRORLEVEL% NEQ 0 (
