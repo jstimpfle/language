@@ -390,17 +390,24 @@ No namespaces
 
 Similarly, I think namespaces are not helpful. They mainly make it possible to
 use short names without never really declaring them, which is confusing to the
-programmer. In general, we should strive to use one and only one name,
-throughout the project, for any given thing. And conversely, a given name
-should ideally reference the same thing throughout the project (function-local
-variables are an exception here, of course).
+programmer. In general, we should use one and only one name, throughout the
+project, for any given thing. And conversely, a given name should ideally
+reference the same thing throughout the project. Function-local variables are
+an exception here for practical reasons, and they are a workable exception since
+the possible locations of reference are restricted to the function body itself
+which is a small contiguous chunk of text. But we should not be allowed to have
+local variable names that are also names for global objects.
 
-This is basic sanity. I have no understanding how namespaces got so popular.
-They allow the programmer to write bad code, and are not very helpful
-otherwise. (Okay -- a namespace is a compile time function from name to
-implementation. Which can be used e.g. for static polymorphism like in C++
-templates. But that's not 90% of their use in practice. And I have no intention
-to support clever tricks like that).
+Ironically, namespaces produce undetected collisions. If one defines constants
+SHED_COLOR::RED and FRUIT_COLOR::RED then two symbols named RED are created, and
+only tools which understand the whole language and can parse the project can
+disambiguate between them when they are used in code. This means that tools like
+grep or sed, or many IDEs that have generic functionality for searching and/or
+replacing identifiers, cannot be reliably used in the presence of namespaced
+identifiers. It also means that programmers have a harder time. Some programmers
+might have an okay understanding of their language, but still, most if not all
+programmers are pretty poor at running the name resolution algorithm in their
+head.
 
 Processing global directives in order
 -------------------------------------
