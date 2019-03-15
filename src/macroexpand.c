@@ -70,21 +70,21 @@ Expr expand_expr(Expr x)
 
                 Macro macro = symbolInfo[sym].tMacro;
                 int macroKind = macroInfo[macro].macroKind;
-                if (macroInfo[macro].macroKind != MACRO_FUNCTION) {
-                        FATAL("Invalid use of %s macro. Expected %s macro\n",
-                              macroKindString[macroKind],
-                              macroKindString[MACRO_FUNCTION]);
-                }
+                if (macroInfo[macro].macroKind != MACRO_FUNCTION)
+                        FATAL("Cannot call a %s macro.\n",
+                              macroKindString[macroKind]);
+
                 MacroParam firstMacroParam = macroInfo[macro].tFunction.firstMacroParam;
                 int nparams = macroInfo[macro].tFunction.nparams;
-                int firstArgIdx = exprInfo[x].tCall.firstArgIdx;
                 int nargs = exprInfo[x].tCall.nargs;
-                if (macroInfo[macro].tFunction.nparams != nargs) {
-                        FATAL("Bad macro invocation: macro %s has %d "
-                              "parameters, but invocation provides %d\n",
-                              SS(macroInfo[macro].symbol), nparams, nargs);
-                }
+                if (nparams != nargs)
+                        FATAL("Bad invocation: macro %s has %d parameters "
+                              "but invocation provides %d arguments (%s)\n",
+                              SS(macroInfo[macro].symbol), nparams, nargs,
+                              nargs < nparams ? "too few" : "too many");
+
                 int firstBoundArg = macroBoundArgCnt;
+                int firstArgIdx = exprInfo[x].tCall.firstArgIdx;
                 macroBoundArgCnt += nargs;
                 RESIZE_GLOBAL_BUFFER(macroBoundArg, macroBoundArgCnt);
                 for (int i = 0; i < nargs; i++) {

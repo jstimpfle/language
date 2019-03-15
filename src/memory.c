@@ -4,8 +4,6 @@
 
 void check_global_buffer_allocations(void)
 {
-        #define DUMP(x) outf("%sCnt=%d, allocated=%d\n", #x, globalBufferAlloc[BUFFER_##x].cap);
-        #define CHECK(x) if (x##Cnt < globalBufferAlloc[BUFFER_##x].cap) { FATAL("%s = %d but %s = %d\n", #x "Cnt", x##Cnt, #x "Alloc", globalBufferAlloc[BUFFER_##x].cap);
         for (int i = 0; i < NUM_BUFFERS; i++) {
                 const char *name = globalBufferInfo[i].__bufferName;
                 int cnt = *globalBufferInfo[i].__bufferCnt;

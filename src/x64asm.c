@@ -104,19 +104,19 @@ Imm32 x64Float_to_imm32(X64Float v)
 INTERNAL UNUSEDFUNC
 int is_imm8(Imm64 imm)
 {
-        return imm < (1u << 8);
+        return imm < (1 << 8);
 }
 
 INTERNAL UNUSEDFUNC
 int is_imm16(Imm64 imm)
 {
-        return imm < (1u << 16);
+        return imm < (1 << 16);
 }
 
 INTERNAL UNUSEDFUNC
 int is_imm32(Imm64 imm)
 {
-        return imm < (1ull << 32);
+        return imm < (1ll << 32);
 }
 
 INTERNAL

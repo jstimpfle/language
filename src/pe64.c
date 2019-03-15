@@ -844,15 +844,12 @@ INTERNAL int pe64relocCnt;
 
 INTERNAL struct PE_Relocation *pe64relocTab;
 INTERNAL struct PE_Symbol *pe64symTab;
-INTERNAL int *pe64sectionToPe64sym;
 INTERNAL int *symbolToPe64sym;
 INTERNAL int *sectionToPe64section;
 
 INTERNAL struct Alloc pe64relocTabAlloc;
 INTERNAL struct Alloc pe64symTabAlloc;
-INTERNAL struct Alloc pe64sectionToPe64symAlloc;
 INTERNAL struct Alloc symbolToPe64symAlloc;
-INTERNAL struct Alloc sectionToPe64sectionAlloc;
 
 
 INTERNAL

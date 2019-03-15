@@ -211,7 +211,6 @@ Type parse_type(int prec)
                 typeInfo[tp].typeKind = TYPE_ARRAY;
                 typeInfo[tp].tArray.valueTp = valueTp;
                 typeInfo[tp].tArray.lengthConstant = lengthConstant;
-
                 RESIZE_GLOBAL_BUFFER(constantInfo, constantCnt);
                 /* Currently parse_enum_directive() has to resize the
                  * constantValue buffer along with constantInfo.
@@ -310,7 +309,6 @@ Data parse_data(void)
         Token nameToken = parse_token_kind(TOKEN_WORD);
         String name = tokenInfo[nameToken].tWord.string;
         Type tp = parse_type(0);
-
         Scope scope = currentScope;
         Data data = dataCnt++;
         Symbol sym = symbolCnt++;
