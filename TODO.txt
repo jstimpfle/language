@@ -2,13 +2,6 @@ Make a distinction:
     1) exiting early when a compiler logic bug was detected
     2) exiting early when there is an error in the project to be compiled
 
-Things that don't work in PECOFF writer (pe64.c):
-  - Symbol relative relocations. I think PECOFF has a mechanism where the
-    addend must be stored in the actual place where the relocated address
-    should be later put. That's pretty awkward! If we don't get that to work we
-    might have to resort simply to an anonymous symbol for each symbol-relative
-    relocation.
-
 Calling to function pointers does not seem to work (compiler or machine code
 emitter).
 

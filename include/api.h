@@ -248,6 +248,15 @@ void compile_to_IR(void);
 /* irprint.c */
 void irprint(void);
 
+/* codegen.c */
+void begin_symbol(Symbol sym);
+void end_symbol(void);
+Symdef emit_symdef(Symbol sym, int sectionKind, int offset, int size);
+void emit_relative_relocation(Symbol symbol, int addend, int codepos);
+void emit_relocation(Symbol symbol, int codepos);
+void emit_section_relative_relocation(int sectionKind, int addend, int codepos);
+void emit_bytes(int sectionKind, const void *buf, int size);
+
 /* x64asm.c */
 void codegen_x64(void);
 

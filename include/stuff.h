@@ -166,7 +166,7 @@ DATA struct StringBucketInfo *strBucketInfo;
         MAKE_GLOBAL_BUFFER(  symbolCnt,          isSymbolExported     ),  \
         MAKE_GLOBAL_BUFFER(  symbolCnt,          symbolInfo           ),  \
         MAKE_GLOBAL_BUFFER(  symbolCnt,          symbolToToken        ),  \
-        MAKE_GLOBAL_BUFFER(  symDefCnt,          symDefInfo           ),  \
+        MAKE_GLOBAL_BUFFER(  symdefCnt,          symdefInfo           ),  \
         MAKE_GLOBAL_BUFFER(  symrefCnt,          symrefInfo           ),  \
         MAKE_GLOBAL_BUFFER(  symrefCnt,          symrefToSym          ),  \
         MAKE_GLOBAL_BUFFER(  symrefCnt,          symrefToToken        ),  \

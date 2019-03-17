@@ -839,13 +839,20 @@ const char *const pesecName[NUM_PESEC_KINDS] = {
         [PESEC_TEXT]  = ".text",
 };
 
+int sectionToPe64section[NUM_SECTIONS] = {
+        [SECTION_CODE] = PESEC_TEXT,
+        [SECTION_DATA] = PESEC_DATA,
+        [SECTION_RODATA] = PESEC_RDATA,
+        [SECTION_ZERODATA] = PESEC_BSS,
+};
+
 INTERNAL int pe64symCnt;
 INTERNAL int pe64relocCnt;
 
 INTERNAL struct PE_Relocation *pe64relocTab;
 INTERNAL struct PE_Symbol *pe64symTab;
 INTERNAL int *symbolToPe64sym;
-INTERNAL int *sectionToPe64section;
+INTERNAL int pe64sectionToPe64sym[NUM_PESEC_KINDS];
 
 INTERNAL struct Alloc pe64relocTabAlloc;
 INTERNAL struct Alloc pe64symTabAlloc;
@@ -944,13 +951,27 @@ void write_pe64_object(const char *filepath)
         for (Symbol sym = 0; sym < symbolCnt; sym++)
                 symbolToPe64sym[sym] = -1;
 
+        /* Add section symbols */
+        for (int i = 0; i < NUM_PESEC_KINDS; i++) {
+                int x = pe64symCnt++;
+                BUF_RESERVE(&pe64symTab, &pe64symTabAlloc, pe64symCnt);
+                set_PE_Symbol_Name(&pe64symTab[x], pesecName[i]);
+                pe64symTab[x].PESy_Value = 0;
+                pe64symTab[x].PESy_Type = 0x00;
+                // TODO: only export symbols that have an export statement
+                pe64symTab[x].PESy_StorageClass = IMAGE_SYM_CLASS_STATIC;
+                pe64symTab[x].PESy_SectionNumber = (PED_WORD)(i + 1);  // 1-based
+                pe64symTab[x].PESy_NumberOfAuxSymbols = 0;
+                pe64sectionToPe64sym[i] = x;
+        }
+
         /* Add defined symbols */
-        for (int i = 0; i < symDefCnt; i++) {
+        for (int i = 0; i < symdefCnt; i++) {
                 int isProc;
                 int sectionNumber;
-                int value = symDefInfo[i].offset;
-                Symbol sym = symDefInfo[i].symbol;
-                int sectionKind = symDefInfo[i].sectionKind;  // SECTION_
+                int value = symdefInfo[i].offset;
+                Symbol sym = symdefInfo[i].symbol;
+                int sectionKind = symdefInfo[i].sectionKind;  // SECTION_
                 switch (sectionKind) {
                 case SECTION_DATA:
                         ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
@@ -1026,46 +1047,53 @@ void write_pe64_object(const char *filepath)
 
         /* Add relocations */
         for (int i = 0; i < relocCnt; i++) {
-                Symbol sym = relocInfo[i].symbol;
-                int sectionKind = relocInfo[i].sectionKind;
+                int relocKind = relocInfo[i].relocKind;
                 int addend = relocInfo[i].addend;
-                int offset = relocInfo[i].offset;
+                int offset = relocInfo[i].codepos;
                 int pesym;
 
-                if (sym == -1) {
-                        FATAL("Not implemented: %d, %p\n", sectionKind, sectionToPe64section);
-                        //int esec = sectionToPe64section[sectionKind];
-                        //pesym = pe64sectionToPe64sym[esec];
+                if (relocKind == RELOC_SECTION_RELATIVE) {
+                        int sectionKind = relocInfo[i].tSectionKind;
+                        int esec = sectionToPe64section[sectionKind];
+                        pesym = pe64sectionToPe64sym[esec];
+                        DEBUG("pesym is %d\n", pesym);
                 }
-                else if (addend == 0) {
-                        pesym = symbolToPe64sym[sym];
-                        if (pesym == -1)
-                                FATAL("There is a relocation for symbol %s "
-                                      "which is not in the symbol table "
-                                      "(is this an internal error?)\n",
-                                      SS(sym));
+                else if (relocKind == RELOC_SYMBOL_RELATIVE) {
+                        Symbol symbol = relocInfo[i].tSymbol;
+                        if (addend == 0) {
+                                pesym = symbolToPe64sym[symbol];
+                                if (pesym == -1)
+                                        FATAL("There is a relocation for symbol %s "
+                                                "which is not in the symbol table "
+                                                "(is this an internal error?)\n",
+                                                SS(symbol));
+                        }
+                        else {
+                                ASSERT(addend > 0);
+                                /* Make pesym a new unnamed symbol based on
+                                the reference symbol */
+                                int ref = symbolToPe64sym[symbol];
+                                ASSERT(ref != -1); // should always be true
+                                /* addend > 0 should only be the case for jumps to
+                                 * function+offsets places. These functions must be
+                                 * defined. */
+                                ASSERT(pe64symTab[ref].PESy_SectionNumber > 0);
+                                int x = pe64symCnt++;
+                                BUF_RESERVE(&pe64symTab, &pe64symTabAlloc, pe64symCnt);
+                                set_PE_Symbol_Name(&pe64symTab[x], "");
+                                pe64symTab[x].PESy_Value =
+                                        pe64symTab[ref].PESy_Value + addend;
+                                pe64symTab[x].PESy_Type = 0x00;  // ???
+                                pe64symTab[x].PESy_StorageClass = IMAGE_SYM_CLASS_STATIC;
+                                pe64symTab[x].PESy_SectionNumber =
+                                        pe64symTab[ref].PESy_SectionNumber;
+                                pe64symTab[x].PESy_NumberOfAuxSymbols = 0;
+
+                                pesym = x;
+                        }
                 }
                 else {
-                        ASSERT(addend > 0);
-                        int other = symbolToPe64sym[sym];
-                        /* need an extra symbol, unnamed */
-                        ASSERT(other != -1); // should always be true
-                        /* addend > 0 should only be the case for jumps to
-                         * function+offsets places. These functions must be
-                         * defined. */
-                        ASSERT(pe64symTab[other].PESy_SectionNumber > 0);
-                        int x = pe64symCnt++;
-                        BUF_RESERVE(&pe64symTab, &pe64symTabAlloc, pe64symCnt);
-                        set_PE_Symbol_Name(&pe64symTab[x], "");
-                        pe64symTab[x].PESy_Value =
-                                pe64symTab[other].PESy_Value + addend;
-                        pe64symTab[x].PESy_Type = 0x00;  // ???
-                        pe64symTab[x].PESy_StorageClass = IMAGE_SYM_CLASS_STATIC;
-                        pe64symTab[x].PESy_SectionNumber =
-                                pe64symTab[other].PESy_SectionNumber;
-                        pe64symTab[x].PESy_NumberOfAuxSymbols = 0;
-
-                        pesym = x;
+                        UNHANDLED_CASE();
                 }
 
                 int x = pe64relocCnt++;

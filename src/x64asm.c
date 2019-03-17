@@ -162,73 +162,6 @@ INTERNAL int compute_size_of_stack_frame(IrProc irp)
         return out;
 }
 
-/* TODO: The approach with begin_symbol() / end_symbol() is too complicated. We
- * should rather emit the symDefs for procs mostly independently of the machine
- * code generation for the procs, filling in only the size of the proc code
- * after the proc code is generated. */
-INTERNAL void begin_symbol(Symbol sym)
-{
-        SymDef sd = symDefCnt++;
-        RESIZE_GLOBAL_BUFFER(symDefInfo, symDefCnt);
-        symDefInfo[sd].symbol = sym;
-        symDefInfo[sd].sectionKind = SECTION_CODE;
-        symDefInfo[sd].offset = codeSectionCnt;  //XXX Alignment?
-        symDefInfo[sd].size = 0; // set later
-}
-
-INTERNAL void end_symbol(void)
-{
-        SymDef sd = symDefCnt - 1;
-        symDefInfo[sd].size = codeSectionCnt - symDefInfo[sd].offset;
-}
-
-INTERNAL void emit_symbol(Symbol sym, int sectionKind, int offset, int size)
-{
-        ASSERT(symbolInfo[sym].symbolKind == SYMBOL_DATA);
-        SymDef sd = symDefCnt++;
-        RESIZE_GLOBAL_BUFFER(symDefInfo, symDefCnt);
-        symDefInfo[sd].symbol = sym;
-        symDefInfo[sd].sectionKind = sectionKind;
-        symDefInfo[sd].offset = offset;
-        symDefInfo[sd].size = size;
-}
-
-INTERNAL void emit_section_relative_relocation(int sectionKind, int sectionPos,
-        int codePos)
-{
-        int x = relocCnt++;
-        RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
-        relocInfo[x].symbol = -1;
-        relocInfo[x].sectionKind = sectionKind;
-        relocInfo[x].addend = sectionPos;
-        relocInfo[x].offset = codePos;
-}
-
-INTERNAL void emit_bytes(int sectionKind, const void *buf, int size)
-{
-        if (sectionKind == SECTION_CODE) {
-                int pos = codeSectionCnt;
-                codeSectionCnt += size;
-                RESIZE_GLOBAL_BUFFER(codeSection, codeSectionCnt);
-                copy_mem(codeSection + pos, buf, size);
-        }
-        else if (sectionKind == SECTION_DATA) {
-                int pos = dataSectionCnt;
-                dataSectionCnt += size;
-                RESIZE_GLOBAL_BUFFER(dataSection, dataSectionCnt);
-                copy_mem(dataSection + pos, buf, size);
-        }
-        else if (sectionKind == SECTION_RODATA) {
-                int pos = rodataSectionCnt;
-                rodataSectionCnt += size;
-                RESIZE_GLOBAL_BUFFER(rodataSection, rodataSectionCnt);
-                copy_mem(rodataSection + pos, buf, size);
-        }
-        else {
-                UNHANDLED_CASE();
-        }
-}
-
 INTERNAL void emit8(int sectionKind, uint8_t c)
 {
         unsigned char b = c;
@@ -528,22 +461,11 @@ INTERNAL void emit_mov_64_imm_reg(Imm64 imm, int r1)
  * a relocation */
 INTERNAL void emit_mov_64_reloc_reg(Symbol symbol, int addend, int r1)
 {
-        int sectionKind = SECTION_CODE; /* Note: the sectionKind means the
-                                           section where the relocation (change)
-                                           is made, not where the symbol that is
-                                           referenced lives. For now, we only
-                                           have relocations in the code section
-                                           */
         emit_rex_instruction_imm64_opreg(0xB8, 0, r1);
 
         /* the last 8 byte of the instruction we just encoded are the imm64 */
-        int offset = codeSectionCnt - 8;
-        Reloc reloc = relocCnt++;
-        RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
-        relocInfo[reloc].symbol = symbol;
-        relocInfo[reloc].sectionKind = sectionKind;
-        relocInfo[reloc].addend = addend;
-        relocInfo[reloc].offset = offset;
+        int codepos = codeSectionCnt - 8;
+        emit_relative_relocation(symbol, addend, codepos);
 }
 
 INTERNAL void emit_mov_64_imm_stack(Imm64 imm, X64StackLoc loc)
@@ -595,7 +517,7 @@ INTERNAL void emit_local_jump(IrStmt tgtstmt)
 
         int x = gotoCnt++;
         RESIZE_GLOBAL_BUFFER(gotoInfo, gotoCnt);
-        gotoInfo[x].offset = relocpos;
+        gotoInfo[x].codepos = relocpos;
         gotoInfo[x].tgtstmt = tgtstmt;
 }
 
@@ -935,7 +857,7 @@ void codegen_x64(void)
                 if (expr == (Expr) -1) {
                         int offset = zerodataSectionCnt;
                         zerodataSectionCnt += size;
-                        emit_symbol(dataInfo[data].sym, SECTION_ZERODATA,
+                        emit_symdef(dataInfo[data].sym, SECTION_ZERODATA,
                                     offset, size);
                 }
                 else {
@@ -952,7 +874,7 @@ void codegen_x64(void)
                                 *(int64_t *) &dataSection[offset] = 5;
                         }
 
-                        emit_symbol(dataInfo[data].sym, SECTION_DATA,
+                        emit_symdef(dataInfo[data].sym, SECTION_DATA,
                                     offset, size);
                 }
         }
@@ -966,14 +888,11 @@ void codegen_x64(void)
 
         for (int i = 0; i < gotoCnt; i++) {
                 IrStmt irs = gotoInfo[i].tgtstmt;
-                int offset = gotoInfo[i].offset;
                 IrProc irp = irStmtInfo[irs].proc;
-                int x = relocCnt++;
-                RESIZE_GLOBAL_BUFFER(relocInfo, relocCnt);
-                relocInfo[x].symbol = irProcInfo[irp].symbol;
-                relocInfo[x].sectionKind = SECTION_CODE;
-                relocInfo[x].addend = irstmtToCodepos[irs]
-                                                - irprocToCodepos[irp];
-                relocInfo[x].offset = offset;
+                int codepos = gotoInfo[i].codepos;
+                emit_relative_relocation(
+                        irProcInfo[irp].symbol,
+                        irstmtToCodepos[irs] - irprocToCodepos[irp],
+                        codepos);
         }
 }

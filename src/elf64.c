@@ -624,12 +624,12 @@ void write_elf64_object(const char *outfilepath)
                 elfsectionToElfsym[i] = x;
         }
         /* defined symbols */
-        for (int i = 0; i < symDefCnt; i++) {
+        for (int i = 0; i < symdefCnt; i++) {
                 int sttKind;  // STT_
-                int value = symDefInfo[i].offset;
-                int size = symDefInfo[i].size;
-                Symbol sym = symDefInfo[i].symbol;
-                int sectionKind = symDefInfo[i].sectionKind;  // SECTION_
+                int value = symdefInfo[i].offset;
+                int size = symdefInfo[i].size;
+                Symbol sym = symdefInfo[i].symbol;
+                int sectionKind = symdefInfo[i].sectionKind;  // SECTION_
                 int shndx = sectionToElfsection[sectionKind];
                 int visibility = isSymbolExported[sym] ? STB_GLOBAL : STB_LOCAL;
                 switch (sectionKind) {
@@ -724,20 +724,26 @@ void write_elf64_object(const char *outfilepath)
          */
 
         for (int i = 0; i < relocCnt; i++) {
-                Symbol sym = relocInfo[i].symbol;
-                int sectionKind = relocInfo[i].sectionKind;
-                Elf64_Sxword addend = relocInfo[i].addend;
-                int offset = relocInfo[i].offset;
-
                 int esym;
-                if (sym == -1) {
+                int relocKind = relocInfo[i].relocKind;
+                Elf64_Sxword addend = relocInfo[i].addend;
+                int offset = relocInfo[i].codepos;
+
+                if (relocKind == RELOC_SECTION_RELATIVE) {
+                        int sectionKind = relocInfo[i].tSectionKind;
                         int esec = sectionToElfsection[sectionKind];
                         esym = elfsectionToElfsym[esec];
                 }
-                else {
-                        esym = symbolToElfsym[sym];
+                else if (relocKind == RELOC_SYMBOL_RELATIVE) {
+                        Symbol symbol = relocInfo[i].tSymbol;
+                        esym = symbolToElfsym[symbol];
                         if (esym == -1)
-                                FATAL("There is a relocation for symbol %s which is not in .symtab (is this an internal error?)\n", SS(sym));
+                                FATAL("There is a relocation for symbol %s "
+                                      "which is not in .symtab (is this an "
+                                      "internal error?)\n", SS(symbol));
+                }
+                else {
+                        UNHANDLED_CASE();
                 }
                 int x = relaTextCnt++;
                 BUF_RESERVE(&relaText, &relaTextAlloc, relaTextCnt);

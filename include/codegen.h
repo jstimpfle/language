@@ -6,7 +6,7 @@
  * Relocation stuff
  */
 
-typedef int SymDef;  // symbol definition position in code
+typedef int Symdef;  // symbol definition position in code
 typedef int Reloc; // relocation in code
 
 enum {
@@ -17,7 +17,12 @@ enum {
         NUM_SECTIONS,
 };
 
-struct SymDefInfo {
+enum {
+        RELOC_SYMBOL_RELATIVE,
+        RELOC_SECTION_RELATIVE,
+};
+
+struct SymdefInfo {
         Symbol symbol;
         int sectionKind; // SECTION_
         int offset;
@@ -25,16 +30,19 @@ struct SymDefInfo {
 };
 
 struct GotoInfo {
-        int offset;  // place in the code where bytes should be edited
+        int codepos;  // place in the code where bytes should be edited
         IrStmt tgtstmt;  // target IR statement of the goto
 };
 
 struct RelocInfo {
-        Symbol symbol;  /* if -1, the relocation is relative to the section
+        int relocKind;
+        union {
+                Symbol tSymbol;  /* if -1, the relocation is relative to the section
                            (kind field) */
-        int sectionKind; // SECTION_
+                int tSectionKind; // SECTION_
+        };
         int addend;  // offset relative to position of symbol
-        int offset;  // place in the code where bytes should be edited
+        int codepos;  // place in the code where bytes should be edited
 };
 
 /**
@@ -51,10 +59,10 @@ struct RelocInfo {
  * code where that ir proc is implemented.
  */
 
-DATA int symDefCnt;
+DATA int symdefCnt;
 DATA int gotoCnt;
 DATA int relocCnt;
-DATA struct SymDefInfo *symDefInfo;
+DATA struct SymdefInfo *symdefInfo;
 DATA struct GotoInfo *gotoInfo;
 DATA struct RelocInfo *relocInfo;
 DATA int *irstmtToCodepos;
