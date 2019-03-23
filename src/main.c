@@ -1,8 +1,6 @@
 #include "defs.h"
 #include "api.h"
 
-
-
 struct SimpleCmdlineOption {
         const char *optionName;
         int *flagStorage;
@@ -46,6 +44,26 @@ INTERNAL void print_usage(const char *progname)
         outf("  -pecoff-file FILEPATH\n"
              "                       override default PE/COFF file path (default:\n"
              "                       last source file but with .obj extension\n");
+}
+
+INTERNAL String replace_file_extension(String x, const char *newExtension)
+{
+        ASSERT(newExtension[0] == '.');
+        const char *s = string_buffer(x);
+        int len = string_length(x);
+        while (len > 0 && s[len] != '.')
+                len--;
+        if (len == 0)
+                len = string_length(x);
+        // XXX
+        int lengthOfExtension = cstr_length(newExtension);
+        char buf[256];
+        int totalLength = len + lengthOfExtension;
+        if (totalLength > sizeof buf)
+                FATAL("Filename %s is too long\n", s);
+        copy_mem(buf, s, len);
+        copy_mem(buf + len, newExtension, lengthOfExtension);
+        return intern_string(buf, totalLength);
 }
 
 int main(int argc, const char **argv)
@@ -103,6 +121,15 @@ int main(int argc, const char **argv)
                 return 1;
         }
 
+        if (doWriteElfFile && ELF_ObjectFilepath == (String)-1) {
+                String filepath = fileInfo[fileCnt - 1].filepath;
+                ELF_ObjectFilepath = replace_file_extension(filepath, ".o");
+        }
+        if (doWritePecoffFile && PECOFF_ObjectFilepath == (String)-1) {
+                String filepath = fileInfo[fileCnt - 1].filepath;
+                PECOFF_ObjectFilepath = replace_file_extension(filepath, ".obj");
+        }
+
         if (doPrintHelpString) {
                 print_usage(progname);
                 return 0;
@@ -153,13 +180,15 @@ int main(int argc, const char **argv)
         codegen_x64();
 
         if (doWriteElfFile) {
-                DEBUG("Write elf object file...\n");
-                write_elf_file("out.o");
+                DEBUG("Write elf object file %s...\n",
+                        string_buffer(ELF_ObjectFilepath));
+                write_elf_file(string_buffer(ELF_ObjectFilepath));
         }
 
         if (doWritePecoffFile) {
-                DEBUG("Write PE64 object file...\n");
-                write_pecoff_file("out.obj");
+                DEBUG("Write PE64 object file %s...\n",
+                        string_buffer(PECOFF_ObjectFilepath));
+                write_pecoff_file(string_buffer(PECOFF_ObjectFilepath));
         }
 
         DEBUG("Success. Cleanup and terminate program.\n");

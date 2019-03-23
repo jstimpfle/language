@@ -93,7 +93,7 @@ You can now try and compile one of the example code files in the `test/`
 directory. Run for instance:
 
 ```sh
-./blunt tests/fib.bl tests/EXTSYMS.bl -write-elf-file
+./blunt tests/EXTSYMS.bl tests/fib.bl -write-elf-file -elf-file fib.o
 ```
 
 (note: tests/EXTSYMS.bl is an interface file. It holds the function signatures
@@ -103,7 +103,7 @@ runtime/support.c)
 You can also try one of the following options accepted by the blunt compiler:
 `-debug`, `-prettyprint-ast`, `-dump-ir`, `-write-pecoff-file`.
 
-If the compilation was successful, an ELF-64 object file named `out.o` was
+If the compilation was successful, an ELF-64 object file named `fib.o` was
 created in the current directory. An object file is a container for machine
 code. The ELF-64 format is the standard object file format supported on Linux.
 
@@ -113,7 +113,7 @@ i.e. a runtime, that can be used by the compiled program. You can build the
 executable for example like so:
 
 ```sh
-cc -o out runtime/support.c out.o
+cc -o out runtime/support.c fib.o
 ```
 
 Then run the executable `./out` to test the program.

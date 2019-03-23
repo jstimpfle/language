@@ -2,7 +2,7 @@
 # functions available in your local shell
 
 compile() {
-        ./blunt "$@" -write-elf-file &&
+        ./blunt "$@" -write-elf-file -elf-file out.o &&
                 cc -Wall -o out runtime/support.c out.o
 }
 
