@@ -7,18 +7,18 @@
  * after the proc code is generated. */
 void begin_symbol(Symbol sym)
 {
-        Symdef sd = symdefCnt++;
+        Symdef symdef = symdefCnt++;
         RESIZE_GLOBAL_BUFFER(symdefInfo, symdefCnt);
-        symdefInfo[sd].symbol = sym;
-        symdefInfo[sd].sectionKind = SECTION_CODE;
-        symdefInfo[sd].offset = codeSectionCnt;  //XXX Alignment?
-        symdefInfo[sd].size = 0; // set later
+        symdefInfo[symdef].symbol = sym;
+        symdefInfo[symdef].sectionKind = SECTION_CODE;
+        symdefInfo[symdef].offset = codeSectionCnt;  //XXX Alignment?
+        symdefInfo[symdef].size = 0; // set later
 }
 
 void end_symbol(void)
 {
-        Symdef sd = symdefCnt - 1;
-        symdefInfo[sd].size = codeSectionCnt - symdefInfo[sd].offset;
+        Symdef symdef = symdefCnt - 1;
+        symdefInfo[symdef].size = codeSectionCnt - symdefInfo[symdef].offset;
 }
 
 Symdef emit_symdef(Symbol sym, int sectionKind, int offset, int size)
