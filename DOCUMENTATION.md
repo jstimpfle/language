@@ -30,7 +30,7 @@ Stages
     irprint.c              09. (Optional) Print the IR
     x64asm.c               10. Generate x86-64 code from IR
     elf64.c                11. (Optional) Write x86-64 code to an ELF file
-    pe64.c                 12. (Optional) Write x86-64 code to a PECOFF file
+    pecoff.c               12. (Optional) Write x86-64 code to a PECOFF file
     teardown.c             13. Shutdown the compiler, free all used memory
 ```
 
@@ -48,4 +48,5 @@ Supporting implementation
     typemetrics.c       a few operations and tests on types
     typecheck.c         type checking
     constantfold.c      computation of constant values
+    codegen.c           support routines for code generation
 ```

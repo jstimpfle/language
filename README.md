@@ -74,8 +74,8 @@ implementation will be extended or restructured completely.
 - [x] Half-assed IR to x64 machine code generator mostly finished (`src/x64asm.c`)
 - [ ] More intelligent Register allocation needed. Generic or x64 specific?
 - [ ] Backend from IR to LLVM, any volunteers?
-- [x] ELF-64 object writer for Linux supports all currently implemented features (`src/elf64.c`)
-- [ ] PE object writer for Windows (not fully functional) (`src/pe64.c`)
+- [x] ELF-64 object writer for Linux (`src/elf64.c`)
+- [x] PE object writer for Windows (`src/pecoff.c`)
 - [ ] Mach-O object writer for Mac OS, any volunteers?
 
 A list of bugs, structural problems, and cross-cutting concern type missing
@@ -93,7 +93,7 @@ You can now try and compile one of the example code files in the `test/`
 directory. Run for instance:
 
 ```sh
-./blunt tests/fib.bl tests/EXTSYMS.bl -write-elf-object
+./blunt tests/fib.bl tests/EXTSYMS.bl -write-elf-file
 ```
 
 (note: tests/EXTSYMS.bl is an interface file. It holds the function signatures
@@ -101,7 +101,7 @@ of a few functions defined in libc, and of the functions defined in
 runtime/support.c)
 
 You can also try one of the following options accepted by the blunt compiler:
-`-debug`, `-prettyprint-ast`, `-dump-ir`, `-write-pe-object`.
+`-debug`, `-prettyprint-ast`, `-dump-ir`, `-write-pecoff-file`.
 
 If the compilation was successful, an ELF-64 object file named `out.o` was
 created in the current directory. An object file is a container for machine

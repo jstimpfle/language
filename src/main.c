@@ -1,15 +1,51 @@
 #include "defs.h"
 #include "api.h"
 
-INTERNAL
-void print_usage(const char *progname)
+
+
+struct SimpleCmdlineOption {
+        const char *optionName;
+        int *flagStorage;
+};
+
+struct CmdlineOptionWithArgstring {
+        const char *optionName;
+        String *argStorage;
+};
+
+INTERNAL struct SimpleCmdlineOption simpleCmdlineOption[] = {
+        { "-debug", &doDebug },
+        { "-prettyprint-ast", &doPrettyPrintAst },
+        { "-dump-ir", &doDumpIr },
+        { "-write-elf-file", &doWriteElfFile },
+        { "-write-pecoff-file", &doWritePecoffFile },
+};
+
+INTERNAL struct CmdlineOptionWithArgstring cmdlineOptionWithArgstring[] = {
+        { "-elf-file", &ELF_ObjectFilepath },
+        { "-pecoff-file", &PECOFF_ObjectFilepath },
+};
+
+INTERNAL void print_usage(const char *progname)
 {
         outf("\n");
         outf("Usage:\n");
         outf("  %s -help\n", progname);
-        outf("  %s [-debug] [-dump-ir] [-prettyprint-ast] [-write-elf-object] [-write-pe-object] <prog.bl>\n",
-             progname);
+        outf("  %s OPTIONS... SOURCEFILES...\n", progname);
         outf("\n");
+        outf("SOURCEFILES should have .bl extension\n");
+        outf("\n");
+        outf("Valid OPTIONS are:\n");
+        outf("  -debug               output more debug info\n");
+        outf("  -prettyprint-ast     output AST after syntax parsing\n");
+        outf("  -dump-ir             output IR code after flattening phase\n");
+        outf("  -write-elf-file      write an ELF object file containing the x64 code\n");
+        outf("  -write-pecoff-file   write a PE/COFF object file containing the x64 code\n");
+        outf("  -elf-file FILEPATH   override default ELF file path (default:\n"
+             "                       last source file but with .o extension\n");
+        outf("  -pecoff-file FILEPATH\n"
+             "                       override default PE/COFF file path (default:\n"
+             "                       last source file but with .obj extension\n");
 }
 
 int main(int argc, const char **argv)
@@ -17,33 +53,48 @@ int main(int argc, const char **argv)
         const char *progname = argv[0];
         int badCmdline = 0;
 
+        for (int i = 0; i < LENGTH(cmdlineOptionWithArgstring); i++)
+                *cmdlineOptionWithArgstring[i].argStorage = (String) -1;
+
         for (int i = 1; i < argc; i++) {
                 if (argv[i][0] != '-') {
                         File x = fileCnt++;
                         RESIZE_GLOBAL_BUFFER(fileInfo, fileCnt);
                         fileInfo[x].filepath = intern_cstring(argv[i]);
                         read_whole_file(x);
+                        continue;
                 }
-                else if (cstr_equal(argv[i], "-help"))
-                        wantHelp = 1;
-                else if (cstr_equal(argv[i], "-debug"))
-                        doDebug = 1;
-                else if (cstr_equal(argv[i], "-prettyprint-ast"))
-                        doPrettyPrintAst = 1;
-                else if (cstr_equal(argv[i], "-dump-ir"))
-                        doDumpIr = 1;
-                else if (cstr_equal(argv[i], "-write-elf-object"))
-                        doWriteElfObject = 1;
-                else if (cstr_equal(argv[i], "-write-pe-object"))
-                        doWritePEObject = 1;
-                else {
-                        MSG(lvl_error, "Invalid command-line argument: "
-                            "\"%s\"\n", argv[i]);
+
+                for (int j = 0; j < LENGTH(simpleCmdlineOption); j++) {
+                        const char *optionName = simpleCmdlineOption[j].optionName;
+                        int *flagStorage = simpleCmdlineOption[j].flagStorage;
+                        if (cstr_equal(argv[i], optionName)) {
+                                *flagStorage = 1;
+                                goto nextArg;
+                        }
+                }
+
+                for (int j = 0; j < LENGTH(cmdlineOptionWithArgstring); j++) {
+                        const char *optionName = cmdlineOptionWithArgstring[j].optionName;
+                        String *argStorage = cmdlineOptionWithArgstring[j].argStorage;
+                        if (cstr_equal(argv[i], optionName)) {
+                                i++;
+                                if (i == argc)
+                                        FATAL_ERROR("Option %s requires an argument\n", optionName);
+                                *argStorage = intern_cstring(argv[i]);
+                                goto nextArg;
+                        }
+                }
+
+                MSG(lvl_error,
+                        "Invalid command-line argument: \"%s\"\n", argv[i]);
                         badCmdline = 1;
-                }
+
+                nextArg:
+                        continue;
         }
         if (fileCnt == 0) {
-                MSG(lvl_error, "No file to compile given on command line\n");
+                MSG(lvl_error, "No files to compile given on command line\n");
                 badCmdline = 1;
         }
         if (badCmdline) {
@@ -52,7 +103,7 @@ int main(int argc, const char **argv)
                 return 1;
         }
 
-        if (wantHelp) {
+        if (doPrintHelpString) {
                 print_usage(progname);
                 return 0;
         }
@@ -101,14 +152,14 @@ int main(int argc, const char **argv)
         DEBUG("Generate x64 code...\n");
         codegen_x64();
 
-        if (doWriteElfObject) {
+        if (doWriteElfFile) {
                 DEBUG("Write elf object file...\n");
-                write_elf64_object("out.o");
+                write_elf_file("out.o");
         }
 
-        if (doWritePEObject) {
+        if (doWritePecoffFile) {
                 DEBUG("Write PE64 object file...\n");
-                write_pe64_object("out.obj");
+                write_pecoff_file("out.obj");
         }
 
         DEBUG("Success. Cleanup and terminate program.\n");

@@ -937,7 +937,7 @@ void write_freak_show_section_symbol(FILE *f, int pesec, int sectionSize)
         write_PED_BYTE(f, 0);
 }
 
-void write_pe64_object(const char *filepath)
+void write_pecoff_file(const char *filepath)
 {
         FILE *f = fopen(filepath, "wb");
         if (f == NULL)

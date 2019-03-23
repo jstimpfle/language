@@ -6,6 +6,8 @@
 DATA int doDebug;
 DATA int doPrettyPrintAst;
 DATA int doDumpIr;
-DATA int wantHelp;
-DATA int doWriteElfObject;
-DATA int doWritePEObject;
+DATA int doPrintHelpString;
+DATA int doWriteElfFile;
+DATA int doWritePecoffFile;
+DATA String ELF_ObjectFilepath;
+DATA String PECOFF_ObjectFilepath;

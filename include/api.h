@@ -261,10 +261,10 @@ void emit_bytes(int sectionKind, const void *buf, int size);
 void codegen_x64(void);
 
 /* elf64.c */
-void write_elf64_object(const char *outfilepath);
+void write_elf_file(const char *outfilepath);
 
 /* pe64.c */
-void write_pe64_object(const char *outfilepath);
+void write_pecoff_file(const char *outfilepath);
 
 /* main.c */
 void cleanup(void);

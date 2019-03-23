@@ -573,7 +573,7 @@ int compare_Elf64_Sym_by_visibility(const void *a, const void *b)
         return visx - visy;
 }
 
-void write_elf64_object(const char *outfilepath)
+void write_elf_file(const char *outfilepath)
 {
         struct ElfStringTable shstrtabStrings;
         struct ElfStringTable strtabStrings;
