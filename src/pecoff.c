@@ -1054,8 +1054,18 @@ void write_pecoff_file(const char *filepath)
 
                 if (relocKind == RELOC_SECTION_RELATIVE) {
                         int sectionKind = relocInfo[i].tSectionKind;
-                        int esec = sectionToPe64section[sectionKind];
-                        pesym = pe64sectionToPe64sym[esec];
+                        int pesec = sectionToPe64section[sectionKind] + 1;  /* 1-based */
+                        /* Make pesym a new unnamed symbol based on the reference symbol */
+                        int x = pe64symCnt++;
+                        BUF_RESERVE(&pe64symTab, &pe64symTabAlloc, pe64symCnt);
+                        set_PE_Symbol_Name(&pe64symTab[x], "");
+                        pe64symTab[x].PESy_Value = addend;
+                        pe64symTab[x].PESy_Type = 0x00;  // ???
+                        pe64symTab[x].PESy_StorageClass = IMAGE_SYM_CLASS_STATIC;
+                        pe64symTab[x].PESy_SectionNumber = (PED_WORD) pesec;
+                        pe64symTab[x].PESy_NumberOfAuxSymbols = 0;
+
+                        pesym = x;
                 }
                 else if (relocKind == RELOC_SYMBOL_RELATIVE) {
                         Symbol symbol = relocInfo[i].tSymbol;
