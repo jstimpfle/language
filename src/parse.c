@@ -482,6 +482,17 @@ Expr parse_expr(int minprec)
                 exprInfo[expr].tLiteral.literalKind = LITERAL_STRING;
                 exprInfo[expr].tLiteral.tString = string;
         }
+        else if (tokenInfo[tok].tokenKind == TOKEN_CHARACTER) {
+                consume_token();
+                int value = tokenInfo[tok].tCharacter.value;
+                expr = exprCnt++;
+                RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+                exprInfo[expr].proc = currentProc;
+                exprInfo[expr].exprKind = EXPR_LITERAL;
+                exprInfo[expr].tLiteral.tok = tok;
+                exprInfo[expr].tLiteral.literalKind = LITERAL_CHARACTER;
+                exprInfo[expr].tLiteral.tCharacter = value;
+        }
         else if (tokenInfo[tok].tokenKind == TOKEN_LEFTBRACE) {
                 consume_token();
                 expr = exprCnt++;

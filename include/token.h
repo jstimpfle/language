@@ -21,6 +21,7 @@ enum TokenKind {
         TOKEN_INTEGER,
         TOKEN_FLOAT,
         TOKEN_STRING,
+        TOKEN_CHARACTER,
         TOKEN_LEFTPAREN,
         TOKEN_RIGHTPAREN,
         TOKEN_LEFTBRACE,
@@ -100,6 +101,10 @@ struct StringTokenInfo {
         String value;
 };
 
+struct CharacterTokenInfo {
+        int value;
+};
+
 struct TokenInfo {
         File file;
         int offset;
@@ -109,6 +114,7 @@ struct TokenInfo {
                 struct IntegerTokenInfo tInteger;
                 struct FloatTokenInfo tFloat;
                 struct StringTokenInfo tString;
+                struct CharacterTokenInfo tCharacter;
         };
 };
 

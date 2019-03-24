@@ -1,8 +1,7 @@
 #include "defs.h"
 #include "api.h"
 
-INTERNAL
-int look_char(void)
+INTERNAL int look_char(void)
 {
         if (currentOffset >= fileInfo[currentFile].size)
                 return -1;
@@ -12,11 +11,61 @@ int look_char(void)
         return c;
 }
 
-INTERNAL
-void consume_char(void)
+INTERNAL int look_char_noeol(const char *context)
+{
+        int c = look_char();
+        if (c == -1)
+                FATAL_LEX_ERROR(
+                        "EOF encountered while %s\n", context);
+        return c;
+}
+
+INTERNAL void consume_char(void)
 {
         ASSERT(currentOffset < fileInfo[currentFile].size);
         currentOffset++;
+}
+
+INTERNAL int char_as_hex(int c)
+{
+        if ('0' <= c && c <= '9')
+                return c - '0';
+        if ('A' <= c && c <= 'F')
+                return 10 + c - 'A';
+        if ('a' <= c && c <= 'f')
+                return 10 + c - 'a';
+        return -1;
+}
+
+INTERNAL int read_hex_char(void)
+{
+        int c = look_char_noeol("reading hex character");
+        consume_char();
+        int x = char_as_hex(c);
+        if (x == -1)
+                FATAL_LEX_ERROR("Invalid character 0x%.2x encountered "
+                        "while reading hex escape sequence\n", c);
+        return x;
+}
+
+INTERNAL int read_escape_sequence(void)
+{
+        int c = look_char_noeol("reading escape sequence");
+        consume_char();
+        if (c == 't')
+                return 0x09;
+        else if (c == 'n')
+                return 0x0a;
+        else if (c == 'r')
+                return 0x0d;
+        else if (c == '\\')
+                return '\\';
+        else if (c == 'x') {
+                int x1 = read_hex_char();
+                int x2 = read_hex_char();
+                return x1 * 16 + x2;
+        }
+        FATAL_LEX_ERROR("escape sequence not supported: '\\<0x%x>'\n", c);
 }
 
 Token lex_token(void)
@@ -52,13 +101,13 @@ lookcommentend:
                 }
         }
 
-        Token x;
+        Token token;
 tokenstart:
         /* Start of token found. Variable c contains first character to lex */
-        x = tokenCnt++;
+        token = tokenCnt++;
         RESIZE_GLOBAL_BUFFER(tokenInfo, tokenCnt);
-        tokenInfo[x].file = currentFile;
-        tokenInfo[x].offset = currentOffset - 1;
+        tokenInfo[token].file = currentFile;
+        tokenInfo[token].offset = currentOffset - 1;
         /* remaining fields of tokenInfo[x] are set depending on token type */
         if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_')
                 goto wordtoken;
@@ -66,6 +115,8 @@ tokenstart:
                 goto numbertoken;
         else if (c == '"')
                 goto stringlit;
+        else if (c == '\'')
+                goto charlit;
         else
                 goto baretoken;
 
@@ -83,29 +134,24 @@ wordtoken:
                         break;
                 consume_char();
         }
-        tokenInfo[x].tokenKind = TOKEN_WORD;
-        tokenInfo[x].tWord.string = intern_string(lexbuf, lexbufCnt);
-        return x;
+        tokenInfo[token].tokenKind = TOKEN_WORD;
+        tokenInfo[token].tWord.string = intern_string(lexbuf, lexbufCnt);
+        return token;
 
         long long value;
 numbertoken:
         if (c == '0' && look_char() == 'x') {
-                consume_char();
                 value = 0;
                 for (;;) {
-                        c = look_char();
-                        if ('0' <= c && c <= '9')
-                                value = 16 * value + c - '0';
-                        else if ('a' <= c && c <= 'f')
-                                value = 16 * value + c - 'a';
-                        else if ('A' <= c && c <= 'F')
-                                value = 16 * value + c - 'A';
-                        else
-                                break;
                         consume_char();
+                        c = look_char();
+                        int x = char_as_hex(c);
+                        if (x == -1)
+                                break;
+                        value = 16 * value + x;
                 }
-                tokenInfo[x].tokenKind = TOKEN_INTEGER;
-                tokenInfo[x].tInteger.value = value;
+                tokenInfo[token].tokenKind = TOKEN_INTEGER;
+                tokenInfo[token].tInteger.value = value;
         }
         else {
                 value = c - '0';
@@ -127,14 +173,14 @@ numbertoken:
                                 consume_char();
                                 value = 10 * value + c - '0';
                         }
-                        tokenInfo[x].tokenKind = TOKEN_FLOAT;
-                        tokenInfo[x].tFloat.value = (float) value / n;
+                        tokenInfo[token].tokenKind = TOKEN_FLOAT;
+                        tokenInfo[token].tFloat.value = (float) value / n;
                 } else {
-                        tokenInfo[x].tokenKind = TOKEN_INTEGER;
-                        tokenInfo[x].tInteger.value = value;
+                        tokenInfo[token].tokenKind = TOKEN_INTEGER;
+                        tokenInfo[token].tInteger.value = value;
                 }
         }
-        return x;
+        return token;
 
 stringlit:
         lexbufCnt = 0;
@@ -146,31 +192,33 @@ stringlit:
                 consume_char();
                 if (c == '"')
                         break;
-                if (c == '\\') {
-                        c = look_char();
-                        if (c == -1)
-                                FATAL_LEX_ERROR(
-                                        "EOF encountered while looking for "
-                                        "the end of the escape sequence\n");
-                        consume_char();
-                        if (c == 'n')
-                                c = '\n';
-                        else if (c == '\\') {
-                                /* (c = '\\') */
-                        }
-                        else {
-                                FATAL_LEX_ERROR(
-                                        "escape sequence not supported: "
-                                        "'\\<0x%x>'\n", c);
-                        }
-                }
+                if (c == '\\')
+                        c = read_escape_sequence();
                 int idx = lexbufCnt++;
                 RESIZE_GLOBAL_BUFFER(lexbuf, lexbufCnt);
                 lexbuf[idx] = (char) c;
         }
-        tokenInfo[x].tokenKind = TOKEN_STRING;
-        tokenInfo[x].tString.value = intern_string(lexbuf, lexbufCnt);
-        return x;
+        tokenInfo[token].tokenKind = TOKEN_STRING;
+        tokenInfo[token].tString.value = intern_string(lexbuf, lexbufCnt);
+        return token;
+
+        int charvalue;
+charlit:
+        c = look_char_noeol("lexing character literal");
+        consume_char();
+        if (c == '\\')
+                charvalue = read_escape_sequence();
+        else
+                charvalue = c;
+        c = look_char_noeol("lexing character literal");
+        if (c != '\'')
+                FATAL_LEX_ERROR("Invalid character literal. "
+                        "Expected closing '\n");
+        consume_char();
+        DEBUG("Value of escape sequence is %d\n", charvalue);
+        tokenInfo[token].tokenKind = TOKEN_CHARACTER;
+        tokenInfo[token].tCharacter.value = charvalue;
+        return token;
 
         int tokenKind;
 baretoken:
@@ -181,9 +229,10 @@ baretoken:
                         goto goodbaretoken;
                 }
         }
+        int c2 = look_char();
         for (int i = 0; i < lex2Cnt; i++) {
                 if (c == lex2[i].ch1) {
-                        if (look_char() == lex2[i].ch2) {
+                        if (c2 == lex2[i].ch2) {
                                 consume_char();
                                 tokenKind = lex2[i].kind2;
                         }
@@ -195,11 +244,11 @@ baretoken:
         }
         for (int i = 0; i < lex3Cnt; i++) {
                 if (c == lex3[i].ch1) {
-                        if (look_char() == lex3[i].ch2) {
+                        if (c2 == lex3[i].ch2) {
                                 consume_char();
                                 tokenKind = lex3[i].kind2;
                         }
-                        else if (look_char() == lex3[i].ch3) {
+                        else if (c2 == lex3[i].ch3) {
                                 consume_char();
                                 tokenKind = lex3[i].kind3;
                         }
@@ -211,6 +260,6 @@ baretoken:
         }
         FATAL_LEX_ERROR("Failed to lex token\n");
 goodbaretoken:
-        tokenInfo[x].tokenKind = tokenKind;
-        return x;
+        tokenInfo[token].tokenKind = tokenKind;
+        return token;
 }

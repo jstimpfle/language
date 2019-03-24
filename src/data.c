@@ -14,6 +14,7 @@ const char *const tokenKindString[NUM_TOKEN_KINDS] = {
         [TOKEN_INTEGER]        = "TOKEN_INTEGER",
         [TOKEN_FLOAT]          = "TOKEN_FLOAT",
         [TOKEN_STRING]         = "TOKEN_STRING",
+        [TOKEN_CHARACTER]      = "TOKEN_CHARACTER",
         [TOKEN_LEFTPAREN]      = "TOKEN_LEFTPAREN",
         [TOKEN_RIGHTPAREN]     = "TOKEN_RIGHTPAREN",
         [TOKEN_LEFTBRACE]      = "TOKEN_LEFTBRACE",
@@ -51,8 +52,10 @@ const char *const tokenKindString[NUM_TOKEN_KINDS] = {
 };
 
 const char *const literalKindString[NUM_LITERAL_KINDS] = {
-        [LITERAL_INTEGER] = "LITERAL_INTEGER",
-        [LITERAL_STRING]  = "LITERAL_STRING",
+        [LITERAL_INTEGER]   = "LITERAL_INTEGER",
+        [LITERAL_FLOAT]     = "LITERAL_FLOAT",
+        [LITERAL_STRING]    = "LITERAL_STRING",
+        [LITERAL_CHARACTER] = "LITERAL_CHARACTER",
 };
 
 const char *const unopKindString[NUM_UNOP_KINDS] = {

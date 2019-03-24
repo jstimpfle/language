@@ -139,6 +139,7 @@ Type check_literal_expr_type(Expr x)
 {
         switch (exprInfo[x].tLiteral.literalKind) {
         case LITERAL_INTEGER:
+        case LITERAL_CHARACTER:
                 return builtinType[BUILTINTYPE_INT];
         case LITERAL_FLOAT:
                 return builtinType[BUILTINTYPE_FLOAT];

@@ -91,6 +91,11 @@ void compile_literal_expr(Expr x, UNUSED int usedAsLvalue)
                 emit_string_load(s, irproc, irreg);
                 break;
         }
+        case LITERAL_CHARACTER: {
+                int constval = exprInfo[x].tLiteral.tCharacter;
+                emit_integer_load(constval, irproc, irreg);
+                break;
+        }
         default:
                 UNHANDLED_CASE();
         }

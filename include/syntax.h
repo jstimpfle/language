@@ -135,6 +135,7 @@ enum LiteralKind {
         LITERAL_INTEGER,
         LITERAL_FLOAT,
         LITERAL_STRING,
+        LITERAL_CHARACTER,
         NUM_LITERAL_KINDS,
 };
 
@@ -236,6 +237,7 @@ struct LiteralExprInfo {
         Token tok; // XXX: also used for LITERAL_INTEGER / LITERALL_FLOAT
         union {
                 String tString;
+                int tCharacter;
         };
 };
 

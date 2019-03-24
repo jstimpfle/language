@@ -1,0 +1,12 @@
+proc main() int
+{
+    data y int = '3';
+    for i from '0' to '9' + 1 do
+        print64(i);
+    print64('\x0a');
+    print64('\t');
+    print64('\n');
+    print64('\r');
+    print64('\\');
+    return 0;
+}
