@@ -66,9 +66,8 @@ INTERNAL String replace_file_extension(String x, const char *newExtension)
         return intern_string(buf, totalLength);
 }
 
-int main(int argc, const char **argv)
+INTERNAL int parse_cmdline(int argc, const char **argv)
 {
-        const char *progname = argv[0];
         int badCmdline = 0;
 
         for (int i = 0; i < LENGTH(cmdlineOptionWithArgstring); i++)
@@ -79,7 +78,6 @@ int main(int argc, const char **argv)
                         File x = fileCnt++;
                         RESIZE_GLOBAL_BUFFER(fileInfo, fileCnt);
                         fileInfo[x].filepath = intern_cstring(argv[i]);
-                        read_whole_file(x);
                         continue;
                 }
 
@@ -106,33 +104,50 @@ int main(int argc, const char **argv)
 
                 MSG(lvl_error,
                         "Invalid command-line argument: \"%s\"\n", argv[i]);
-                        badCmdline = 1;
+                badCmdline = 1;
 
-                nextArg:
-                        continue;
+        nextArg:
+                continue;
         }
+
         if (fileCnt == 0) {
                 MSG(lvl_error, "No files to compile given on command line\n");
                 badCmdline = 1;
         }
-        if (badCmdline) {
-                print_usage(progname);
-                MSG(lvl_error, "bad invocation! Terminating.\n");
-                return 1;
-        }
+
+        if (badCmdline)
+                return 0;
 
         if (doWriteElfFile && ELF_ObjectFilepath == (String)-1) {
                 String filepath = fileInfo[fileCnt - 1].filepath;
                 ELF_ObjectFilepath = replace_file_extension(filepath, ".o");
         }
+
         if (doWritePecoffFile && PECOFF_ObjectFilepath == (String)-1) {
                 String filepath = fileInfo[fileCnt - 1].filepath;
                 PECOFF_ObjectFilepath = replace_file_extension(filepath, ".obj");
         }
 
+        return 1;
+}
+
+int main(int argc, const char **argv)
+{
+        const char *progname = argv[0];
+
+        if (!parse_cmdline(argc, argv)) {
+                print_usage(progname);
+                MSG(lvl_error, "bad invocation! Terminating.\n");
+                return 1;
+        }
+
         if (doPrintHelpString) {
                 print_usage(progname);
                 return 0;
+        }
+
+        for (File x = 0; x < fileCnt; x++) {
+                read_whole_file(x);
         }
 
         setup_program();

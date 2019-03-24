@@ -20,3 +20,4 @@
 #endif
 
 #define INTERNAL static
+#define ARGUMENT_IS_UNUSED(arg) (void)(arg)

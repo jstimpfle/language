@@ -19,24 +19,32 @@ void *mem_realloc(void *ptr, int size)
         return realloc(ptr, size);
 }
 
-void _buf_init(void **ptr, struct Alloc *alloc, UNUSED int elsize,
-        UNUSED const char *file, UNUSED int line)
+void _buf_init(void **ptr, struct Alloc *alloc, int elsize,
+        const char *file, int line)
 {
+        ARGUMENT_IS_UNUSED(elsize);
+        ARGUMENT_IS_UNUSED(file);
+        ARGUMENT_IS_UNUSED(line);
         *ptr = NULL;
         CLEAR(*alloc);
 }
 
-void _buf_exit(void **ptr, struct Alloc *alloc, UNUSED int elsize,
-        UNUSED const char *file, UNUSED int line)
+void _buf_exit(void **ptr, struct Alloc *alloc, int elsize,
+        const char *file, int line)
 {
+        ARGUMENT_IS_UNUSED(elsize);
+        ARGUMENT_IS_UNUSED(file);
+        ARGUMENT_IS_UNUSED(line);
         free(*ptr);
         *ptr = NULL;
         CLEAR(*alloc);
 }
 
 void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
-        int clear, UNUSED const char *file, UNUSED int line)
+        int clear, const char *file, int line)
 {
+        ARGUMENT_IS_UNUSED(file);
+        ARGUMENT_IS_UNUSED(line);
         int cnt;
         void *p;
         if (alloc->cap < nelems) {

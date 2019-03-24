@@ -153,11 +153,11 @@ DATA long long DBG_totalbytesalloced;
 DATA long long DBG_totalbytesrealloced;
 
 void _buf_init(void **ptr, struct Alloc *alloc, int elsize,
-               const char *UNUSED file, int UNUSED line);
+               const char *file, int line);
 void _buf_exit(void **ptr, struct Alloc *alloc, int elsize,
-               const char *UNUSED file, int UNUSED line);
+               const char *file, int line);
 void _buf_reserve(void **ptr, struct Alloc *alloc, int nelems, int elsize,
-                  int clear, const char *UNUSED file, int UNUSED line);
+                  int clear, const char *file, int line);
 
 #define BUF_INIT(buf, alloc) \
         _buf_init((void**)(buf), (alloc), sizeof **(buf), __FILE__, __LINE__);
@@ -263,8 +263,5 @@ void codegen_x64(void);
 /* elf64.c */
 void write_elf_file(const char *outfilepath);
 
-/* pe64.c */
+/* pecoff.c */
 void write_pecoff_file(const char *outfilepath);
-
-/* main.c */
-void cleanup(void);
