@@ -1056,7 +1056,6 @@ void write_pecoff_file(const char *filepath)
                         int sectionKind = relocInfo[i].tSectionKind;
                         int esec = sectionToPe64section[sectionKind];
                         pesym = pe64sectionToPe64sym[esec];
-                        DEBUG("pesym is %d\n", pesym);
                 }
                 else if (relocKind == RELOC_SYMBOL_RELATIVE) {
                         Symbol symbol = relocInfo[i].tSymbol;

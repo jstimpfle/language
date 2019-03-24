@@ -1,6 +1,7 @@
 proc main() int
 {
     prints("Hello, world!\n");
+    prints("Hello, sailor!\n");
     return 0;
 }
 

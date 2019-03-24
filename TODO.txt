@@ -1,3 +1,6 @@
+Give some love to prettyprint.c. Make output truer to input file by walking
+global directives.
+
 Make a distinction:
     1) exiting early when a compiler logic bug was detected
     2) exiting early when there is an error in the project to be compiled

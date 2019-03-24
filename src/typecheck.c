@@ -144,7 +144,7 @@ Type check_literal_expr_type(Expr x)
         case LITERAL_FLOAT:
                 return builtinType[BUILTINTYPE_FLOAT];
         case LITERAL_STRING:
-                return pointer_type(builtinType[BUILTINTYPE_CHAR]);
+                return string_type();
         default:
                 UNHANDLED_CASE();
         }
@@ -466,11 +466,21 @@ Type check_lengthof_expr_type(Expr x)
         return builtinType[BUILTINTYPE_INT];
 }
 
-INTERNAL
-Type check_stringify_expr_type(Expr x)
+INTERNAL Type check_stringify_expr_type(Expr x)
 {
         (void) x;
-        return pointer_type(builtinType[BUILTINTYPE_CHAR]);
+        return string_type();
+}
+
+INTERNAL Type check_compilervalue_expr_type(Expr x)
+{
+        int cvkind = exprInfo[x].tCompilervalue.compilervalueKind;
+        switch (cvkind) {
+        case COMPILERVALUE_FILE: return string_type();
+        case COMPILERVALUE_LINE: return builtinType[BUILTINTYPE_INT];
+        case COMPILERVALUE_PROCNAME: return string_type();
+        default: UNHANDLED_CASE();
+        }
 }
 
 INTERNAL
@@ -486,6 +496,7 @@ Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
         [EXPR_SIZEOF]     = check_sizeof_expr_type,
         [EXPR_LENGTHOF]   = check_lengthof_expr_type,
         [EXPR_STRINGIFY]  = check_stringify_expr_type,
+        [EXPR_COMPILERVALUE] = check_compilervalue_expr_type,
 };
 
 Type check_expr_type(Expr x)

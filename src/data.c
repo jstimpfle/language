@@ -88,18 +88,25 @@ const char *const binopKindString[NUM_BINOP_KINDS] = {
         [BINOP_BITXOR]   = "BINOP_BITXOR",
 };
 
+const char *const compilervalueKindString[NUM_COMPILERVALUE_KINDS] = {
+        [COMPILERVALUE_FILE]     = "COMPILERVALUE_FILE",
+        [COMPILERVALUE_LINE]     = "COMPILERVALUE_LINE",
+        [COMPILERVALUE_PROCNAME] = "COMPILERVALUE_PROCNAME",
+};
+
 const char *const exprKindString[NUM_EXPR_KINDS] = {
-        [EXPR_LITERAL]    = "EXPR_LITERAL",
-        [EXPR_SYMREF]     = "EXPR_SYMREF",
-        [EXPR_UNOP]       = "EXPR_UNOP",
-        [EXPR_BINOP]      = "EXPR_BINOP",
-        [EXPR_MEMBER]     = "EXPR_MEMBER",
-        [EXPR_SUBSCRIPT]  = "EXPR_SUBSCRIPT",
-        [EXPR_CALL]       = "EXPR_CALL",
-        [EXPR_COMPOUND]   = "EXPR_COMPOUND",
-        [EXPR_SIZEOF]     = "EXPR_SIZEOF",
-        [EXPR_LENGTHOF]   = "EXPR_LENGTHOF",
-        [EXPR_STRINGIFY]  = "EXPR_STRINGIFY",
+        [EXPR_LITERAL]       = "EXPR_LITERAL",
+        [EXPR_SYMREF]        = "EXPR_SYMREF",
+        [EXPR_UNOP]          = "EXPR_UNOP",
+        [EXPR_BINOP]         = "EXPR_BINOP",
+        [EXPR_MEMBER]        = "EXPR_MEMBER",
+        [EXPR_SUBSCRIPT]     = "EXPR_SUBSCRIPT",
+        [EXPR_CALL]          = "EXPR_CALL",
+        [EXPR_COMPOUND]      =  "EXPR_COMPOUND",
+        [EXPR_SIZEOF]        = "EXPR_SIZEOF",
+        [EXPR_LENGTHOF]      = "EXPR_LENGTHOF",
+        [EXPR_STRINGIFY]     = "EXPR_STRINGIFY",
+        [EXPR_COMPILERVALUE] = "EXPR_COMPILERVALUE",
 };
 
 const char *const stmtKindString[NUM_STMT_KINDS] = {
@@ -310,6 +317,9 @@ const char *const constStrToCstring[NUM_CONSTSTR_KINDS] = {
         [CONSTSTR_CONSTANT]   = "constant",
         [CONSTSTR_ENUM]       = "enum",
         [CONSTSTR_TYPEALIAS]  = "typealias",
+        [CONSTSTR_FILE]       = "file",
+        [CONSTSTR_LINE]       = "line",
+        [CONSTSTR_PROCNAME]   = "procname",
 };
 
 const struct BasetypeToBeInitialized basetypesToBeInitialized[] = {

@@ -26,6 +26,26 @@ INTERNAL Proc CURRENTLY_EXPANDED_PROC;
  */
 #define CAREFUL_EXPAND(x) { Expr _new_ = expand_expr(x); x = _new_; }
 
+
+INTERNAL void push_macro_invocation(Expr expr)
+{
+        /* Debug code 2019/03
+        File file; int offset;
+        find_expr_position(expr, &file, &offset);
+        String filepath = fileInfo[file].filepath;
+        MSG(lvl_info, "pushing macro invocation at %s offset %d\n", string_buffer(filepath), offset);
+        */
+        int idx = macroInvocationStackSize++;
+        RESIZE_GLOBAL_BUFFER(macroInvocationStack, macroInvocationStackSize);
+        macroInvocationStack[idx] = expr;
+}
+
+INTERNAL void pop_macro_invocation(void)
+{
+        ASSERT(macroInvocationStackSize > 0);
+        macroInvocationStackSize--;
+}
+
 INTERNAL
 Expr expand_expr(Expr x)
 {
@@ -49,7 +69,10 @@ Expr expand_expr(Expr x)
                                       macroKindString[macroKind],
                                       macroKindString[MACRO_VALUE]);
                         }
-                        return expand_expr(macroInfo[macro].expr);
+                        push_macro_invocation(x);
+                        Expr expanded = expand_expr(macroInfo[macro].expr);
+                        pop_macro_invocation();
+                        return expanded;
                 }
                 else {
                         goto isnotamacro;
@@ -100,7 +123,10 @@ Expr expand_expr(Expr x)
                 }
                 DEBUG("PATCH expression, expand macro=%d!\n", macro);
 
+                push_macro_invocation(x);
                 Expr y = expand_expr(macroInfo[macro].expr);
+                pop_macro_invocation();
+
                 macroBoundArgCnt -= nargs;
                 return y;
         }
@@ -188,6 +214,20 @@ isnotamacro:
                         break;
                 case EXPR_STRINGIFY:
                         CAREFUL_EXPAND(exprInfo[y].tStringify.expr);
+                        break;
+                case EXPR_COMPILERVALUE:
+                        /* XXX: compiler values may depend on the location of
+                        the source token. That is a problem if the compiler
+                        value expression is part of a macro body, when we
+                        really wanted to get information related to the place
+                        of invocation of the macro.
+                        For now we will hack in the first token of the macro
+                        invocation. Not sure if we will ever find a better
+                        solution. */
+                        if (macroInvocationStackSize > 0) {
+                                Expr mx = macroInvocationStack[macroInvocationStackSize - 1];
+                                exprInfo[y].tCompilervalue.token = find_expr_token(mx);
+                        }
                         break;
                 default:
                         UNHANDLED_CASE();

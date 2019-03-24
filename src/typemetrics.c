@@ -136,6 +136,11 @@ Type pointer_type(Type t)
         return r;
 }
 
+Type string_type(void)
+{
+        return pointer_type(builtinType[BUILTINTYPE_CHAR]);
+}
+
 int type_equal(Type a, Type b)
 {
         ASSERT(typeInfo[a].resolveState == RESOLVE_RESOLVED);

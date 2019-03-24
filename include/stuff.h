@@ -57,6 +57,9 @@ enum ConstStrKind {
         CONSTSTR_CONSTANT,
         CONSTSTR_ENUM,
         CONSTSTR_TYPEALIAS,
+        CONSTSTR_FILE,
+        CONSTSTR_LINE,
+        CONSTSTR_PROCNAME,
         NUM_CONSTSTR_KINDS,
 };
 
@@ -149,6 +152,7 @@ DATA struct StringBucketInfo *strBucketInfo;
         MAKE_GLOBAL_BUFFER(  macroCnt,           macroInfo            ),  \
         MAKE_GLOBAL_BUFFER(  macroParamCnt,      macroParamInfo       ),  \
         MAKE_GLOBAL_BUFFER(  macroBoundArgCnt,   macroBoundArg        ),  \
+        MAKE_GLOBAL_BUFFER(  macroInvocationStackSize,     macroInvocationStack           ),  \
         MAKE_GLOBAL_BUFFER(  paramCnt,           paramInfo            ),  \
         MAKE_GLOBAL_BUFFER(  procCnt,            procInfo             ),  \
         MAKE_GLOBAL_BUFFER(  procCnt,            procToIrProc         ),  \

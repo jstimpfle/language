@@ -139,6 +139,13 @@ enum LiteralKind {
         NUM_LITERAL_KINDS,
 };
 
+enum CompilervalueKind {
+        COMPILERVALUE_FILE,
+        COMPILERVALUE_LINE,
+        COMPILERVALUE_PROCNAME,
+        NUM_COMPILERVALUE_KINDS,
+};
+
 enum ExprKind {
         EXPR_LITERAL,
         EXPR_SYMREF,
@@ -151,6 +158,7 @@ enum ExprKind {
         EXPR_SIZEOF,
         EXPR_LENGTHOF,
         EXPR_STRINGIFY,
+        EXPR_COMPILERVALUE,
         NUM_EXPR_KINDS,
 };
 
@@ -296,6 +304,11 @@ struct StringifyExprInfo {
         Expr expr;
 };
 
+struct CompilervalueExprInfo {
+        Token token;
+        int compilervalueKind;
+};
+
 struct ExprInfo {
         Proc proc;
         int exprKind;
@@ -311,6 +324,7 @@ struct ExprInfo {
                 struct SizeofExprInfo tSizeof;
                 struct LengthofExprInfo tLengthof;
                 struct StringifyExprInfo tStringify;
+                struct CompilervalueExprInfo tCompilervalue;
         };
 };
 
@@ -513,6 +527,7 @@ struct DirectiveInfo {
 
 extern const char *const symbolKindString[NUM_SYMBOL_KINDS];
 extern const char *const literalKindString[NUM_LITERAL_KINDS];
+extern const char *const compilervalueKindString[NUM_COMPILERVALUE_KINDS];
 extern const char *const exprKindString[NUM_EXPR_KINDS];
 extern const char *const stmtKindString[NUM_STMT_KINDS];
 extern const char *const macroKindString[NUM_MACRO_KINDS];

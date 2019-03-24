@@ -14,3 +14,7 @@ struct MacroBoundArg {
 
 DATA int macroBoundArgCnt;
 DATA struct MacroBoundArg *macroBoundArg;
+
+/* Stack of currently expanded macros (both value or function macros) */
+DATA int macroInvocationStackSize;
+DATA Symref *macroInvocationStack;

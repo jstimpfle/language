@@ -1,0 +1,34 @@
+macro DEBUG(msg) =>
+    _debug(msg, #file, #line, #procname);
+
+proc _debug(msg ^char, file ^char, line int, procname ^char) void
+{
+    prints(msg);
+    prints(" at file ");
+    prints(file);
+    prints(", line ");
+    print64(line);
+    prints(" in function ");
+    prints(procname);
+    prints("\n");
+}
+
+proc a() void
+{
+    DEBUG("test with a");
+}
+
+proc b() void
+{
+    DEBUG("test with b");
+}
+
+proc main() int
+{
+    a();
+    prints("\n\n\n");
+    b();
+    return 0;
+}
+
+export main;

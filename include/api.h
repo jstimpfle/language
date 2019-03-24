@@ -55,15 +55,20 @@ void NORETURN _abort(void);
 
 #define ABORT() _abort()
 
+/*
+ * sourcefind.c
+ */
+
+int compute_lineno(File file, int offset);
+int compute_colno(File file, int offset);
+void compute_file_location_of_symbol(Symbol symbol, const char **filename, int *lineno, int *colno);
+Token find_expr_token(Expr x);  /* find "first token of expression" */
+void find_expr_position(Expr x, File *file, int *offset);
 
 /*
  * messages.c
  */
 
-int compute_lineno(File file, int offset);
-int compute_colno(File file, int offset);
-void compute_file_location_of_symbol(
-        Symbol symbol, const char **filename, int *lineno, int *colno);
 
 void _msg(const char *filename, int line,
         const char *loglevel, const char *fmt, ...);
@@ -221,6 +226,7 @@ int get_struct_offset(Type tp, String memberName);
 Type get_type_behind_pointer(Type tp);
 void print_type(Type tp);
 Type pointer_type(Type t);
+Type string_type(void);
 int type_equal(Type a, Type b);
 
 /* typecheck.c */

@@ -28,16 +28,28 @@ Symbol add_type_symbol(String name, Scope scope, Token nameToken, Type tp)
 }
 
 INTERNAL
-Expr add_unop_expr(int opkind, Token tok, Expr expr)
+Expr add_unop_expr(int opkind, Token tok, Expr subexpr)
 {
-        Expr x = exprCnt++;
+        Expr expr = exprCnt++;
         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
-        exprInfo[x].proc = currentProc;
-        exprInfo[x].exprKind = EXPR_UNOP;
-        exprInfo[x].tUnop.unopKind = opkind;
-        exprInfo[x].tUnop.tok = tok;
-        exprInfo[x].tUnop.expr = expr;
-        return x;
+        exprInfo[expr].proc = currentProc;
+        exprInfo[expr].exprKind = EXPR_UNOP;
+        exprInfo[expr].tUnop.unopKind = opkind;
+        exprInfo[expr].tUnop.tok = tok;
+        exprInfo[expr].tUnop.expr = subexpr;
+        return expr;
+}
+
+INTERNAL
+Expr add_compilervalue_expr(Token token, int cvkind)
+{
+        Expr expr = exprCnt++;
+        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+        exprInfo[expr].proc = currentProc;
+        exprInfo[expr].exprKind = EXPR_COMPILERVALUE;
+        exprInfo[expr].tCompilervalue.token = token;
+        exprInfo[expr].tCompilervalue.compilervalueKind = cvkind;
+        return expr;
 }
 
 INTERNAL
@@ -226,13 +238,17 @@ Type parse_type(int prec)
                 tp = parse_type(0);
                 parse_token_kind(TOKEN_RIGHTPAREN);
         }
-        else {
+        else if (look_token_kind(TOKEN_WORD) != (Token) -1) {
                 Symref ref = parse_symref();
                 tp = typeCnt++;
                 RESIZE_GLOBAL_BUFFER(typeInfo, typeCnt);
                 typeInfo[tp].typeKind = TYPE_REFERENCE;
                 typeInfo[tp].tRef.ref = ref;
                 typeInfo[tp].tRef.resolvedTp = (Type) -1;
+        }
+        else {
+                Token token = look_next_token();
+                FATAL_PARSE_ERROR_AT_TOK(token, "Expected type\n");
         }
 
         if (prec > 0)
@@ -409,7 +425,13 @@ Expr parse_expr(int minprec)
                 consume_token();
                 tok = parse_token_kind(TOKEN_WORD);
                 String string = tokenInfo[tok].tWord.string;
-                if (string == constStr[CONSTSTR_SIZEOF]) {
+                if (string == constStr[CONSTSTR_FILE])
+                        expr = add_compilervalue_expr(tok, COMPILERVALUE_FILE);
+                else if (string == constStr[CONSTSTR_LINE])
+                        expr = add_compilervalue_expr(tok, COMPILERVALUE_LINE);
+                else if (string == constStr[CONSTSTR_PROCNAME])
+                        expr = add_compilervalue_expr(tok, COMPILERVALUE_PROCNAME);
+                else if (string == constStr[CONSTSTR_SIZEOF]) {
                         parse_token_kind(TOKEN_LEFTPAREN);
                         Expr subexpr = parse_expr(0);
                         parse_token_kind(TOKEN_RIGHTPAREN);
