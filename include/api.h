@@ -98,7 +98,7 @@ void _msg_at_expr(const char *srcfilename, int srcline,
                        "%s()\n", __func__); \
 } while (0)
 
-#define FATAL_ERROR(...) do { \
+#define FATAL(...) do { \
         MSG(lvl_fatal, __VA_ARGS__); \
         exit_program(1); \
 } while (0)
@@ -126,9 +126,6 @@ void _msg_at_expr(const char *srcfilename, int srcline,
 
 #define FATAL_PARSE_ERROR_AT_TOK(...) \
         FATAL_ERROR_AT_TOK(__VA_ARGS__)
-
-#define FATAL(...) \
-        FATAL_ERROR(__VA_ARGS__)
 
 #define ASSERT(x) do { \
         if (!(x)) { \

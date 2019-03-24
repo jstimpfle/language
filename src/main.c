@@ -59,7 +59,7 @@ INTERNAL String replace_file_extension(String x, const char *newExtension)
         int lengthOfExtension = cstr_length(newExtension);
         char buf[256];
         int totalLength = len + lengthOfExtension;
-        if (totalLength > sizeof buf)
+        if (totalLength > LENGTH(buf))
                 FATAL("Filename %s is too long\n", s);
         copy_mem(buf, s, len);
         copy_mem(buf + len, newExtension, lengthOfExtension);
@@ -96,7 +96,7 @@ INTERNAL int parse_cmdline(int argc, const char **argv)
                         if (cstr_equal(argv[i], optionName)) {
                                 i++;
                                 if (i == argc)
-                                        FATAL_ERROR("Option %s requires an argument\n", optionName);
+                                        FATAL("Option %s requires an argument\n", optionName);
                                 *argStorage = intern_cstring(argv[i]);
                                 goto nextArg;
                         }
