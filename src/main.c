@@ -12,6 +12,7 @@ struct CmdlineOptionWithArgstring {
 };
 
 INTERNAL struct SimpleCmdlineOption simpleCmdlineOption[] = {
+        { "-help", &doPrintHelpString },
         { "-debug", &doDebug },
         { "-prettyprint-ast", &doPrettyPrintAst },
         { "-dump-ir", &doDumpIr },
@@ -110,7 +111,7 @@ INTERNAL int parse_cmdline(int argc, const char **argv)
                 continue;
         }
 
-        if (fileCnt == 0) {
+        if (!doPrintHelpString && fileCnt == 0) {
                 MSG(lvl_error, "No files to compile given on command line\n");
                 badCmdline = 1;
         }
