@@ -41,13 +41,13 @@ Expr add_unop_expr(int opkind, Token tok, Expr subexpr)
 }
 
 INTERNAL
-Expr add_compilervalue_expr(Token token, int cvkind)
+Expr add_compilervalue_expr(Token hashtok, int cvkind)
 {
         Expr expr = exprCnt++;
         RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
         exprInfo[expr].proc = currentProc;
         exprInfo[expr].exprKind = EXPR_COMPILERVALUE;
-        exprInfo[expr].tCompilervalue.token = token;
+        exprInfo[expr].tCompilervalue.hashtok = hashtok;
         exprInfo[expr].tCompilervalue.compilervalueKind = cvkind;
         return expr;
 }
@@ -407,6 +407,44 @@ Macro parse_macro(void)
         return macro;
 }
 
+INTERNAL Expr parse_compilercall_expr(Token hashtok, int compilercallKind)
+{
+        parse_token_kind(TOKEN_LEFTPAREN);
+        Expr subexpr = parse_expr(0);
+        parse_token_kind(TOKEN_RIGHTPAREN);
+        Expr expr = exprCnt++;
+        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
+        exprInfo[expr].proc = currentProc;
+        exprInfo[expr].exprKind = EXPR_COMPILERCALL;
+        exprInfo[expr].tCompilercall.hashtok = hashtok;
+        exprInfo[expr].tCompilercall.compilercallKind = compilercallKind;
+        exprInfo[expr].tCompilercall.expr = subexpr;
+        return expr;
+}
+
+INTERNAL Expr parse_compiler_expr(void)
+{
+        Token hashtok = look_next_token();
+        consume_token();
+        Token token = parse_token_kind(TOKEN_WORD);
+        String string = tokenInfo[token].tWord.string;
+        if (string == constStr[CONSTSTR_FILE])
+                return add_compilervalue_expr(hashtok, COMPILERVALUE_FILE);
+        else if (string == constStr[CONSTSTR_LINE])
+                return add_compilervalue_expr(hashtok, COMPILERVALUE_LINE);
+        else if (string == constStr[CONSTSTR_PROCNAME])
+                return add_compilervalue_expr(hashtok, COMPILERVALUE_PROCNAME);
+        else if (string == constStr[CONSTSTR_SIZEOF])
+                return parse_compilercall_expr(hashtok, COMPILERCALL_SIZEOF);
+        else if (string == constStr[CONSTSTR_LENGTHOF])
+                return parse_compilercall_expr(hashtok, COMPILERCALL_LENGTHOF);
+        else if (string == constStr[CONSTSTR_STRINGIFY])
+                return parse_compilercall_expr(hashtok, COMPILERCALL_STRINGIFY);
+        else
+                FATAL_PARSE_ERROR_AT_TOK(token,
+                        "Invalid compiler directive #%s\n", TS(token));
+}
+
 INTERNAL
 Expr parse_expr(int minprec)
 {
@@ -421,51 +459,7 @@ Expr parse_expr(int minprec)
                 expr = add_unop_expr(opkind, tok, subexpr);
         }
         else if (tokenInfo[tok].tokenKind == TOKEN_HASH) {
-                Token hashtok = tok;
-                consume_token();
-                tok = parse_token_kind(TOKEN_WORD);
-                String string = tokenInfo[tok].tWord.string;
-                if (string == constStr[CONSTSTR_FILE])
-                        expr = add_compilervalue_expr(tok, COMPILERVALUE_FILE);
-                else if (string == constStr[CONSTSTR_LINE])
-                        expr = add_compilervalue_expr(tok, COMPILERVALUE_LINE);
-                else if (string == constStr[CONSTSTR_PROCNAME])
-                        expr = add_compilervalue_expr(tok, COMPILERVALUE_PROCNAME);
-                else if (string == constStr[CONSTSTR_SIZEOF]) {
-                        parse_token_kind(TOKEN_LEFTPAREN);
-                        Expr subexpr = parse_expr(0);
-                        parse_token_kind(TOKEN_RIGHTPAREN);
-                        expr = exprCnt++;
-                        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
-                        exprInfo[expr].proc = currentProc;
-                        exprInfo[expr].exprKind = EXPR_SIZEOF;
-                        exprInfo[expr].tSizeof.tok = hashtok;
-                        exprInfo[expr].tSizeof.expr = subexpr;
-                }
-                else if (string == constStr[CONSTSTR_LENGTHOF]) {
-                        parse_token_kind(TOKEN_LEFTPAREN);
-                        Expr subexpr = parse_expr(0);
-                        parse_token_kind(TOKEN_RIGHTPAREN);
-                        expr = exprCnt++;
-                        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
-                        exprInfo[expr].proc = currentProc;
-                        exprInfo[expr].exprKind = EXPR_LENGTHOF;
-                        exprInfo[expr].tLengthof.tok = hashtok;
-                        exprInfo[expr].tLengthof.expr = subexpr;
-                }
-                else if (string == constStr[CONSTSTR_STRINGIFY]) {
-                        Expr subexpr = parse_expr(5); // TODO: very high precedence level
-                        expr = exprCnt++;
-                        RESIZE_GLOBAL_BUFFER(exprInfo, exprCnt);
-                        exprInfo[expr].proc = currentProc;
-                        exprInfo[expr].exprKind = EXPR_STRINGIFY;
-                        exprInfo[expr].tStringify.tok = hashtok;
-                        exprInfo[expr].tStringify.expr = subexpr;
-                }
-                else {
-                        FATAL_PARSE_ERROR_AT_TOK(tok,
-                                "Invalid compiler directive #%s\n", TS(tok));
-                }
+                expr = parse_compiler_expr();
         }
         else if (tokenInfo[tok].tokenKind == TOKEN_WORD) {
                 Symref ref = parse_symref();

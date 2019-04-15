@@ -630,37 +630,8 @@ void compile_subscript_expr(Expr x, int usedAsLvalue)
         }
 }
 
-
-INTERNAL
-void compile_sizeof_or_lengthof_expr(Expr x, int usedAsLvalue)
+INTERNAL void compile_file_compilervalue_expr(Expr x)
 {
-        ASSERT(! usedAsLvalue);
-        ASSERT(exprInfo[x].exprKind == EXPR_SIZEOF ||
-               exprInfo[x].exprKind == EXPR_LENGTHOF);
-        long long value = fold_integer_expr(x);
-        IrProc irproc = procToIrProc[exprInfo[x].proc];
-        IrReg  irreg = exprToIrReg[x];
-        emit_integer_load(value, irproc, irreg);
-}
-
-INTERNAL
-void compile_stringify_expr(Expr x, int usedAsLvalue)
-{
-        ASSERT(! usedAsLvalue);
-        Expr y = exprInfo[x].tSizeof.expr;
-        if (exprInfo[y].exprKind != EXPR_SYMREF)
-                FATAL("Currently, only variable names can be #stringify'd\n");
-        Symref ref = exprInfo[y].tSymref.ref;
-        String constval = symrefInfo[ref].name;
-        IrProc irproc = procToIrProc[exprInfo[x].proc];
-        IrReg irreg = exprToIrReg[x];
-        emit_string_load(constval, irproc, irreg);
-}
-
-INTERNAL
-void compile_file_compilervalue_expr(Expr x, int usedAsLvalue)
-{
-        ASSERT(!usedAsLvalue);
         File file;
         int offset;
         find_expr_position(x, &file, &offset);
@@ -671,10 +642,8 @@ void compile_file_compilervalue_expr(Expr x, int usedAsLvalue)
         emit_string_load(filepath, irproc, irreg);
 }
 
-INTERNAL
-void compile_line_compilervalue_expr(Expr x, int usedAsLvalue)
+INTERNAL void compile_line_compilervalue_expr(Expr x)
 {
-        ASSERT(!usedAsLvalue);
         File file;
         int offset;
         find_expr_position(x, &file, &offset);
@@ -684,12 +653,10 @@ void compile_line_compilervalue_expr(Expr x, int usedAsLvalue)
         emit_integer_load(line, irproc, irreg);
 }
 
-INTERNAL
-void compile_procname_compilervalue_expr(Expr x, int usedAsLvalue)
+INTERNAL void compile_procname_compilervalue_expr(Expr x)
 {
-        ASSERT(!usedAsLvalue);
         Proc proc = exprInfo[x].proc;
-        ASSERT(proc != (Proc)-1);  /* XXX Is this true? */
+        ASSERT(proc != (Proc) -1);  /* XXX Is this true? */
         Symbol symbol = procInfo[proc].sym;
         String procname = symbolInfo[symbol].name;
         IrProc irproc = procToIrProc[proc];
@@ -697,36 +664,68 @@ void compile_procname_compilervalue_expr(Expr x, int usedAsLvalue)
         emit_string_load(procname, irproc, irreg);
 }
 
-INTERNAL
-void(*const compilervalueKindToCompileFunc[NUM_COMPILERVALUE_KINDS])(Expr x, int usedAsLvalue) = {
+INTERNAL void compile_sizeof_or_lengthof_compilercall_expr(Expr x)
+{
+        long long value = fold_integer_expr(x);
+        IrProc irproc = procToIrProc[exprInfo[x].proc];
+        IrReg  irreg = exprToIrReg[x];
+        emit_integer_load(value, irproc, irreg);
+}
+
+INTERNAL void compile_stringify_compilercall_expr(Expr x)
+{
+        Expr y = exprInfo[x].tCompilercall.expr;
+        if (exprInfo[y].exprKind != EXPR_SYMREF)
+                FATAL("Currently, only variable names can be #stringify'd\n");
+        Symref ref = exprInfo[y].tSymref.ref;
+        String constval = symrefInfo[ref].name;
+        IrProc irproc = procToIrProc[exprInfo[x].proc];
+        IrReg irreg = exprToIrReg[x];
+        emit_string_load(constval, irproc, irreg);
+}
+
+INTERNAL void (*const compilervalueKindToCompileFunc[NUM_COMPILERVALUE_KINDS])(Expr x) = {
         [COMPILERVALUE_FILE] = compile_file_compilervalue_expr,
         [COMPILERVALUE_LINE] = compile_line_compilervalue_expr,
         [COMPILERVALUE_PROCNAME] = compile_procname_compilervalue_expr,
 };
 
-INTERNAL
-void compile_compilervalue_expr(Expr x, int usedAsLvalue)
+INTERNAL void (*const compilercallKindToCompileFunc[NUM_COMPILERCALL_KINDS])(Expr x) = {
+        [COMPILERCALL_STRINGIFY] = compile_stringify_compilercall_expr,
+        [COMPILERCALL_LENGTHOF] = compile_sizeof_or_lengthof_compilercall_expr,
+        [COMPILERCALL_SIZEOF] = compile_sizeof_or_lengthof_compilercall_expr,
+};
+
+INTERNAL void compile_compilervalue_expr(Expr x, int usedAsLvalue)
 {
+        ASSERT(!usedAsLvalue);
         int cvkind = exprInfo[x].tCompilervalue.compilervalueKind;
         ASSERT(0 <= cvkind && cvkind < NUM_COMPILERVALUE_KINDS);
         ASSERT(compilervalueKindToCompileFunc[cvkind]);
-        compilervalueKindToCompileFunc [cvkind] (x, usedAsLvalue);
+        compilervalueKindToCompileFunc [cvkind] (x);
+}
+
+INTERNAL void compile_compilercall_expr(Expr x, int usedAsLvalue)
+{
+        ASSERT(!usedAsLvalue);
+        int kind = exprInfo[x].tCompilercall.compilercallKind;
+        ASSERT(0 <= kind && kind < NUM_COMPILERCALL_KINDS);
+        ASSERT(compilercallKindToCompileFunc[kind]);
+        compilercallKindToCompileFunc [kind] (x);
 }
 
 INTERNAL
 void (*const exprKindToCompileFunc[NUM_EXPR_KINDS])(Expr x, int usedAsLvalue) = {
-        [EXPR_LITERAL]    = compile_literal_expr,
-        [EXPR_UNOP]       = compile_unop_expr,
-        [EXPR_BINOP]      = compile_binop_expr,
-        [EXPR_MEMBER]     = compile_member_expr,
-        [EXPR_SUBSCRIPT]  = compile_subscript_expr,
-        [EXPR_SYMREF]     = compile_symref_expr,
-        [EXPR_CALL]       = compile_call_expr,
-        [EXPR_COMPOUND]   = compile_compound_expr,
-        [EXPR_SIZEOF]     = compile_sizeof_or_lengthof_expr,
-        [EXPR_LENGTHOF]   = compile_sizeof_or_lengthof_expr,
-        [EXPR_STRINGIFY]  = compile_stringify_expr,
+        [EXPR_LITERAL]       = compile_literal_expr,
+        [EXPR_UNOP]          = compile_unop_expr,
+        [EXPR_BINOP]         = compile_binop_expr,
+        [EXPR_MEMBER]        = compile_member_expr,
+        [EXPR_SUBSCRIPT]     = compile_subscript_expr,
+        [EXPR_SYMREF]        = compile_symref_expr,
+        [EXPR_CALL]          = compile_call_expr,
+        [EXPR_COMPOUND]      = compile_compound_expr,
         [EXPR_COMPILERVALUE] = compile_compilervalue_expr,
+        [EXPR_COMPILERCALL]  = compile_compilercall_expr,
 };
 
 INTERNAL

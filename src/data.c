@@ -94,6 +94,12 @@ const char *const compilervalueKindString[NUM_COMPILERVALUE_KINDS] = {
         [COMPILERVALUE_PROCNAME] = "COMPILERVALUE_PROCNAME",
 };
 
+const char *const compilercallKindString[NUM_COMPILERCALL_KINDS] = {
+        [COMPILERCALL_STRINGIFY] = "COMPILERVALUE_STRINGIFY",
+        [COMPILERCALL_LENGTHOF] = "COMPILERVALUE_LENGTHOF",
+        [COMPILERCALL_SIZEOF] = "COMPILERVALUE_SIZEOF",
+};
+
 const char *const exprKindString[NUM_EXPR_KINDS] = {
         [EXPR_LITERAL]       = "EXPR_LITERAL",
         [EXPR_SYMREF]        = "EXPR_SYMREF",
@@ -102,11 +108,9 @@ const char *const exprKindString[NUM_EXPR_KINDS] = {
         [EXPR_MEMBER]        = "EXPR_MEMBER",
         [EXPR_SUBSCRIPT]     = "EXPR_SUBSCRIPT",
         [EXPR_CALL]          = "EXPR_CALL",
-        [EXPR_COMPOUND]      =  "EXPR_COMPOUND",
-        [EXPR_SIZEOF]        = "EXPR_SIZEOF",
-        [EXPR_LENGTHOF]      = "EXPR_LENGTHOF",
-        [EXPR_STRINGIFY]     = "EXPR_STRINGIFY",
+        [EXPR_COMPOUND]      = "EXPR_COMPOUND",
         [EXPR_COMPILERVALUE] = "EXPR_COMPILERVALUE",
+        [EXPR_COMPILERCALL]  = "EXPR_COMPILERCALL",
 };
 
 const char *const stmtKindString[NUM_STMT_KINDS] = {

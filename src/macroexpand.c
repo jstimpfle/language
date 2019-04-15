@@ -206,15 +206,6 @@ isnotamacro:
                         }
                         break;
                 }
-                case EXPR_SIZEOF:
-                        CAREFUL_EXPAND(exprInfo[y].tSizeof.expr);
-                        break;
-                case EXPR_LENGTHOF:
-                        CAREFUL_EXPAND(exprInfo[y].tLengthof.expr);
-                        break;
-                case EXPR_STRINGIFY:
-                        CAREFUL_EXPAND(exprInfo[y].tStringify.expr);
-                        break;
                 case EXPR_COMPILERVALUE:
                         /* XXX: compiler values may depend on the location of
                         the source token. That is a problem if the compiler
@@ -226,8 +217,11 @@ isnotamacro:
                         solution. */
                         if (macroInvocationStackSize > 0) {
                                 Expr mx = macroInvocationStack[macroInvocationStackSize - 1];
-                                exprInfo[y].tCompilervalue.token = find_expr_token(mx);
+                                exprInfo[y].tCompilervalue.hashtok = find_expr_token(mx);
                         }
+                        break;
+                case EXPR_COMPILERCALL:
+                        CAREFUL_EXPAND(exprInfo[y].tCompilercall.expr);
                         break;
                 default:
                         UNHANDLED_CASE();

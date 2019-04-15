@@ -59,7 +59,7 @@ enum BinopKind {
  * operator.
  *
  * \struct{BinopInfo}, \data{binopInfo}: Map binary operators to additional
- * information: string representation and precedence (associativity), 
+ * information: string representation and precedence (associativity),
  */
 
 struct ToktypeToPrefixUnop {

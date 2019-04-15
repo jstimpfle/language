@@ -3,8 +3,9 @@
 
 #define LOG_TYPE_ERROR_EXPR(...) MSG_AT_EXPR(lvl_error, __VA_ARGS__)
 
-INTERNAL
-int is_lvalue_expression(Expr x)
+INTERNAL Type typecheck_assign(Type dstTp, Expr expr);
+
+INTERNAL int is_lvalue_expression(Expr x)
 {
         int kind = exprInfo[x].exprKind;
         return (kind == EXPR_SYMREF ||
@@ -19,8 +20,7 @@ int is_lvalue_expression(Expr x)
  * TYPE_REFERENCE) or if they are pointer types of the same indirection level
  * and the parameter type has the void type at its base.
  */
-INTERNAL
-int arg_type_matches_param_type(Type argTp, Type paramTp)
+INTERNAL int arg_type_matches_param_type(Type argTp, Type paramTp)
 {
         int tk;
         int ptr = 0;
@@ -58,10 +58,7 @@ int arg_type_matches_param_type(Type argTp, Type paramTp)
         return type_equal(argTp, paramTp);
 }
 
-INTERNAL Type typecheck_assign(Type dstTp, Expr expr);
-
-INTERNAL
-Type typecheck_array_expr(Type dstTp, Expr expr)
+INTERNAL Type typecheck_array_expr(Type dstTp, Expr expr)
 {
         if (exprInfo[expr].exprKind != EXPR_COMPOUND)
                 return (Type) -1;
@@ -80,8 +77,7 @@ Type typecheck_array_expr(Type dstTp, Expr expr)
         return dstTp;
 }
 
-INTERNAL
-Type typecheck_struct_expr(Type dstTp, Expr expr)
+INTERNAL Type typecheck_struct_expr(Type dstTp, Expr expr)
 {
         if (exprInfo[expr].exprKind != EXPR_COMPOUND)
                 return (Type) -1;
@@ -117,8 +113,7 @@ Type typecheck_struct_expr(Type dstTp, Expr expr)
 
 /* typecheck_assign() and arg_type_matches_param_type() probably
  * have basically the same goal. We should unify them */
-INTERNAL
-Type typecheck_assign(Type dstTp, Expr expr)
+INTERNAL Type typecheck_assign(Type dstTp, Expr expr)
 {
         dstTp = referenced_type(dstTp);
         if (typeInfo[dstTp].typeKind == TYPE_ARRAY)
@@ -134,8 +129,37 @@ Type typecheck_assign(Type dstTp, Expr expr)
         return tp;
 }
 
-INTERNAL
-Type check_literal_expr_type(Expr x)
+INTERNAL Type check_sizeof_compilercall_expr_type(Expr x)
+{
+        Expr y = exprInfo[x].tCompilercall.expr;
+        check_expr_type(y);
+        if (exprType[y] == (Type) -1)
+                return (Type) -1;
+        return builtinType[BUILTINTYPE_INT];
+}
+
+INTERNAL Type check_lengthof_compilercall_expr_type(Expr x)
+{
+        Expr y = exprInfo[x].tCompilercall.expr;
+        check_expr_type(y);
+        Type tp = exprType[y];
+        if (tp == (Type) -1)
+                return (Type) -1;
+        if (typeInfo[tp].typeKind != TYPE_ARRAY) {
+                LOG_TYPE_ERROR_EXPR(x, "#lengthof expression can only "
+                                    "be applied to static arrays\n");
+                return (Type) -1;
+        }
+        return builtinType[BUILTINTYPE_INT];
+}
+
+INTERNAL Type check_stringify_compilercall_expr_type(Expr x)
+{
+        (void) x;
+        return string_type();
+}
+
+INTERNAL Type check_literal_expr_type(Expr x)
 {
         switch (exprInfo[x].tLiteral.literalKind) {
         case LITERAL_INTEGER:
@@ -150,8 +174,7 @@ Type check_literal_expr_type(Expr x)
         }
 }
 
-INTERNAL
-Type check_symref_expr_type(Expr x)
+INTERNAL Type check_symref_expr_type(Expr x)
 {
         Symref ref = exprInfo[x].tSymref.ref;
         // XXX: symbol resolved?
@@ -201,8 +224,7 @@ Type check_symref_expr_type(Expr x)
         }
 }
 
-INTERNAL
-Type check_unop_expr_type(Expr x)
+INTERNAL Type check_unop_expr_type(Expr x)
 {
         int op = exprInfo[x].tUnop.unopKind;
         Expr xx = exprInfo[x].tUnop.expr;
@@ -256,8 +278,7 @@ Type check_unop_expr_type(Expr x)
         return (Type) -1;
 }
 
-INTERNAL
-Type check_binop_expr_type(Expr x)
+INTERNAL Type check_binop_expr_type(Expr x)
 {
         int op = exprInfo[x].tBinop.binopKind;
         Expr x1 = exprInfo[x].tBinop.expr1;
@@ -307,8 +328,7 @@ Type check_binop_expr_type(Expr x)
         return -1;
 }
 
-INTERNAL
-Type check_member_expr_type(Expr x)
+INTERNAL Type check_member_expr_type(Expr x)
 {
         Expr e = exprInfo[x].tMember.expr;
         String n = exprInfo[x].tMember.name;
@@ -342,8 +362,7 @@ Type check_member_expr_type(Expr x)
         return tp;
 }
 
-INTERNAL
-Type check_subscript_expr_type(Expr x)
+INTERNAL Type check_subscript_expr_type(Expr x)
 {
         Expr x1 = exprInfo[x].tSubscript.expr1;
         Expr x2 = exprInfo[x].tSubscript.expr2;
@@ -380,8 +399,7 @@ Type check_subscript_expr_type(Expr x)
         return tp;
 }
 
-INTERNAL
-Type check_call_expr_type(Expr x)
+INTERNAL Type check_call_expr_type(Expr x)
 {
         Expr calleeExpr = exprInfo[x].tCall.callee;
         Type calleeTp = check_expr_type(calleeExpr);
@@ -432,44 +450,11 @@ Type check_call_expr_type(Expr x)
         return typeInfo[calleeTp].tProc.rettp;
 }
 
-INTERNAL
-Type check_compound_expr_type(Expr x)
+INTERNAL Type check_compound_expr_type(Expr x)
 {
         /*XXX*/
         (void) x;
         return builtinType[BUILTINTYPE_COMPOUND];
-}
-
-INTERNAL
-Type check_sizeof_expr_type(Expr x)
-{
-        Expr y = exprInfo[x].tSizeof.expr;
-        check_expr_type(y);
-        if (exprType[y] == (Type) -1)
-                return (Type) -1;
-        return builtinType[BUILTINTYPE_INT];
-}
-
-INTERNAL
-Type check_lengthof_expr_type(Expr x)
-{
-        Expr y = exprInfo[x].tLengthof.expr;
-        check_expr_type(y);
-        Type tp = exprType[y];
-        if (tp == (Type) -1)
-                return (Type) -1;
-        if (typeInfo[tp].typeKind != TYPE_ARRAY) {
-                LOG_TYPE_ERROR_EXPR(x, "#lengthof expression can only "
-                                    "be applied to static arrays\n");
-                return (Type) -1;
-        }
-        return builtinType[BUILTINTYPE_INT];
-}
-
-INTERNAL Type check_stringify_expr_type(Expr x)
-{
-        (void) x;
-        return string_type();
 }
 
 INTERNAL Type check_compilervalue_expr_type(Expr x)
@@ -483,8 +468,22 @@ INTERNAL Type check_compilervalue_expr_type(Expr x)
         }
 }
 
-INTERNAL
-Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
+INTERNAL Type (*const compilercallKindToTypecheckFunc[NUM_COMPILERCALL_KINDS])(Expr x) = {
+        [COMPILERCALL_STRINGIFY] = check_stringify_compilercall_expr_type,
+        [COMPILERCALL_LENGTHOF]  = check_lengthof_compilercall_expr_type,
+        [COMPILERCALL_SIZEOF]    = check_sizeof_compilercall_expr_type,
+};
+
+INTERNAL Type check_compilercall_expr_type(Expr x)
+{
+        int kind = exprInfo[x].tCompilercall.compilercallKind;
+        ASSERT( compilercallKindToTypecheckFunc [kind] );
+        Type tp = compilercallKindToTypecheckFunc [kind] (x);
+        exprType[x] = tp;
+        return tp;
+}
+
+INTERNAL Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
         [EXPR_LITERAL]    = check_literal_expr_type,
         [EXPR_SYMREF]     = check_symref_expr_type,
         [EXPR_UNOP]       = check_unop_expr_type,
@@ -493,10 +492,8 @@ Type (*const exprKindToTypecheckFunc[NUM_EXPR_KINDS])(Expr x) = {
         [EXPR_SUBSCRIPT]  = check_subscript_expr_type,
         [EXPR_CALL]       = check_call_expr_type,
         [EXPR_COMPOUND]   = check_compound_expr_type,
-        [EXPR_SIZEOF]     = check_sizeof_expr_type,
-        [EXPR_LENGTHOF]   = check_lengthof_expr_type,
-        [EXPR_STRINGIFY]  = check_stringify_expr_type,
         [EXPR_COMPILERVALUE] = check_compilervalue_expr_type,
+        [EXPR_COMPILERCALL] = check_compilercall_expr_type,
 };
 
 Type check_expr_type(Expr x)

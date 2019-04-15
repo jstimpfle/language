@@ -67,8 +67,10 @@ long long fold_integer_expr(Expr x)
                 ASSERT(constantValue[constant].valueKind == VALUE_INTEGER);
                 return constantValue[constant].tInteger;
         }
-        else if (exprKind == EXPR_SIZEOF) {
-                Expr subexpr = exprInfo[x].tSizeof.expr;
+        else if (exprKind == EXPR_COMPILERCALL &&
+                 exprInfo[x].tCompilercall.compilercallKind
+                        == COMPILERCALL_SIZEOF) {
+                Expr subexpr = exprInfo[x].tCompilercall.expr;
                 Type tp = exprType[subexpr];
                 ASSERT(tp != (Type) -1);  // XXX not sure
                 infer_type(tp);
@@ -76,8 +78,10 @@ long long fold_integer_expr(Expr x)
                 ASSERT(size != -1);
                 return size;
         }
-        else if (exprKind == EXPR_LENGTHOF) {
-                Expr subexpr = exprInfo[x].tSizeof.expr;
+        else if (exprKind == EXPR_COMPILERCALL &&
+                 exprInfo[x].tCompilercall.compilercallKind
+                        == COMPILERCALL_LENGTHOF) {
+                Expr subexpr = exprInfo[x].tCompilercall.expr;
                 Type tp = exprType[subexpr];
                 ASSERT(tp != (Type) -1);  // XXX not sure
                 infer_type(tp);

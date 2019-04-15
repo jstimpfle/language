@@ -166,32 +166,24 @@ void pp_compound_expr(Expr expr)
         outs(" }");
 }
 
-INTERNAL
-void pp_sizeof_expr(Expr expr)
+INTERNAL void pp_compilervalue_expr(Expr expr)
 {
-        outs("#sizeof(");
-        pp_expr(exprInfo[expr].tSizeof.expr);
-        outs(");");
+        int kind = exprInfo[expr].tCompilervalue.compilervalueKind;
+        outs("#");
+        outs(compilervalueKindString[kind]);
 }
 
-INTERNAL
-void pp_lengthof_expr(Expr expr)
+INTERNAL void pp_compilercall_expr(Expr expr)
 {
-        outs("#lengthof(");
-        pp_expr(exprInfo[expr].tSizeof.expr);
-        outs(");");
+        int kind = exprInfo[expr].tCompilercall.compilercallKind;
+        outs("#");
+        outs(compilercallKindString[kind]);
+        outs("(");
+        pp_expr(expr);
+        outs(")");
 }
 
-INTERNAL
-void pp_stringify_expr(Expr expr)
-{
-        outs("#stringify(");
-        pp_expr(exprInfo[expr].tSizeof.expr);
-        outs(");");
-}
-
-INTERNAL
-void pp_childstmt(Stmt stmt)  /* helper */
+INTERNAL void pp_childstmt(Stmt stmt)  /* helper */
 {
         if (stmtInfo[stmt].stmtKind == STMT_COMPOUND) {
                 outs(" ");
@@ -204,15 +196,13 @@ void pp_childstmt(Stmt stmt)  /* helper */
         }
 }
 
-INTERNAL
-void pp_expr_stmt(Stmt stmt)
+INTERNAL void pp_expr_stmt(Stmt stmt)
 {
         pp_expr(stmtInfo[stmt].tExpr.expr);
         outs(";");
 }
 
-INTERNAL
-void pp_if_stmt(Stmt stmt)
+INTERNAL void pp_if_stmt(Stmt stmt)
 {
         Stmt ifbody = stmtInfo[stmt].tIf.ifbody;
         outs("if (");
@@ -221,8 +211,7 @@ void pp_if_stmt(Stmt stmt)
         pp_childstmt(ifbody);
 }
 
-INTERNAL
-void pp_ifelse_stmt(Stmt stmt)
+INTERNAL void pp_ifelse_stmt(Stmt stmt)
 {
         outs("if (");
         pp_expr(stmtInfo[stmt].tIfelse.condExpr);
@@ -233,8 +222,7 @@ void pp_ifelse_stmt(Stmt stmt)
         pp_childstmt(stmtInfo[stmt].tIfelse.elsebody);
 }
 
-INTERNAL
-void pp_for_stmt(Stmt stmt)
+INTERNAL void pp_for_stmt(Stmt stmt)
 {
         outs("for (");
         pp_stmt(stmtInfo[stmt].tFor.initStmt, 0);
@@ -246,8 +234,7 @@ void pp_for_stmt(Stmt stmt)
         pp_childstmt(stmtInfo[stmt].tFor.forbody);
 }
 
-INTERNAL
-void pp_range_stmt(Stmt stmt)
+INTERNAL void pp_range_stmt(Stmt stmt)
 {
         Symbol sym = dataInfo[stmtInfo[stmt].tRange.variable].sym;
         outs("for ");
@@ -260,8 +247,7 @@ void pp_range_stmt(Stmt stmt)
         pp_childstmt(stmtInfo[stmt].tRange.rangebody);
 }
 
-INTERNAL
-void pp_while_stmt(Stmt stmt)
+INTERNAL void pp_while_stmt(Stmt stmt)
 {
         outs("while (");
         pp_expr(stmtInfo[stmt].tWhile.condExpr);
@@ -269,16 +255,14 @@ void pp_while_stmt(Stmt stmt)
         pp_childstmt(stmtInfo[stmt].tWhile.whilebody);
 }
 
-INTERNAL
-void pp_return_stmt(Stmt stmt)
+INTERNAL void pp_return_stmt(Stmt stmt)
 {
         outs("return ");
         pp_expr(stmtInfo[stmt].tReturn.expr);
         outs(";");
 }
 
-INTERNAL
-void pp_compound_stmt(Stmt stmt)
+INTERNAL void pp_compound_stmt(Stmt stmt)
 {
         outs("{");
         add_indent();
@@ -291,8 +275,7 @@ void pp_compound_stmt(Stmt stmt)
         outs("}");
 }
 
-INTERNAL
-void pp_data_stmt(Stmt stmt)
+INTERNAL void pp_data_stmt(Stmt stmt)
 {
         Data data = stmtInfo[stmt].tData.data;
         Expr expr = stmtInfo[stmt].tData.optionalInitializerExpr;
@@ -308,8 +291,7 @@ void pp_data_stmt(Stmt stmt)
         outs(";");
 }
 
-INTERNAL
-void pp_macro_stmt(Stmt stmt)
+INTERNAL void pp_macro_stmt(Stmt stmt)
 {
         Macro macro = stmtInfo[stmt].tMacro;
         pp_newline();
@@ -320,8 +302,7 @@ void pp_macro_stmt(Stmt stmt)
         outs(";");
 }
 
-INTERNAL
-void (*const exprKindToPrintFunc[NUM_EXPR_KINDS])(Expr expr) = {
+INTERNAL void (*const exprKindToPrintFunc[NUM_EXPR_KINDS])(Expr expr) = {
         [EXPR_LITERAL]   = pp_literal_expr,
         [EXPR_SYMREF]    = pp_symref_expr,
         [EXPR_UNOP]      = pp_unop_expr,
@@ -330,9 +311,8 @@ void (*const exprKindToPrintFunc[NUM_EXPR_KINDS])(Expr expr) = {
         [EXPR_SUBSCRIPT] = pp_subscript_expr,
         [EXPR_CALL]      = pp_call_expr,
         [EXPR_COMPOUND]  = pp_compound_expr,
-        [EXPR_SIZEOF]    = pp_sizeof_expr,
-        [EXPR_LENGTHOF]  = pp_lengthof_expr,
-        [EXPR_STRINGIFY] = pp_stringify_expr,
+        [EXPR_COMPILERVALUE] = pp_compilervalue_expr,
+        [EXPR_COMPILERCALL] = pp_compilercall_expr,
 };
 
 INTERNAL void (*const stmtKindToPrintFunc[NUM_STMT_KINDS])(Stmt stmt) = {

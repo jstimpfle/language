@@ -71,17 +71,11 @@ Token find_expr_token(Expr x)
                 case EXPR_COMPOUND:
                         token = exprInfo[x].tCompound.initialToken;
                         break;
-                case EXPR_SIZEOF:
-                        token = exprInfo[x].tSizeof.tok;
-                        break;
-                case EXPR_LENGTHOF:
-                        token = exprInfo[x].tLengthof.tok;
-                        break;
-                case EXPR_STRINGIFY:
-                        token = exprInfo[x].tStringify.tok;
-                        break;
                 case EXPR_COMPILERVALUE:
-                        token = exprInfo[x].tCompilervalue.token;
+                        token = exprInfo[x].tCompilervalue.hashtok;
+                        break;
+                case EXPR_COMPILERCALL:
+                        token = exprInfo[x].tCompilercall.hashtok;
                         break;
                 default:
                         MSG("expr kind error: %s\n",
