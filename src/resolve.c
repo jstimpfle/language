@@ -4,9 +4,8 @@
 void ensure_there_are_no_symbol_collisions(void)
 {
         int bad = 0;
-
         Symbol s1 = 0;
-        while (s1 < symbolCnt) {
+        while (s1 + 1 < symbolCnt) {
                 Symbol s2 = s1 + 1;
                 for (;
                      symbolInfo[s2].scope == symbolInfo[s1].scope &&
