@@ -173,7 +173,7 @@ INTERNAL void lex_numbertoken(Token token)
         }
 }
 
-INTERNAL void lex_charlit(Token token)
+INTERNAL UNUSEDFUNC void lex_charlit(Token token)
 {
         int charvalue;
         int c = look_char_noeol("lexing character literal");

@@ -19,6 +19,8 @@ enum {
         REX_R = 0x04,  /* Extension of the ModR/M reg field */
         REX_X = 0x02,  /* Extension of the SIB index field */
         REX_B = 0x01,  /* Extension of the ModR/M r/m field, SIB base field, or Opcode reg field */
+
+        REX_NOT_W = 0x00,  /* just to be able to be extra clear */
 };
 
 enum {
@@ -60,10 +62,10 @@ enum {
 
 /* a few SSE registers */
 enum {
-        XMM_0,
-        XMM_1,
-        XMM_2,
-        XMM_3,
+        XMM0,
+        XMM1,
+        XMM2,
+        XMM3,
 };
 
 enum {
@@ -90,13 +92,19 @@ INTERNAL const int cc[] = { /* "calling convention" */
 
 INTERNAL X64Float float_to_X64Float(float v)
 {
-        return (X64Float)v;
+        /*XXX*/
+        return v;
 }
 
 INTERNAL Imm32 x64Float_to_imm32(X64Float v)
 {
-        /* currently they are basically the same... */
-        return (Imm32) v;
+        /*XXX*/
+        union {
+                float v;
+                Imm32 i;
+        } u;
+        u.v = v;
+        return u.i;
 }
 
 INTERNAL int make_modrm_byte(int mod, int reg, int rm)
@@ -168,6 +176,7 @@ INTERNAL void emit8(int sectionKind, uint8_t c)
         emit_bytes(sectionKind, &b, 1);
 }
 
+UNUSEDFUNC
 INTERNAL void emit16(int sectionKind, uint16_t c)
 {
         unsigned char bs[2];
@@ -200,9 +209,17 @@ INTERNAL void emit64(int sectionKind, uint64_t c)
         emit_bytes(sectionKind, bs, 8);
 }
 
-INTERNAL void emit_X64Float(int sectionKind, X64Float v)
+INTERNAL UNUSEDFUNC void emit_X64Float(int sectionKind, X64Float v)
 {
         emit_bytes(sectionKind, &v, 4);  /*XXX*/
+}
+
+INTERNAL void emit_rex_byte(int w, int r1, int r2)
+{
+        ASSERT(w == 0 || w == REX_W);
+        int R = (r1 & ~7) ? REX_R : 0;
+        int B = (r2 & ~7) ? REX_B : 0;
+        emit8(SECTION_CODE, (uint8_t) (REX_BASE | w | R | B));
 }
 
 /* Emit opcode. The opcodes that we use here are, so far, either single byte
@@ -224,6 +241,9 @@ do8:
 
 INTERNAL void emit_modrm_byte(int mod, int reg, int rm)
 {
+        /* only the x86 registers (3bits) are relevant */
+        reg &= 7;
+        rm &= 7;
         emit8(SECTION_CODE, (uint8_t) make_modrm_byte(mod, reg, rm));
 }
 
@@ -282,72 +302,106 @@ INTERNAL void emit_modrm_and_sib_and_displacement_bytes(int r1, int r2, long d)
                 emit32(SECTION_CODE, (uint32_t) d);
 }
 
-INTERNAL void emit_rex_instruction_reg_reg(int opcode, int r1, int r2)
+/*****************************************
+ * Instruction encoding (no REX byte)
+ *****************************************/
+
+INTERNAL void emit_instruction_reg_reg(int opcode, int r1, int r2)
 {
-        int R = (r1 & ~7) ? REX_R : 0;
-        int B = (r2 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, (uint8_t) (REX_BASE | REX_W | R | B));
         emit_opcode(opcode);
-        emit_modrm_byte(MODRM_REGREG, r1 & 7, r2 & 7);
+        emit_modrm_byte(MODRM_REGREG, r1 & 7, r2);
 }
 
-INTERNAL void emit_rex_instruction_reg_indirect(int W, int opcode, int r1, int r2, long d)
+INTERNAL void emit_instruction_reg_indirect(int opcode, int r1, int r2, long d)
 {
-        ASSERT(W == 0 || W == REX_W);
-        int R = (r1 & ~7) ? REX_R : 0;
-        int B = (r2 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, (uint8_t) (REX_BASE | W | R | B));
         emit_opcode(opcode);
         emit_modrm_and_sib_and_displacement_bytes(r1, r2, d);
 }
 
-INTERNAL void emit_rex_instruction_reg(int opcode, int morebits, int r1)
+INTERNAL void emit_instruction_reg(int opcode, int morebits, int r1)
 {
         ASSERT(0 <= morebits && morebits < 8);
-        int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, (uint8_t) (REX_BASE | REX_W | B));
         emit_opcode(opcode);
-        emit_modrm_byte(MODRM_REGREG, morebits, r1 & 7);
+        emit_modrm_byte(MODRM_REGREG, morebits, r1);
 }
 
-INTERNAL UNUSEDFUNC void emit_rex_instruction_imm8_reg(int opcode, int morebits, Imm8 imm, int r1)
+INTERNAL UNUSEDFUNC void emit_instruction_imm8_reg(int opcode, int morebits, Imm8 imm, int r1)
 {
         ASSERT(0 <= morebits && morebits < 8);
-        int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, (uint8_t) (REX_BASE | REX_W | B));
         emit_opcode(opcode);
         emit_modrm_byte(MODRM_REGREG, morebits, r1 & 7);
         emit8(SECTION_CODE, imm);
+}
+
+INTERNAL void emit_instruction_imm32_reg(int opcode, int morebits, Imm32 imm, int r1)
+{
+        ASSERT(0 <= morebits && morebits < 8);
+        emit_opcode(opcode);
+        emit_modrm_byte(MODRM_REGREG, morebits, r1 & 7);
+        emit32(SECTION_CODE, imm);
+}
+
+INTERNAL void emit_instruction_imm8_indirect(int opcode, int morebits, Imm8 imm, int r1, long d)
+{
+        ASSERT(0 <= morebits && morebits < 8);
+        emit_opcode(opcode);
+        emit_modrm_and_sib_and_displacement_bytes(morebits, r1, d);
+        emit8(SECTION_CODE, imm);
+}
+
+INTERNAL void emit_instruction_imm32_indirect(int opcode, int morebits, Imm32 imm, int r1, long d)
+{
+        ASSERT(0 <= morebits && morebits < 8);
+        emit_opcode(opcode);
+        emit_modrm_and_sib_and_displacement_bytes(morebits, r1, d);
+        emit32(SECTION_CODE, imm);
+}
+
+
+/**************************
+ * Instruction encoding including REX byte. Do we really need those?
+ **************************/
+
+INTERNAL void emit_rex_instruction_reg_reg(int opcode, int r1, int r2)
+{
+        emit_rex_byte(REX_W, r1, r2);
+        emit_instruction_reg_reg(opcode, r1, r2);
+}
+
+INTERNAL void emit_rex_instruction_reg_indirect(int w, int opcode, int r1, int r2, long d)
+{
+        emit_rex_byte(w, r1, r2);
+        emit_instruction_reg_indirect(opcode, r1, r2, d);
+}
+
+INTERNAL void emit_rex_instruction_reg(int opcode, int morebits, int r1)
+{
+        emit_rex_byte(REX_W, 0, r1);
+        emit_instruction_reg(opcode, morebits, r1);
+}
+
+INTERNAL UNUSEDFUNC void emit_rex_instruction_imm8_reg(int w, int opcode, int morebits, Imm8 imm, int r1)
+{
+        emit_rex_byte(w, 0, r1);
+        emit_instruction_imm8_reg(opcode, morebits, imm, r1);
 }
 
 INTERNAL void emit_rex_instruction_imm32_reg(int opcode, int morebits, Imm32 imm, int r1)
 {
-        ASSERT(0 <= morebits && morebits < 8);
-        int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, (uint8_t) (REX_BASE | REX_W | B));
-        emit_opcode(opcode);
-        emit_modrm_byte(MODRM_REGREG, morebits, r1 & 7);
-        emit32(SECTION_CODE, imm);
+        emit_rex_byte(REX_W, 0, r1);
+        emit_instruction_imm32_reg(opcode, morebits, imm, r1);
 }
 
-INTERNAL void emit_rex_instruction_imm8_indirect(int opcode, int morebits, Imm8 imm, int r1, long d)
+INTERNAL void emit_rex_instruction_imm8_indirect(int w, int opcode, int morebits, Imm8 imm, int r1, long d)
 {
-        ASSERT(0 <= morebits && morebits < 8);
-        int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, (uint8_t)(REX_BASE | B));  /* NOTE: no REX_W */
-        emit_opcode(opcode);
-        emit_modrm_and_sib_and_displacement_bytes(0x00, r1, d);
-        emit8(SECTION_CODE, imm);
+        emit_rex_byte(w, 0, r1);
+        emit_instruction_imm8_indirect(opcode, morebits, imm, r1, d);
 }
 
-INTERNAL void emit_rex_instruction_imm32_indirect(int opcode, int morebits, Imm32 imm, int r1, long d)
+INTERNAL void emit_rex_instruction_imm32_indirect(int w, int opcode, int morebits, Imm32 imm, int r1, long d)
 {
-        ASSERT(0 <= morebits && morebits < 8);
-        int B = (r1 & ~7) ? REX_B : 0;
-        emit8(SECTION_CODE, (uint8_t) (REX_BASE | B));  /* NOTE: no REX_W */
-        emit_opcode(opcode);
-        emit_modrm_and_sib_and_displacement_bytes(0x00, r1, d);
-        emit32(SECTION_CODE, imm);
+        emit_rex_byte(w, 0, r1);
+        emit_instruction_imm32_indirect(opcode, morebits, imm, r1, d);
 }
 
 /* opreg == register encoded in the low 3 bits of operand (+ optional REX_B).
@@ -387,24 +441,35 @@ INTERNAL void emit_inc_64_reg         (int r1) { emit_rex_instruction_reg(0xFF, 
 INTERNAL void emit_dec_64_reg         (int r1) { emit_rex_instruction_reg(0xFF, 0x01, r1); }
 INTERNAL void emit_call_reg           (int r1) { emit_rex_instruction_reg(0xFF, 0x02, r1); }
 
-INTERNAL void emit_mov_8_reg_indirect   (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(0x00, 0x88, r1, r2, d); }
-INTERNAL void emit_mov_32_reg_indirect  (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(0x00, 0x89, r1, r2, d); }
+INTERNAL void emit_mov_8_reg_indirect   (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(REX_NOT_W, 0x88, r1, r2, d); }
+INTERNAL void emit_mov_32_reg_indirect  (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(REX_NOT_W, 0x89, r1, r2, d); }
 INTERNAL void emit_mov_64_reg_indirect  (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(REX_W, 0x89, r1, r2, d); }
+UNUSEDFUNC
 INTERNAL void emit_add_64_reg_indirect  (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(REX_W, 0x01, r1, r2, d); }
 
-INTERNAL void emit_mov_8_indirect_reg   (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(0x00, 0x0FB6, r2, r1, d); }
-INTERNAL void emit_mov_32_indirect_reg  (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(0x00, 0x8B, r2, r1, d); }  /* TODO: zero extend! */
+INTERNAL void emit_mov_8_indirect_reg   (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(REX_NOT_W, 0x0FB6, r2, r1, d); }
+INTERNAL void emit_mov_32_indirect_reg  (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(REX_NOT_W, 0x8B, r2, r1, d); }  /* TODO: zero extend! */
 INTERNAL void emit_mov_64_indirect_reg  (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(REX_W, 0x8B, r2, r1, d); }
+UNUSEDFUNC
 INTERNAL void emit_add_64_indirect_reg  (int r1, int r2, long d) { emit_rex_instruction_reg_indirect(REX_W, 0x03, r2, r1, d); }
 
-INTERNAL void emit_add_64_imm8_reg   (Imm8 imm, int reg)  { emit_rex_instruction_imm8_reg(0x83, 0x00, imm, reg); }
+UNUSEDFUNC
+INTERNAL void emit_add_64_imm8_reg   (Imm8 imm, int reg)  { emit_rex_instruction_imm8_reg(REX_W, 0x83, 0x00, imm, reg); }
 INTERNAL void emit_add_64_imm32_reg  (Imm32 imm, int reg) { emit_rex_instruction_imm32_reg(0x81, 0x00, imm, reg); }
+UNUSEDFUNC
 INTERNAL void emit_mov_64_imm32_reg  (Imm32 imm, int reg) { emit_rex_instruction_imm32_reg(0xC7, 0x00, imm, reg); }
 INTERNAL void emit_mov_64_imm64_reg  (Imm64 imm, int reg) { emit_rex_instruction_imm64_opreg(0xB8, imm, reg); }
 
-INTERNAL void emit_add_64_imm8_indirect(Imm8 imm, int reg, long d)   { emit_rex_instruction_imm8_indirect(0x83, 0x00, imm, reg, d); }
-INTERNAL void emit_add_64_imm32_indirect(Imm32 imm, int reg, long d) { emit_rex_instruction_imm32_indirect(0x81, 0x00, imm, reg, d); }
-INTERNAL void emit_mov_32_imm32_indirect  (Imm32 imm, int r2, X64StackLoc loc) { emit_rex_instruction_imm32_indirect(0xC7, 0x00, imm, r2, loc); }
+UNUSEDFUNC
+INTERNAL void emit_add_64_imm8_indirect(Imm8 imm, int reg, long d)   { emit_rex_instruction_imm8_indirect(REX_NOT_W, 0x83, 0x00, imm, reg, d); }
+UNUSEDFUNC
+INTERNAL void emit_add_64_imm32_indirect(Imm32 imm, int reg, long d)          { emit_rex_instruction_imm32_indirect(REX_NOT_W, 0x81, 0x00, imm, reg, d); }
+INTERNAL void emit_mov_32_imm32_indirect(Imm32 imm, int r2, X64StackLoc loc)  { emit_rex_instruction_imm32_indirect(REX_NOT_W, 0xC7, 0x00, imm, r2, loc); }
+
+
+INTERNAL void emit_movss_xmm_indirect(int xreg, int reg, long d) { emit_instruction_reg_indirect(0xF30F11, xreg, reg, d); }
+INTERNAL void emit_movss_indirect_xmm(int reg, int xreg, long d) { emit_instruction_reg_indirect(0xF30F10, xreg, reg, d); }
+INTERNAL void emit_addss_xmm_xmm(int x1, int x2)                 { emit_instruction_reg_reg(0xF30F58, x2, x1); }
 
 
 //INTERNAL void emit_mov_float_rip_xreg(X64Float v, int xr) { emit_opcode(0xF30F10); emit32(SECTION_CODE, v); }
@@ -545,8 +610,10 @@ INTERNAL void emit_function_prologue(IrProc irp)
         emit_push_64(X64_RBP);
         emit_mov_64_reg_reg(X64_RSP, X64_RBP);
         int size = compute_size_of_stack_frame(irp);
+        size += 8;
         size += 15;
         size -= (size) % 16;
+        size -= 8;
         emit_add_64_imm32_reg(-size, X64_RSP);
         emit_push_64(X64_RBX);
 }
@@ -664,7 +731,7 @@ INTERNAL void x64asm_op1_irstmt(IrStmt irs)
         emit_mov_64_reg_indirect(X64_RAX, X64_RBP, tgtloc);
 }
 
-INTERNAL void x64asm_op2_irstmt(IrStmt irs)
+INTERNAL void x64asm_op2_irstmt_int(IrStmt irs)
 {
         IrReg reg1 = irStmtInfo[irs].tOp2.reg1;
         IrReg reg2 = irStmtInfo[irs].tOp2.reg2;
@@ -672,6 +739,7 @@ INTERNAL void x64asm_op2_irstmt(IrStmt irs)
         X64StackLoc loc1 = find_stack_loc(reg1);
         X64StackLoc loc2 = find_stack_loc(reg2);
         X64StackLoc tgtloc = find_stack_loc(tgtreg);
+
         emit_mov_64_indirect_reg(X64_RBP, X64_RAX, loc1);
         emit_mov_64_indirect_reg(X64_RBP, X64_RBX, loc2);
         switch (irStmtInfo[irs].tOp2.irOp2Kind) {
@@ -689,6 +757,40 @@ INTERNAL void x64asm_op2_irstmt(IrStmt irs)
         default: UNHANDLED_CASE();
         }
         emit_mov_64_reg_indirect(X64_RAX, X64_RBP, tgtloc);
+}
+
+INTERNAL void x64asm_op2_irstmt_float(IrStmt irs)
+{
+        IrReg reg1 = irStmtInfo[irs].tOp2.reg1;
+        IrReg reg2 = irStmtInfo[irs].tOp2.reg2;
+        IrReg tgtreg = irStmtInfo[irs].tOp2.tgtreg;
+        X64StackLoc loc1 = find_stack_loc(reg1);
+        X64StackLoc loc2 = find_stack_loc(reg2);
+        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+
+        emit_movss_indirect_xmm(X64_RBP, XMM0, loc1);
+        emit_movss_indirect_xmm(X64_RBP, XMM1, loc2);
+        emit_addss_xmm_xmm(XMM1, XMM0);
+        emit_movss_xmm_indirect(XMM0, X64_RBP, tgtloc);
+}
+
+INTERNAL void x64asm_op2_irstmt(IrStmt irs)
+{
+        IrReg reg1 = irStmtInfo[irs].tOp2.reg1;
+        IrReg reg2 = irStmtInfo[irs].tOp2.reg2;
+
+        Type t1 = referenced_type(irRegInfo[reg1].tp);
+        Type t2 = referenced_type(irRegInfo[reg2].tp);
+
+        if ((t1 == builtinType[BUILTINTYPE_INT]
+             /* for pointer subscripting */
+             || typeInfo[t1].typeKind == TYPE_POINTER)
+            && t2 == builtinType[BUILTINTYPE_INT])
+                x64asm_op2_irstmt_int(irs);
+        else if (t1 == builtinType[BUILTINTYPE_FLOAT])
+                x64asm_op2_irstmt_float(irs);
+        else
+                UNHANDLED_CASE();
 }
 
 INTERNAL void x64asm_cmp_irstmt(IrStmt irs)
