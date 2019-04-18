@@ -831,6 +831,12 @@ INTERNAL void x64asm_call_irstmt(IrStmt irs)
         IrReg calleeReg = irStmtInfo[irs].tCall.calleeReg;
         X64StackLoc calleeloc = find_stack_loc(calleeReg);
         IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
+
+        struct {
+                int floatCnt;
+                int otherCnt;
+        } ccstate = {};
+
         for (int i = 0; ; i++) {
                 IrCallArg a = firstArg + i;
                 if (!(a < irCallArgCnt && irCallArgInfo[a].callStmt == irs))
@@ -841,7 +847,17 @@ INTERNAL void x64asm_call_irstmt(IrStmt irs)
                 // XXX: this is of course ad-hoc and wrong. For
                 // instance, we do not even check if that
                 // register is free
-                emit_mov_64_indirect_reg(X64_RBP, cc[i], loc);
+                if (type_equal(irRegInfo[r].tp,
+                               builtinType[BUILTINTYPE_FLOAT])) {
+                        int xreg = ccstate.floatCnt++;
+                        ASSERT(0 <= xreg && xreg < 8);
+                        DEBUG("Float argument #%d!\n", xreg);
+                        emit_movss_indirect_xmm(X64_RBP, xreg, loc);
+                }
+                else {
+                        int reg = cc[ccstate.otherCnt++];
+                        emit_mov_64_indirect_reg(X64_RBP, reg, loc);
+                }
         }
         emit_mov_64_indirect_reg(X64_RBP, X64_R11, calleeloc);
         emit_call_reg(X64_R11);

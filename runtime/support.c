@@ -18,16 +18,9 @@ uint64_t prints(const char *s)
         return 0;
 }
 
-/* XXX wrong signature as long as we don't implement the x64 ABI (float
- * arguments!) */
-uint64_t print_float(uint32_t inp)
+uint64_t print_float(float x)
 {
-        union {
-                uint32_t i;
-                float f;
-        } x;
-        x.i = inp;
-        printf("%f\n", x.f);
+        printf("%f\n", x);
         return 0;
 }
 
