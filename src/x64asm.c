@@ -78,16 +78,51 @@ enum {
         NUM_X64CMP_KINDS,
 };
 
-INTERNAL const int cc[] = { /* "calling convention" */
-/* XXX: for now, a compile-time switch will do for chosing the calling
- * convention */
-#ifdef _MSC_VER
-        X64_RCX, X64_RDX, X64_R8, X64_R9,
-#else
-        X64_RDI, X64_RSI, X64_RDX,
-        X64_RCX, X64_R8, X64_R9
-#endif
+struct CCState {
+        int regCnt;
+        int floatCnt;
 };
+
+void reset_ccstate(struct CCState *state)
+{
+        state->regCnt = 0;
+        state->floatCnt = 0;
+}
+
+void ccstate_add_param(struct CCState *state, Type tp, int *isXmm, int *regbits)
+{
+
+        INTERNAL const int cc[] = { /* "calling convention" */
+                /* XXX: for now, a compile-time switch will do for chosing the
+                 * calling convention */
+#ifdef _MSC_VER
+                X64_RCX, X64_RDX, X64_R8, X64_R9,
+#else
+                X64_RDI, X64_RSI, X64_RDX,
+                X64_RCX, X64_R8, X64_R9
+#endif
+        };
+        INTERNAL const int numXmm = {
+#ifdef _MSC_VER
+                4,
+#else
+                8,
+#endif
+        };
+
+        if (type_equal(tp, builtinType[BUILTINTYPE_FLOAT])) {
+                int x = state->floatCnt ++;
+                ASSERT(0 <= x && x < numXmm);
+                *isXmm = 1;
+                *regbits = x;
+        }
+        else {
+                int x = state->regCnt ++;
+                ASSERT(0 <= x && x < LENGTH(cc));
+                *isXmm = 0;
+                *regbits = cc[x];
+        }
+}
 
 
 INTERNAL X64Float float_to_X64Float(float v)
@@ -832,10 +867,8 @@ INTERNAL void x64asm_call_irstmt(IrStmt irs)
         X64StackLoc calleeloc = find_stack_loc(calleeReg);
         IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
 
-        struct {
-                int floatCnt;
-                int otherCnt;
-        } ccstate = {};
+        struct CCState ccstate;
+        reset_ccstate(&ccstate);
 
         for (int i = 0; ; i++) {
                 IrCallArg a = firstArg + i;
@@ -847,17 +880,13 @@ INTERNAL void x64asm_call_irstmt(IrStmt irs)
                 // XXX: this is of course ad-hoc and wrong. For
                 // instance, we do not even check if that
                 // register is free
-                if (type_equal(irRegInfo[r].tp,
-                               builtinType[BUILTINTYPE_FLOAT])) {
-                        int xreg = ccstate.floatCnt++;
-                        ASSERT(0 <= xreg && xreg < 8);
-                        DEBUG("Float argument #%d!\n", xreg);
-                        emit_movss_indirect_xmm(X64_RBP, xreg, loc);
-                }
-                else {
-                        int reg = cc[ccstate.otherCnt++];
-                        emit_mov_64_indirect_reg(X64_RBP, reg, loc);
-                }
+                int isXmm;
+                int regbits;
+                ccstate_add_param(&ccstate, irRegInfo[r].tp, &isXmm, &regbits);
+                if (isXmm)
+                        emit_movss_indirect_xmm(X64_RBP, regbits, loc);
+                else
+                        emit_mov_64_indirect_reg(X64_RBP, regbits, loc);
         }
         emit_mov_64_indirect_reg(X64_RBP, X64_R11, calleeloc);
         emit_call_reg(X64_R11);
@@ -929,10 +958,11 @@ INTERNAL void x64asm_proc(IrProc irp)
         emit_function_prologue(irp);
 
         {
-                int j = 0;
+                struct CCState ccstate;
+                reset_ccstate(&ccstate);
                 for (Param i = firstProctypeParam[tp];
                      i < paramCnt && paramInfo[i].proctp == tp;
-                     i++, j++) {
+                     i++) {
                         Symbol sym = paramInfo[i].sym;
                         ASSERT(scopeInfo[symbolInfo[sym].scope].scopeKind
                                == SCOPE_PROC);
@@ -941,7 +971,15 @@ INTERNAL void x64asm_proc(IrProc irp)
                         ASSERT(data != -1);
                         IrReg reg = dataToIrReg[data];
                         X64StackLoc loc = find_stack_loc(reg);
-                        emit_mov_64_reg_indirect(cc[j], X64_RBP, loc);
+
+                        int isXmm;
+                        int regbits;
+                        ccstate_add_param(&ccstate, irRegInfo[reg].tp,
+                                          &isXmm, &regbits);
+                        if (isXmm)
+                                emit_movss_xmm_indirect(regbits, X64_RBP, loc);
+                        else
+                                emit_mov_64_reg_indirect(regbits, X64_RBP, loc);
                 }
         }
 
