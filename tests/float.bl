@@ -1,0 +1,28 @@
+proc test_float() int
+{
+/*
+    data x float = 1.05;
+    data y float = 1.3;
+    print_float(x + y);
+    print_float(x - y);
+    print_float(x * y);
+    print_float(x / y);
+*/
+}
+
+proc test_double() int
+{
+    data x double = 1.05;
+    data y double = 1.3;
+    print_double(x);
+    print_double(x + y);
+    print_double(x - y);
+    print_double(x * y);
+    print_double(x / y);
+}
+
+proc main() int
+{
+    test_double();
+    return 0;
+}

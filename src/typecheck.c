@@ -166,7 +166,7 @@ INTERNAL Type check_literal_expr_type(Expr x)
         case LITERAL_CHARACTER:
                 return builtinType[BUILTINTYPE_INT];
         case LITERAL_FLOAT:
-                return builtinType[BUILTINTYPE_FLOAT];
+                return builtinType[BUILTINTYPE_DOUBLE];
         case LITERAL_STRING:
                 return string_type();
         default:

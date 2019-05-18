@@ -331,6 +331,7 @@ const struct BasetypeToBeInitialized basetypesToBeInitialized[] = {
         { "{compound-type}", -42,  &builtinType[BUILTINTYPE_COMPOUND] },
         { "int",               8,  &builtinType[BUILTINTYPE_INT] },
         { "float",             4,  &builtinType[BUILTINTYPE_FLOAT] },
+        { "double",            8,  &builtinType[BUILTINTYPE_DOUBLE] },
         { "char",              1,  &builtinType[BUILTINTYPE_CHAR] },
 };
 

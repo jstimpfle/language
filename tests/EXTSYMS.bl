@@ -26,3 +26,6 @@ extern strlen  int(^char);
 /*XXX only to work around our unfinished type system*/
 extern chartoint int(char);
 extern inttochar char(int);
+
+extern print_float void(float);
+extern print_double void(double);

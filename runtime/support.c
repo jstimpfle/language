@@ -24,6 +24,12 @@ uint64_t print_float(float x)
         return 0;
 }
 
+uint64_t print_double(double x)
+{
+        printf("%lf\n", x);
+        return 0;
+}
+
 /*
  * stdin, stdout, stderr are evil complicated macros on MSVC
  */

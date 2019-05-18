@@ -52,6 +52,7 @@ enum BuiltinTypeKind {
         BUILTINTYPE_INT,
         BUILTINTYPE_CHAR,
         BUILTINTYPE_FLOAT,
+        BUILTINTYPE_DOUBLE,
         NUM_BUILTINTYPE_KINDS,
 };
 

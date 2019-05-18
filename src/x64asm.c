@@ -89,7 +89,15 @@ void reset_ccstate(struct CCState *state)
         state->floatCnt = 0;
 }
 
-void ccstate_add_param(struct CCState *state, Type tp, int *isXmm, int *regbits)
+
+
+enum {
+        PASSING_X64REG,
+        PASSING_SINGLEPRECISION,
+        PASSING_DOUBLEPRECISION,
+};
+
+void ccstate_add_param(struct CCState *state, Type tp, int *passingKind, int *regbits)
 {
 
         INTERNAL const int cc[] = { /* "calling convention" */
@@ -113,13 +121,19 @@ void ccstate_add_param(struct CCState *state, Type tp, int *isXmm, int *regbits)
         if (type_equal(tp, builtinType[BUILTINTYPE_FLOAT])) {
                 int x = state->floatCnt ++;
                 ASSERT(0 <= x && x < numXmm);
-                *isXmm = 1;
+                *passingKind = PASSING_SINGLEPRECISION;
+                *regbits = x;
+        }
+        if (type_equal(tp, builtinType[BUILTINTYPE_DOUBLE])) {
+                int x = state->floatCnt++;
+                ASSERT(0 <= x && x < numXmm);
+                *passingKind = PASSING_DOUBLEPRECISION;
                 *regbits = x;
         }
         else {
                 int x = state->regCnt ++;
                 ASSERT(0 <= x && x < LENGTH(cc));
-                *isXmm = 0;
+                *passingKind = PASSING_X64REG;
                 *regbits = cc[x];
         }
 }
@@ -139,6 +153,17 @@ INTERNAL Imm32 x64Float_to_imm32(X64Float v)
                 Imm32 i;
         } u;
         u.v = v;
+        return u.i;
+}
+
+INTERNAL Imm64 x64Float_to_imm64(X64Float v)
+{
+        /*XXX*/
+        union {
+                double v;
+                Imm64 i;
+        } u;
+        u.v = (double)v;
         return u.i;
 }
 
@@ -505,6 +530,16 @@ INTERNAL void emit_mov_32_imm32_indirect(Imm32 imm, int r2, X64StackLoc loc)  { 
 INTERNAL void emit_movss_xmm_indirect(int xreg, int reg, long d) { emit_instruction_reg_indirect(0xF30F11, xreg, reg, d); }
 INTERNAL void emit_movss_indirect_xmm(int reg, int xreg, long d) { emit_instruction_reg_indirect(0xF30F10, xreg, reg, d); }
 INTERNAL void emit_addss_xmm_xmm(int x1, int x2)                 { emit_instruction_reg_reg(0xF30F58, x2, x1); }
+INTERNAL void emit_subss_xmm_xmm(int x1, int x2)                 { emit_instruction_reg_reg(0xF30F5C, x2, x1); }
+INTERNAL void emit_mulss_xmm_xmm(int x1, int x2)                 { emit_instruction_reg_reg(0xF30F59, x2, x1); }
+INTERNAL void emit_divss_xmm_xmm(int x1, int x2)                 { emit_instruction_reg_reg(0xF30F5E, x2, x1); }
+
+INTERNAL void emit_movsd_xmm_indirect(int xreg, int reg, long d) { emit_instruction_reg_indirect(0xF20F11, xreg, reg, d); }
+INTERNAL void emit_movsd_indirect_xmm(int reg, int xreg, long d) { emit_instruction_reg_indirect(0xF20F10, xreg, reg, d); }
+INTERNAL void emit_addsd_xmm_xmm(int x1, int x2) { emit_instruction_reg_reg(0xF20F58, x2, x1); }
+INTERNAL void emit_subsd_xmm_xmm(int x1, int x2) { emit_instruction_reg_reg(0xF20F5C, x2, x1); }
+INTERNAL void emit_mulsd_xmm_xmm(int x1, int x2) { emit_instruction_reg_reg(0xF20F59, x2, x1); }
+INTERNAL void emit_divsd_xmm_xmm(int x1, int x2) { emit_instruction_reg_reg(0xF20F5E, x2, x1); }
 
 
 //INTERNAL void emit_mov_float_rip_xreg(X64Float v, int xr) { emit_opcode(0xF30F10); emit32(SECTION_CODE, v); }
@@ -678,7 +713,15 @@ INTERNAL void x64asm_loadconstant_irstmt(IrStmt irs)
                 X64Float xv = float_to_X64Float(v);
                 IrReg irreg = irStmtInfo[irs].tLoadConstant.tgtreg;
                 X64StackLoc loc = find_stack_loc(irreg);
-                emit_mov_32_imm32_indirect(x64Float_to_imm32(xv), X64_RBP, loc);
+
+                //XXX
+                Type tp = irRegInfo[irreg].tp;
+                if (type_equal(tp, builtinType[BUILTINTYPE_FLOAT]))
+                        emit_mov_32_imm32_indirect(x64Float_to_imm32(xv), X64_RBP, loc);
+                else if (type_equal(tp, builtinType[BUILTINTYPE_DOUBLE])) {
+                        emit_mov_64_imm64_reg(x64Float_to_imm64(xv), X64_RAX);
+                        emit_mov_64_reg_indirect(X64_RAX, X64_RBP, loc);
+                }
                 break;
         }
         case IRCONSTANT_STRING: {
@@ -805,8 +848,41 @@ INTERNAL void x64asm_op2_irstmt_float(IrStmt irs)
 
         emit_movss_indirect_xmm(X64_RBP, XMM0, loc1);
         emit_movss_indirect_xmm(X64_RBP, XMM1, loc2);
-        emit_addss_xmm_xmm(XMM1, XMM0);
+        switch (irStmtInfo[irs].tOp2.irOp2Kind) {
+        case IROP2_ADD: emit_addss_xmm_xmm(XMM1, XMM0); break;
+        case IROP2_SUB: emit_subss_xmm_xmm(XMM1, XMM0); break;
+        case IROP2_MUL: emit_mulss_xmm_xmm(XMM1, XMM0); break;
+        case IROP2_DIV: emit_divss_xmm_xmm(XMM1, XMM0); break;
+        case IROP2_BITAND: /*TODO*/
+        case IROP2_BITOR: /*TODO*/
+        case IROP2_BITXOR: /*TODO*/
+        default: UNHANDLED_CASE();
+        }
         emit_movss_xmm_indirect(XMM0, X64_RBP, tgtloc);
+}
+
+INTERNAL void x64asm_op2_irstmt_double(IrStmt irs)
+{
+        IrReg reg1 = irStmtInfo[irs].tOp2.reg1;
+        IrReg reg2 = irStmtInfo[irs].tOp2.reg2;
+        IrReg tgtreg = irStmtInfo[irs].tOp2.tgtreg;
+        X64StackLoc loc1 = find_stack_loc(reg1);
+        X64StackLoc loc2 = find_stack_loc(reg2);
+        X64StackLoc tgtloc = find_stack_loc(tgtreg);
+
+        emit_movsd_indirect_xmm(X64_RBP, XMM0, loc1);
+        emit_movsd_indirect_xmm(X64_RBP, XMM1, loc2);
+        switch (irStmtInfo[irs].tOp2.irOp2Kind) {
+        case IROP2_ADD: emit_addsd_xmm_xmm(XMM1, XMM0); break;
+        case IROP2_SUB: emit_subsd_xmm_xmm(XMM1, XMM0); break;
+        case IROP2_MUL: emit_mulsd_xmm_xmm(XMM1, XMM0); break;
+        case IROP2_DIV: emit_divsd_xmm_xmm(XMM1, XMM0); break;
+        case IROP2_BITAND: /*TODO*/
+        case IROP2_BITOR: /*TODO*/
+        case IROP2_BITXOR: /*TODO*/
+        default: UNHANDLED_CASE();
+        }
+        emit_movsd_xmm_indirect(XMM0, X64_RBP, tgtloc);
 }
 
 INTERNAL void x64asm_op2_irstmt(IrStmt irs)
@@ -818,12 +894,14 @@ INTERNAL void x64asm_op2_irstmt(IrStmt irs)
         Type t2 = referenced_type(irRegInfo[reg2].tp);
 
         if ((t1 == builtinType[BUILTINTYPE_INT]
-             /* for pointer subscripting */
-             || typeInfo[t1].typeKind == TYPE_POINTER)
-            && t2 == builtinType[BUILTINTYPE_INT])
+                /* for pointer subscripting */
+                || typeInfo[t1].typeKind == TYPE_POINTER)
+                && t2 == builtinType[BUILTINTYPE_INT])
                 x64asm_op2_irstmt_int(irs);
         else if (t1 == builtinType[BUILTINTYPE_FLOAT])
                 x64asm_op2_irstmt_float(irs);
+        else if (t1 == builtinType[BUILTINTYPE_DOUBLE])
+                x64asm_op2_irstmt_double(irs);
         else
                 UNHANDLED_CASE();
 }
@@ -880,13 +958,15 @@ INTERNAL void x64asm_call_irstmt(IrStmt irs)
                 // XXX: this is of course ad-hoc and wrong. For
                 // instance, we do not even check if that
                 // register is free
-                int isXmm;
+                int passingKind;
                 int regbits;
-                ccstate_add_param(&ccstate, irRegInfo[r].tp, &isXmm, &regbits);
-                if (isXmm)
-                        emit_movss_indirect_xmm(X64_RBP, regbits, loc);
-                else
-                        emit_mov_64_indirect_reg(X64_RBP, regbits, loc);
+                ccstate_add_param(&ccstate, irRegInfo[r].tp, &passingKind, &regbits);
+                switch (passingKind) {
+                case PASSING_SINGLEPRECISION: emit_movss_indirect_xmm(X64_RBP, regbits, loc); break;
+                case PASSING_DOUBLEPRECISION: emit_movsd_indirect_xmm(X64_RBP, regbits, loc); break;
+                case PASSING_X64REG:          emit_mov_64_indirect_reg(X64_RBP, regbits, loc); break;
+                default: UNHANDLED_CASE();
+                }
         }
         emit_mov_64_indirect_reg(X64_RBP, X64_R11, calleeloc);
         emit_call_reg(X64_R11);
@@ -972,14 +1052,16 @@ INTERNAL void x64asm_proc(IrProc irp)
                         IrReg reg = dataToIrReg[data];
                         X64StackLoc loc = find_stack_loc(reg);
 
-                        int isXmm;
+                        int passingKind;
                         int regbits;
                         ccstate_add_param(&ccstate, irRegInfo[reg].tp,
-                                          &isXmm, &regbits);
-                        if (isXmm)
-                                emit_movss_xmm_indirect(regbits, X64_RBP, loc);
-                        else
-                                emit_mov_64_reg_indirect(regbits, X64_RBP, loc);
+                                          &passingKind, &regbits);
+                        switch (passingKind) {
+                        case PASSING_X64REG: emit_mov_64_reg_indirect(regbits, X64_RBP, loc); break;
+                        case PASSING_SINGLEPRECISION: emit_movss_xmm_indirect(regbits, X64_RBP, loc); break;
+                        case PASSING_DOUBLEPRECISION: emit_movsd_xmm_indirect(regbits, X64_RBP, loc); break;
+                        default: UNHANDLED_CASE();
+                        }
                 }
         }
 
