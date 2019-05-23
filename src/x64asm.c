@@ -124,7 +124,7 @@ void ccstate_add_param(struct CCState *state, Type tp, int *passingKind, int *re
                 *passingKind = PASSING_SINGLEPRECISION;
                 *regbits = x;
         }
-        if (type_equal(tp, builtinType[BUILTINTYPE_DOUBLE])) {
+        else if (type_equal(tp, builtinType[BUILTINTYPE_DOUBLE])) {
                 int x = state->floatCnt++;
                 ASSERT(0 <= x && x < numXmm);
                 *passingKind = PASSING_DOUBLEPRECISION;

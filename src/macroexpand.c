@@ -308,9 +308,11 @@ void expand_macros(void)
                 if (constantInfo[constant].constantKind != CONSTANT_EXPRESSION)
                         continue;
                 CURRENTLY_EXPANDED_PROC = (Proc) -1;
+                /*
                 DEBUG("macroexpand constant %s constant-expr=%d\n",
                         SS(constantInfo[constant].symbol),
                         constantInfo[constant].tExpr);
+                        */
                 EXPAND(constantInfo[constant].tExpr);
         }
 }

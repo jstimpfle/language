@@ -261,7 +261,7 @@ Type parse_type(int prec)
                 typeInfo[proctp].typeKind = TYPE_PROC;
                 typeInfo[proctp].tProc.rettp = tp;
                 typeInfo[proctp].tProc.nparams = 0;
-                for (;;) {
+                for (int rank = 0;; rank++) {
                         if (look_token_kind(TOKEN_RIGHTPAREN) != (Token) -1)
                                 break;
                         Type ptp = parse_type(0);
@@ -272,6 +272,7 @@ Type parse_type(int prec)
                         /* XXX this is fake. TODO change ParamInfo or require
                          * parameter name in syntax */
                         paramInfo[param].sym = (Symbol) 0;
+                        paramInfo[param].rank = rank;
                         if (look_token_kind(TOKEN_COMMA) == (Token) -1)
                                 break;
                         consume_token();
@@ -1117,7 +1118,7 @@ void parse_proc_directive(Directive directive)
         push_scope(pscope);
 
         parse_token_kind(TOKEN_LEFTPAREN);
-        for (;;) {
+        for (int rank = 0; ; rank++) {
                 Token tok = look_next_token();
                 if (tokenInfo[tok].tokenKind == TOKEN_RIGHTPAREN)
                         break;
@@ -1133,6 +1134,7 @@ void parse_proc_directive(Directive directive)
                 paramInfo[param].proctp = ptype;
                 paramInfo[param].tp = paramtp;
                 paramInfo[param].sym = paramsym;
+                paramInfo[param].rank = rank;
                 symbolInfo[paramsym].name = paramname;
                 symbolInfo[paramsym].scope = pscope;
                 symbolInfo[paramsym].symbolKind = SYMBOL_DATA;
@@ -1256,14 +1258,6 @@ int compare_Symbol(const void *a, const void *b)
         return (n2 < n1) - (n1 < n2);
 }
 
-
-/* BUG BUG BUG: We cannot use COMPARE_ADDRESS to achieve a stable sort since
- * elements get swapped around even if not compared (to make room for compared
- * ones). COMPARE_ADDRESS should be removed as soon as possible. We should
- * reintroduce the "rank" struct member or use a stable sorting function. */
-#define COMPARE_ADDRESS(x, y) ((x > y) - (x < y))
-
-
 INTERNAL
 int compare_ParamInfo(const void *a, const void *b)
 {
@@ -1271,7 +1265,7 @@ int compare_ParamInfo(const void *a, const void *b)
         const struct ParamInfo *y = b;
         if (x->proctp != y->proctp)
                 return x->proctp - y->proctp;
-        return COMPARE_ADDRESS(x, y);
+        return x->rank - y->rank;
 }
 
 INTERNAL

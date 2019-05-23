@@ -166,7 +166,7 @@ INTERNAL Type check_literal_expr_type(Expr x)
         case LITERAL_CHARACTER:
                 return builtinType[BUILTINTYPE_INT];
         case LITERAL_FLOAT:
-                return builtinType[BUILTINTYPE_DOUBLE];
+                return builtinType[BUILTINTYPE_FLOAT];
         case LITERAL_STRING:
                 return string_type();
         default:
@@ -444,6 +444,8 @@ INTERNAL Type check_call_expr_type(Expr x)
                         LOG_TYPE_ERROR_EXPR(x,
                                 "In call to %s(): Argument #%d doesn't match "
                                 "type of function parameter\n", procName, i+1);
+                        outf("Found:    ");  print_type(argTp); outf("\n");
+                        outf("Expected: "); print_type(paramTp); outf("\n");
                         return (Type) -1;
                 }
         }
