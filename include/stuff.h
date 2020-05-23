@@ -9,8 +9,8 @@
  *
  * TODO: find better place for these declarations
  * */
-int pe64strCnt;
-char *pe64strtab;
+DATA int pe64strCnt;
+DATA char *pe64strtab;
 
 
 /*

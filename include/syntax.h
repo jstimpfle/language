@@ -2,6 +2,19 @@
 #error This file must be included only from api.h !
 #endif
 
+/* This should maybe be in types.h, but must be put here to resolve dependencies */
+/**
+* \typedef{Type}: Type of a runtime value.
+* \typedef{Param}: Parameter for a TYPE_PROC type Proc type. See also \ref{ParamInfo}
+* \typedef{Structmember}: Member of a Struct type. See also
+* \ref{StructmemberInfo}.
+*/
+
+typedef int Type;
+typedef int Param;
+typedef int Structmember;
+
+
 
 /**
  * Scopes and Symbols

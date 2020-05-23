@@ -16,7 +16,6 @@
 #include <stuff.h>
 #include <token.h>
 #include <operators.h>
-typedef int Type; // needed in syntax. TODO think about dependencies
 #include <syntax.h>
 #include <macros.h>
 #include <types.h>
