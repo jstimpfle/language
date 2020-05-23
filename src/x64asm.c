@@ -92,31 +92,32 @@ void reset_ccstate(struct CCState *state)
 
 
 enum {
+        PASSING_STACK,
         PASSING_X64REG,
         PASSING_SINGLEPRECISION,
         PASSING_DOUBLEPRECISION,
 };
 
-void ccstate_add_param(struct CCState *state, Type tp, int *passingKind, int *regbits)
-{
-
-        INTERNAL const int cc[] = { /* "calling convention" */
-                /* XXX: for now, a compile-time switch will do for chosing the
-                 * calling convention */
+INTERNAL const int cc[] = { /* "calling convention" */
+        /* XXX: for now, a compile-time switch will do for chosing the
+         * calling convention */
 #ifdef _MSC_VER
                 X64_RCX, X64_RDX, X64_R8, X64_R9,
 #else
                 X64_RDI, X64_RSI, X64_RDX,
                 X64_RCX, X64_R8, X64_R9
 #endif
-        };
-        INTERNAL const int numXmm = {
+};
+INTERNAL const int numXmm = {
 #ifdef _MSC_VER
                 4,
 #else
                 8,
 #endif
-        };
+};
+
+void ccstate_add_param(struct CCState *state, Type tp, int *passingKind, int *regbits)
+{
 
         if (type_equal(tp, builtinType[BUILTINTYPE_FLOAT])) {
                 int x = state->floatCnt ++;
@@ -129,6 +130,10 @@ void ccstate_add_param(struct CCState *state, Type tp, int *passingKind, int *re
                 ASSERT(0 <= x && x < numXmm);
                 *passingKind = PASSING_DOUBLEPRECISION;
                 *regbits = x;
+        }
+        else if (state->regCnt == LENGTH(cc)) {
+                *passingKind = PASSING_STACK;
+                *regbits = 0;
         }
         else {
                 int x = state->regCnt ++;
@@ -643,6 +648,13 @@ INTERNAL void emit_load_symaddr_stack(Symbol symbol, X64StackLoc loc)
         emit_mov_64_reg_indirect(r1, X64_RBP, loc);
 }
 
+INTERNAL void emit_push_stack(IrReg UNUSED(reg), X64StackLoc loc)
+{
+        // assuming RAX is not used as argument
+        //emit_mov_64_indirect_reg(X64_RBP, X64_RAX, loc);
+        emit_push_64(X64_RAX);
+}
+
 INTERNAL void emit_local_jump(IrStmt tgtstmt)
 {
         emit_mov_64_imm64_reg(0 /* relocation */, X64_RAX);
@@ -945,11 +957,20 @@ INTERNAL void x64asm_call_irstmt(IrStmt irs)
         X64StackLoc calleeloc = find_stack_loc(calleeReg);
         IrCallArg firstArg = irStmtInfo[irs].tCall.firstIrCallArg;
 
+        IrCallArg lastArg = firstArg;
+        while (lastArg < irCallArgCnt && irCallArgInfo[lastArg].callStmt == irs)
+                lastArg++;
+
+        struct {
+                IrReg reg;
+                X64StackLoc loc;
+        } stackArgs[32];
+        int numStackArgs = 0;
+
         struct CCState ccstate;
         reset_ccstate(&ccstate);
 
-        for (int i = 0; ; i++) {
-                IrCallArg a = firstArg + i;
+        for (int a = firstArg; a < lastArg; a++) {
                 if (!(a < irCallArgCnt && irCallArgInfo[a].callStmt == irs))
                         break;
                 IrReg r = irCallArgInfo[a].srcreg;
@@ -965,9 +986,24 @@ INTERNAL void x64asm_call_irstmt(IrStmt irs)
                 case PASSING_SINGLEPRECISION: emit_movss_indirect_xmm(X64_RBP, regbits, loc); break;
                 case PASSING_DOUBLEPRECISION: emit_movsd_indirect_xmm(X64_RBP, regbits, loc); break;
                 case PASSING_X64REG:          emit_mov_64_indirect_reg(X64_RBP, regbits, loc); break;
+                case PASSING_STACK:
+                        ASSERT(numStackArgs < LENGTH(stackArgs));
+                        stackArgs[numStackArgs].reg = r;
+                        stackArgs[numStackArgs].loc = loc;
+                        numStackArgs++;
+                        break;
                 default: UNHANDLED_CASE();
                 }
         }
+
+        // push stack arguments in reverse order
+        while (numStackArgs > 0) {
+                IrReg reg = stackArgs[numStackArgs].reg;
+                X64StackLoc loc = stackArgs[numStackArgs].loc;
+                --numStackArgs;
+                emit_push_stack(reg, loc);
+        }
+
         emit_mov_64_indirect_reg(X64_RBP, X64_R11, calleeloc);
         emit_call_reg(X64_R11);
         IrCallResult cr0 = irStmtInfo[irs].tCall.firstIrCallResult;
@@ -1060,6 +1096,10 @@ INTERNAL void x64asm_proc(IrProc irp)
                         case PASSING_X64REG: emit_mov_64_reg_indirect(regbits, X64_RBP, loc); break;
                         case PASSING_SINGLEPRECISION: emit_movss_xmm_indirect(regbits, X64_RBP, loc); break;
                         case PASSING_DOUBLEPRECISION: emit_movsd_xmm_indirect(regbits, X64_RBP, loc); break;
+                        case PASSING_STACK:
+                                emit_pop_64(X64_RAX);
+                                emit_mov_64_reg_indirect(X64_RAX, X64_RBP, loc);
+                                break;
                         default: UNHANDLED_CASE();
                         }
                 }

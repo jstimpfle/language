@@ -108,6 +108,7 @@ struct ParamInfo {
         Type proctp;
         Type tp;
         Symbol sym;  // parameter name. Should this really be part of the type?
+        int rank;
 };
 
 struct ReftypeInfo {
